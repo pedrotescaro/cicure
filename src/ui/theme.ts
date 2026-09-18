@@ -1,2 +1,2 @@
-export const colors = { bg: '#FAFAFA', surface: '#FFFFFF', dark: '#1A1A1A', red: '#D62828', redPressed: '#B01F1F', redSoft: '#FDECEC', text: '#141414', secondary: '#6B6B6B', tertiary: '#9A9A9A', border: '#EAEAEA', green: '#2E7D5B', greenSoft: '#EDF5EF', amber: '#966000', amberSoft: '#FFF5DE' };
+export const colors = { bg: '#FFFFFF', surface: '#FFFFFF', dark: '#1A1A1A', red: '#D62828', redPressed: '#B01F1F', redSoft: '#FDECEC', text: '#141414', secondary: '#626262', tertiary: '#8A8A8A', border: '#E6E6E6', green: '#333333', greenSoft: '#F2F2F2', amber: '#555555', amberSoft: '#F2F2F2' };
 export const fonts = { regular: 'Inter_400Regular', medium: 'Inter_500Medium', semibold: 'Inter_600SemiBold', bold: 'Inter_700Bold', brand: 'Comfortaa_700Bold' };
