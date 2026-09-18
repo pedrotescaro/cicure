@@ -19,6 +19,15 @@ export const useStore = create<Store>((set, get) => ({
     try {
       let rows = await readRecords(scope);
       if (!rows.length && scope === 'demo') { const seed = demoData(); for (const kind of Object.keys(seed) as EntityKind[]) for (const record of seed[kind]) await writeRecord(scope, kind, record.id, record, false); rows = await readRecords(scope); }
+      if (scope === 'demo' && rows.length) {
+        const profile = rows.find(row => row.kind === 'profiles' && (row.payload as { name?: string }).name === 'Camila Ferreira');
+        if (profile) await writeRecord(scope, 'profiles', (profile.payload as { id: string }).id, { ...profile.payload, name: 'Caroline Ferreira' }, false);
+        for (const row of rows.filter(item => item.kind === 'visits')) {
+          const visit = row.payload as { signedBy?: string };
+          if (visit.signedBy?.includes('Camila')) await writeRecord(scope, 'visits', (row.payload as { id: string }).id, { ...row.payload, signedBy: visit.signedBy.replaceAll('Camila', 'Caroline') }, false);
+        }
+        rows = await readRecords(scope);
+      }
       const data = empty(); rows.forEach(r => (data[r.kind] as unknown[]).push(r.payload));
       set({ data, ready: true, pending: (await queue(scope)).length });
       if (scope !== 'demo') void get().sync();
