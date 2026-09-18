@@ -1,0 +1,17 @@
+export type PatientStatus = 'Ativo' | 'Alta' | 'Arquivado';
+export type WoundStatus = 'Em cicatrização' | 'Estagnada' | 'Piora' | 'Cicatrizada' | 'Ativa';
+export type Patient = { id: string; name: string; birthDate: string; sex: string; cpf: string; sus: string; phone: string; address: string; emergency: string; status: PatientStatus; weight: number; height: number; bloodType: string; allergies: string[]; smoking: string; alcohol: string; activity: string; comorbidities: { name: string; date: string; note: string }[]; medications: { name: string; dose: string; route: string; frequency: string; start: string; indication: string; attention: boolean }[]; exams: { type: string; value: string; date: string; attachment?: string }[]; color: string; createdAt: string; deletedAt?: string };
+export type Wound = { id: string; patientId: string; location: string; etiology: string; startDate: string; status: WoundStatus; previousTreatments: string; pin: { x: number; y: number; side: 'Frente' | 'Costas' }; deletedAt?: string };
+export type Point = { x: number; y: number };
+export type Photo = { id: string; uri: string; storagePath?: string; date: string; rulerConfirmed: boolean; pixelsPerCm?: number; contour: Point[]; width: number; height: number; type: string; referencePoints?: Point[]; referenceCm?: number };
+export type Assessment = { code: string; version: string; answers: Record<string, number | string>; score: number | null; interpretation: string; appliedAt: string; appliedBy: string };
+export type Dressing = { id: string; product: string; presentation: string; quantity: string; layer: string; frequency: string; start: string; note: string };
+export type Therapy = { id: string; type: string; parameters: Record<string, string>; duration: number; note: string; professional: string; date: string };
+export type Visit = { id: string; patientId: string; woundId: string; date: string; scheduledTime: string; state: 'Agendado' | 'Rascunho' | 'Concluído'; step: number; length: string; width: string; depth: string; tunnels: string; edges: string[]; perilesional: string[]; tissue: Record<string, number>; exudateAmount: string; exudateType: string; odor: string; infection: string[]; pain: number; assessments: Assessment[]; dressings: Dressing[]; therapies: Therapy[]; photos: Photo[]; plan: string; guidance: string; returnDate: string; signature: Point[][]; signedBy: string; deletedAt?: string };
+export type Report = { id: string; visitId: string; patientId: string; type: 'Completo' | 'Para o paciente' | 'Encaminhamento'; createdAt: string; uri?: string; storagePath?: string; snapshot: { patient: Patient; wound: Wound; visit: Visit; profile: Profile; previous?: Visit } };
+export type Profile = { id: string; name: string; council: string; registration: string; specialty: string };
+export type Product = { id: string; name: string; presentation: string };
+export type Entities = { patients: Patient; wounds: Wound; visits: Visit; reports: Report; profiles: Profile; products: Product };
+export type EntityKind = keyof Entities;
+export type Data = { [K in EntityKind]: Entities[K][] };
+export type QueueItem = { id: string; kind: EntityKind; entityId: string; payload: unknown; version: number; baseVersion: number; attempts: number; error?: string };

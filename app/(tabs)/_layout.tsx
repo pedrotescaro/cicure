@@ -1,0 +1,14 @@
+import { Tabs, usePathname, useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ClipboardList, FileText, House, Menu, Plus, Stethoscope } from 'lucide-react-native';
+import { colors, fonts } from '../../src/ui/theme';
+import { useStore } from '../../src/data/store';
+const tabs = [{ name: 'index', label: 'Início', Icon: House }, { name: 'patients', label: 'Pacientes', Icon: ClipboardList }, { name: 'care', label: 'Atendimento', Icon: Stethoscope }, { name: 'reports', label: 'Relatórios', Icon: FileText }, { name: 'more', label: 'Mais', Icon: Menu }];
+export default function TabsLayout() { const insets = useSafeAreaInsets(); const router = useRouter(); const pathname = usePathname(); const presentation = useStore(s => s.presentation); return <>
+  <Tabs tabBar={() => <View style={[styles.tabbar, { bottom: Math.max(insets.bottom, 12) }]}>{tabs.map(({ name, label, Icon }) => { const active = pathname === `/${name}` || (name === 'patients' && pathname.startsWith('/patient')); return <Pressable key={name} accessibilityRole="tab" accessibilityState={{ selected: active }} onPress={() => router.push(`/(tabs)/${name}`)} style={styles.tab}><View style={[styles.tabIcon, active && { backgroundColor: '#F1F1F1' }]}><Icon size={21} color={active ? colors.text : colors.tertiary} strokeWidth={active ? 2 : 1.6} /></View><Text style={[styles.tabLabel, active && { color: colors.text, fontFamily: fonts.semibold }]}>{label}</Text></Pressable>; })}</View>} screenOptions={{ headerShown: false }}>
+    <Tabs.Screen name="index" /><Tabs.Screen name="patients" /><Tabs.Screen name="care" /><Tabs.Screen name="reports" /><Tabs.Screen name="more" />
+  </Tabs>
+  {!presentation && <Pressable accessibilityRole="button" accessibilityLabel="Novo atendimento" onPress={() => router.push('/care/new')} style={[styles.fab, { bottom: Math.max(insets.bottom, 12) + 77 }]}><Plus size={24} color="#FFF" strokeWidth={2.3} /></Pressable>}
+</>; }
+const styles = StyleSheet.create({ tabbar: { position: 'absolute', left: 14, right: 14, height: 70, borderRadius: 34, backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', paddingHorizontal: 8, zIndex: 5 }, tab: { alignItems: 'center', justifyContent: 'center', minWidth: 54, minHeight: 60, gap: 3 }, tabIcon: { width: 35, height: 35, borderRadius: 18, justifyContent: 'center', alignItems: 'center' }, tabLabel: { fontSize: 10, color: colors.tertiary, fontFamily: fonts.medium }, fab: { position: 'absolute', right: 24, zIndex: 7, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.red, alignItems: 'center', justifyContent: 'center', elevation: 5 } });
