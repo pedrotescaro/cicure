@@ -4,7 +4,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { Platform } from 'react-native';
 import { acknowledge, markError, queue, readRecords, writeRecord } from './storage';
 import { supabase } from './supabase';
-import { demoData } from '../domain/demo';
+import { demoData, demoPatientColors } from '../domain/demo';
 import type { Data, Entities, EntityKind } from '../domain/types';
 export const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1, networkMode: 'always' } } });
 export const uid = () => Crypto.randomUUID();
@@ -22,6 +22,12 @@ export const useStore = create<Store>((set, get) => ({
       if (scope === 'demo' && rows.length) {
         const profile = rows.find(row => row.kind === 'profiles' && (row.payload as { name?: string }).name === 'Camila Ferreira');
         if (profile) await writeRecord(scope, 'profiles', (profile.payload as { id: string }).id, { ...profile.payload, name: 'Caroline Ferreira' }, false);
+        for (const row of rows.filter(item => item.kind === 'patients')) {
+          const patient = row.payload as { id: string; color?: string };
+          const index = patient.id.match(/^demo-p-(\d+)$/)?.[1];
+          const color = index === undefined ? undefined : demoPatientColors[Number(index)];
+          if (color && patient.color !== color) await writeRecord(scope, 'patients', patient.id, { ...row.payload, color }, false);
+        }
         for (const row of rows.filter(item => item.kind === 'visits')) {
           const visit = row.payload as { signedBy?: string };
           if (visit.signedBy?.includes('Camila')) await writeRecord(scope, 'visits', (row.payload as { id: string }).id, { ...row.payload, signedBy: visit.signedBy.replaceAll('Camila', 'Caroline') }, false);

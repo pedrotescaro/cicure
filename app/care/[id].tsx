@@ -1,3 +1,3 @@
 import { useLocalSearchParams } from 'expo-router';
-import { CareWizard } from '../../src/ui/CareWizard';
-export default function ExistingCare() { const { id } = useLocalSearchParams<{ id: string }>(); return <CareWizard visitId={id} />; }
+import { VisitSummary } from '../../src/ui/VisitSummary';
+export default function ExistingCare() { const { id } = useLocalSearchParams<{ id: string }>(); return <VisitSummary visitId={Array.isArray(id) ? id[0] : id} />; }
