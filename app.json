@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "cicure",
-    "slug": "cicure",
+    "name": "Cicura",
+    "slug": "cicura",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -21,7 +21,7 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
       ],
-      "package": "com.pedrotescaro.cicure"
+      "package": "com.pedrotescaro.cicura"
     },
     "web": {
       "favicon": "./assets/favicon.png"
