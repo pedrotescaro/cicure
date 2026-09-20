@@ -229,19 +229,27 @@ export function Field({
   error,
   style,
   containerStyle,
+  labelStyle,
+  labelContainerStyle,
   ...props
 }: React.ComponentProps<typeof TextInput> & {
   label: string;
   error?: string;
   style?: StyleProp<TextStyle>;
   containerStyle?: StyleProp<ViewStyle>;
+  labelStyle?: StyleProp<TextStyle>;
+  labelContainerStyle?: StyleProp<ViewStyle>;
 }) {
   const { colors: c, isDark } = useTheme();
   const [focused, setFocused] = useState(false);
 
   return (
     <View style={[{ gap: 7, flexGrow: 1, flexBasis: 140, minWidth: 0 }, containerStyle]}>
-      {Boolean(label) && <Txt style={{ fontSize: 13, fontFamily: fonts.medium }}>{label}</Txt>}
+      {Boolean(label) && (
+        <View style={labelContainerStyle}>
+          <Txt style={[{ fontSize: 13, fontFamily: fonts.medium }, labelStyle]}>{label}</Txt>
+        </View>
+      )}
       <TextInput
         accessibilityLabel={label}
         placeholderTextColor={c.tertiary}

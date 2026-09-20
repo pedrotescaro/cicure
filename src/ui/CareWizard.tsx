@@ -435,6 +435,15 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
 // ============================================================
 // ETAPA 0: MENSURAÇÃO
 // ============================================================
+const cleanDecimal = (val: string) => {
+  const sanitized = val.replace(',', '.').replace(/[^0-9.]/g, '');
+  const parts = sanitized.split('.');
+  if (parts.length > 2) {
+    return `${parts[0]}.${parts.slice(1).join('')}`;
+  }
+  return sanitized;
+};
+
 function MeasurementStep({ 
   local, 
   control, 
@@ -463,23 +472,26 @@ function MeasurementStep({
       <SectionTitle title="DIMENSÕES DA LESÃO" />
 
       {/* Inputs de Medidas */}
-      <View style={{ flexDirection: 'row', gap: 10, flexWrap: 'wrap' }}>
+      <View style={{ flexDirection: 'row', gap: 10 }}>
         <Controller 
           control={control} 
           name="length" 
           render={({ field }) => (
             <Field 
-              label="Comprimento (cm)" 
+              label={"Comprimento\n(cm)"} 
               placeholder="Ex.: 4.5"
               keyboardType="decimal-pad" 
               value={field.value} 
               onChangeText={val => {
-                field.onChange(val);
-                onChange({ length: val });
+                const formatted = cleanDecimal(val);
+                field.onChange(formatted);
+                onChange({ length: formatted });
               }} 
               onBlur={field.onBlur} 
               error={errors.length?.message} 
-              containerStyle={{ flex: 1, minWidth: 95 }} 
+              containerStyle={{ flex: 1, minWidth: 0 }} 
+              labelContainerStyle={{ minHeight: 36, justifyContent: 'flex-start' }}
+              labelStyle={{ fontSize: 13, lineHeight: 18 }}
             />
           )} 
         />
@@ -488,17 +500,20 @@ function MeasurementStep({
           name="width" 
           render={({ field }) => (
             <Field 
-              label="Largura (cm)" 
+              label={"Largura\n(cm)"} 
               placeholder="Ex.: 3.2"
               keyboardType="decimal-pad" 
               value={field.value} 
               onChangeText={val => {
-                field.onChange(val);
-                onChange({ width: val });
+                const formatted = cleanDecimal(val);
+                field.onChange(formatted);
+                onChange({ width: formatted });
               }} 
               onBlur={field.onBlur} 
               error={errors.width?.message} 
-              containerStyle={{ flex: 1, minWidth: 95 }} 
+              containerStyle={{ flex: 1, minWidth: 0 }} 
+              labelContainerStyle={{ minHeight: 36, justifyContent: 'flex-start' }}
+              labelStyle={{ fontSize: 13, lineHeight: 18 }}
             />
           )} 
         />
@@ -507,17 +522,20 @@ function MeasurementStep({
           name="depth" 
           render={({ field }) => (
             <Field 
-              label="Profundidade (cm)" 
+              label={"Profundidade\n(cm)"} 
               placeholder="Ex.: 0.5"
               keyboardType="decimal-pad" 
               value={field.value} 
               onChangeText={val => {
-                field.onChange(val);
-                onChange({ depth: val });
+                const formatted = cleanDecimal(val);
+                field.onChange(formatted);
+                onChange({ depth: formatted });
               }} 
               onBlur={field.onBlur} 
               error={errors.depth?.message} 
-              containerStyle={{ flex: 1, minWidth: 95 }} 
+              containerStyle={{ flex: 1, minWidth: 0 }} 
+              labelContainerStyle={{ minHeight: 36, justifyContent: 'flex-start' }}
+              labelStyle={{ fontSize: 13, lineHeight: 18 }}
             />
           )} 
         />
