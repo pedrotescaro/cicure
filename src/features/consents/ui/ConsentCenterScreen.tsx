@@ -3,7 +3,7 @@ import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ShieldCheck, Check, X, ShieldAlert, History } from 'lucide-react-native';
 import { useStore, uid } from '../../../data/store';
-import { Badge, Button, Card, Empty, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Empty, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import { CONSENT_DEFINITIONS, type ConsentType, type PatientConsent } from '../domain/types';
 
@@ -28,7 +28,7 @@ export default function ConsentCenterScreen({ patientId }: { patientId: string }
   if (!patient) {
     return (
       <View style={styles.center}>
-        <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => router.back()} />
+        <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => safeBack(router, '/patients')} />
       </View>
     );
   }
@@ -83,7 +83,7 @@ export default function ConsentCenterScreen({ patientId }: { patientId: string }
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Termos de Consentimento</Txt>
           <Txt muted style={{ fontSize: 13 }}>{patient.name} · Autorizações Granulares LGPD</Txt>

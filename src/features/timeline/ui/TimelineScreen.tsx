@@ -14,7 +14,7 @@ import {
   Calendar 
 } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
-import { Badge, Card, Empty, IconButton, Label, Pills, Txt, s } from '../../../ui/components';
+import { Badge, Card, Empty, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { dateLabel } from '../../../domain/clinical';
 import { buildTimeline, filterTimeline } from '../domain/timeline.service';
@@ -69,7 +69,7 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
           title="Paciente não encontrado" 
           description="Verifique o identificador e tente novamente."
           action="Voltar"
-          onPress={() => router.back()}
+          onPress={() => safeBack(router, '/patients')}
         />
       </View>
     );
@@ -130,7 +130,7 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
     <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Linha do Tempo</Txt>
           <Txt muted style={{ fontSize: 13 }}>{patient.name} · {allEvents.length} eventos registrados</Txt>

@@ -3,7 +3,7 @@ import { Alert, FlatList, Modal, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Plus, Share2, ArrowUpRight, Check, X, Clock } from 'lucide-react-native';
 import { useStore, uid } from '../../../data/store';
-import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { REFERRAL_SPECIALTIES, type Referral, type ReferralPriority, type ReferralStatus } from '../domain/types';
 
@@ -47,7 +47,7 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
   if (!patient) {
     return (
       <View style={[styles.center, { backgroundColor: c.bg }]}>
-        <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => router.back()} />
+        <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => safeBack(router, '/patients')} />
       </View>
     );
   }
@@ -88,7 +88,7 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
     <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Encaminhamentos</Txt>
           <Txt muted style={{ fontSize: 13 }}>{patient.name} · Rede de Cuidado Interprofissional</Txt>

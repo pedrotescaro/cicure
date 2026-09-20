@@ -19,7 +19,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
-import { Avatar, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, s } from './components';
+import { Avatar, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, safeBack, s } from './components';
 import { fonts, useTheme } from './theme';
 import { area, decimal, measurementSchema, number, visitErrors } from '../domain/clinical';
 import { useStore, uid } from '../data/store';
@@ -200,7 +200,7 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
     Alert.alert(
       'Atendimento Concluído',
       'O registro foi assinado e salvo com sucesso no prontuário.',
-      [{ text: 'Ver Prontuário', onPress: () => router.back() }]
+      [{ text: 'Ver Prontuário', onPress: () => safeBack(router, local.patientId ? `/patient/${local.patientId}` : '/care') }]
     );
   };
 
@@ -248,7 +248,7 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
           title="Selecione paciente e ferida" 
           description="O atendimento precisa estar vinculado a um prontuário cadastrado."
           action="Voltar"
-          onPress={() => router.back()} 
+          onPress={() => safeBack(router, '/care')} 
         />
       </View>
     );
@@ -278,7 +278,7 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
             <IconButton 
               icon={X} 
               label="Fechar" 
-              onPress={() => router.back()} 
+              onPress={() => safeBack(router, '/care')} 
             />
           </View>
         </View>

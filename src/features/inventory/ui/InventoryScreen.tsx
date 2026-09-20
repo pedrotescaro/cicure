@@ -3,7 +3,7 @@ import { Alert, FlatList, Modal, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Plus, Package, AlertTriangle, Clock, Check, X, ArrowDownRight, ArrowUpRight } from 'lucide-react-native';
 import { useStore, uid } from '../../../data/store';
-import { Badge, Button, Card, Empty, Field, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Empty, Field, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { INITIAL_INVENTORY, checkInventoryAlerts } from '../domain/inventory.service';
 import type { InventoryItem, InventoryLot } from '../domain/types';
@@ -78,7 +78,7 @@ export default function InventoryScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Controle de Estoque</Txt>
           <Txt muted style={{ fontSize: 13 }}>Rastreabilidade de lotes e coberturas</Txt>

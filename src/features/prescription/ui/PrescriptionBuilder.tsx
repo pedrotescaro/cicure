@@ -14,7 +14,7 @@ import {
   Sparkles 
 } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
-import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import { productNames } from '../../../domain/clinical';
 import { createPrescription, duplicatePrescription, prescriptionToTemplateContent } from '../domain/prescription.service';
@@ -58,7 +58,7 @@ export default function PrescriptionBuilder({
           title="Paciente ou lesão não selecionada" 
           description="A prescrição precisa estar vinculada a um paciente e ferida."
           action="Voltar"
-          onPress={() => router.back()}
+          onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')}
         />
       </View>
     );
@@ -125,7 +125,7 @@ export default function PrescriptionBuilder({
     Alert.alert(
       'Prescrição Salva',
       'A prescrição foi salva no prontuário do paciente e está pronta para exportação em PDF ou impressão.',
-      [{ text: 'Concluir', onPress: () => router.back() }]
+      [{ text: 'Concluir', onPress: () => safeBack(router, patientId ? `/patient/${patientId}` : '/patients') }]
     );
   };
 
@@ -133,7 +133,7 @@ export default function PrescriptionBuilder({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Prescrição de Curativo</Txt>
           <Txt muted style={{ fontSize: 13 }}>{patient.name} · {selectedWound.location}</Txt>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Shield, Eye, Edit3, CheckCircle, Share2, Download, LogIn } from 'lucide-react-native';
-import { Badge, Card, Empty, IconButton, Label, Pills, Txt, s } from '../../../ui/components';
+import { Badge, Card, Empty, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { dateLabel } from '../../../domain/clinical';
 import { getAuditEvents } from '../domain/security.service';
@@ -36,7 +36,7 @@ export default function AuditLogScreen() {
     <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Trilha de Auditoria</Txt>
           <Txt muted style={{ fontSize: 13 }}>Rastreabilidade e conformidade LGPD</Txt>

@@ -16,7 +16,7 @@ import {
   Share2
 } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Accordion, Avatar, Badge, Button, Card, Choices, Divider, IconButton, Label, SectionTitle, Txt, s } from '../../src/ui/components';
+import { Accordion, Avatar, Badge, Button, Card, Choices, Divider, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../src/ui/components';
 import { fonts, useTheme } from '../../src/ui/theme';
 import { age, dateLabel, number } from '../../src/domain/clinical';
 import { useStore } from '../../src/data/store';
@@ -45,7 +45,7 @@ export default function PatientDetail() {
     return (
       <View style={{ flex: 1, padding: 24, backgroundColor: c.bg, justifyContent: 'center', alignItems: 'center' }}>
         <Txt>Paciente não encontrado.</Txt>
-        <Button title="Voltar" onPress={() => router.back()} style={{ marginTop: 16 }} />
+        <Button title="Voltar" onPress={() => safeBack(router, '/patients')} style={{ marginTop: 16 }} />
       </View>
     );
   }
@@ -55,7 +55,7 @@ export default function PatientDetail() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 80, gap: 16, width: '100%', maxWidth: 840, alignSelf: 'center' }}>
         {/* Header com Navegação */}
         <View style={s.between}>
-          <IconButton icon={ArrowLeft} label="Voltar" onPress={() => router.back()} />
+          <IconButton icon={ArrowLeft} label="Voltar" onPress={() => safeBack(router, '/patients')} />
           <View style={{ flexDirection: 'row', gap: 6 }}>
             <IconButton 
               icon={CalendarPlus} 

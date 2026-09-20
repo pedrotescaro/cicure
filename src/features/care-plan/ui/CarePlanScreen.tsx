@@ -3,7 +3,7 @@ import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Plus, Check, Clock, History, Target } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
-import { Accordion, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
+import { Accordion, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { fonts, useTheme } from '../../../ui/theme';
 import { productNames } from '../../../domain/clinical';
 import { CarePlanGoalCard } from './CarePlanGoalCard';
@@ -61,7 +61,7 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
           title="Paciente ou ferida não encontrada" 
           description="O plano terapêutico requer uma ferida cadastrada."
           action="Voltar"
-          onPress={() => router.back()}
+          onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')}
         />
       </View>
     );
@@ -120,7 +120,7 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
     <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Plano Terapêutico</Txt>
           <Txt muted style={{ fontSize: 13 }}>{patient.name} · {activeWound.location}</Txt>

@@ -519,3 +519,5 @@ export const s = StyleSheet.create({
   h1: { fontFamily: fonts.brand, fontSize: 32, lineHeight: 42 },
   h2: { fontFamily: fonts.semibold, fontSize: 19 },
 });
+
+export { safeBack } from './navigation/safeBack';

@@ -11,7 +11,7 @@ import {
   X, 
   Check 
 } from 'lucide-react-native';
-import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { DEFAULT_TEMPLATES, createTemplate, duplicateTemplate } from '../domain/template.service';
 import type { ClinicalTemplate, TemplateType } from '../domain/types';
@@ -105,7 +105,7 @@ export default function TemplateListScreen() {
     <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Biblioteca de Modelos</Txt>
           <Txt muted style={{ fontSize: 13 }}>Protocolos padronizados de curativos e condutas</Txt>

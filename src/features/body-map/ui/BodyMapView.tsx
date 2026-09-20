@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
 import { ChevronLeft, Layers, MapPin } from 'lucide-react-native';
-import { Badge, Card, IconButton, Pills, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Card, IconButton, Pills, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import type { Wound, WoundStatus } from '../../../domain/types';
 
@@ -34,7 +34,7 @@ export default function BodyMapView({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, wounds[0]?.patientId ? `/patient/${wounds[0].patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Mapa Corporal</Txt>
           <Txt muted style={{ fontSize: 13 }}>{patientName} · {wounds.length} lesões mapeadas</Txt>

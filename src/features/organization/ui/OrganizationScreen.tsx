@@ -14,7 +14,7 @@ import {
   Copy,
   Share2
 } from 'lucide-react-native';
-import { Badge, Button, Card, Divider, Empty, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Divider, Empty, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import { useStore } from '../../../data/store';
 import { WorkspaceSelectorModal } from './WorkspaceSelectorModal';
@@ -51,7 +51,7 @@ export default function OrganizationScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Clínicas e Workspaces</Txt>
           <Txt muted style={{ fontSize: 13 }}>Alterne entre seu consultório particular e equipes</Txt>

@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import { ChevronLeft, Plus, FileText, Image as ImageIcon, FileSpreadsheet, Lock, Eye, Download } from 'lucide-react-native';
 import { useStore, uid } from '../../../data/store';
-import { Badge, Button, Card, Empty, Field, IconButton, Label, Pills, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Empty, Field, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import type { PatientDocument, DocumentType } from '../domain/types';
 
@@ -42,7 +42,7 @@ export default function DocumentCenterScreen({ patientId }: { patientId: string 
   if (!patient) {
     return (
       <View style={styles.center}>
-        <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => router.back()} />
+        <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => safeBack(router, '/patients')} />
       </View>
     );
   }
@@ -90,7 +90,7 @@ export default function DocumentCenterScreen({ patientId }: { patientId: string 
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Central de Documentos</Txt>
           <Txt muted style={{ fontSize: 13 }}>{patient.name} · Bucket Privado Criptografado</Txt>

@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Ruler, Stethos
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Avatar, Badge, Button, Card, Divider, IconButton, Label, SectionTitle, Txt, s } from './components';
+import { Avatar, Badge, Button, Card, Divider, IconButton, Label, SectionTitle, Txt, safeBack, s } from './components';
 import { fonts, useTheme } from './theme';
 import { area, dateLabel, number, volume } from '../domain/clinical';
 import { useStore } from '../data/store';
@@ -20,7 +20,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
       <View style={[styles.empty, { backgroundColor: colors.bg }]}>
         <Txt style={s.h2}>Atendimento não encontrado</Txt>
         <Txt muted>Esse registro pode ter sido removido ou ainda não foi sincronizado.</Txt>
-        <Button title="Voltar" onPress={() => router.back()} />
+        <Button title="Voltar" onPress={() => safeBack(router, '/care')} />
       </View>
     );
   }
@@ -31,7 +31,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
       <View style={[styles.empty, { backgroundColor: colors.bg }]}>
         <Txt style={s.h2}>Prontuário incompleto</Txt>
         <Txt muted>Vincule o atendimento a um paciente e uma ferida para visualizar o resumo.</Txt>
-        <Button title="Voltar" onPress={() => router.back()} />
+        <Button title="Voltar" onPress={() => safeBack(router, '/care')} />
       </View>
     );
   }
@@ -51,7 +51,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
       >
         <View style={s.between}>
           <View style={[s.row, { flex: 1, minWidth: 0 }]}>
-            <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+            <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patient ? `/patient/${patient.id}` : '/care')} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Label>ATENDIMENTO</Label>
               <Txt style={{ fontFamily: fonts.semibold, fontSize: isNarrow ? 17 : 19 }} numberOfLines={1}>

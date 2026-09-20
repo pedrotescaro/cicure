@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Laptop, Smartphone, Tablet, LogOut, ShieldCheck } from 'lucide-react-native';
-import { Badge, Button, Card, Empty, IconButton, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Empty, IconButton, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { INITIAL_SESSIONS } from '../domain/security.service';
 import type { DeviceSession } from '../domain/types';
@@ -52,7 +52,7 @@ export default function SessionsScreen() {
     <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Sessões Ativas</Txt>
           <Txt muted style={{ fontSize: 13 }}>Dispositivos conectados à sua conta</Txt>

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
 import { useNetworkStatus } from '../../../data/network';
-import { Badge, Button, Card, Empty, IconButton, Label, Pills, Txt, s } from '../../../ui/components';
+import { Badge, Button, Card, Empty, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { INITIAL_SYNC_ITEMS, resolveSyncConflict } from '../domain/sync.service';
 import { ConflictResolutionModal } from './ConflictResolutionModal';
@@ -67,7 +67,7 @@ export default function SyncCenterScreen() {
     <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Central de Sincronização</Txt>
           <Txt muted style={{ fontSize: 13 }}>SQLite Offline-First · Fila Idempotente</Txt>

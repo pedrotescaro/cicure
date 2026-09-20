@@ -3,7 +3,7 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, AlertCircle, Clock, FileCheck, FileText, CloudUpload, ArrowRight } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
-import { Badge, Card, Empty, IconButton, Label, Pills, Txt, s } from '../../../ui/components';
+import { Badge, Card, Empty, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import { computePendingItems, type PendingItem } from '../domain/pending.service';
 
@@ -35,7 +35,7 @@ export default function PendingScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Central de Pendências</Txt>
           <Txt muted style={{ fontSize: 13 }}>{allItems.length} tarefa(s) clínica(s) aguardando ação</Txt>

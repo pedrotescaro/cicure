@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, TrendingUp, Users, HeartPulse, CheckCircle2, Clock, PieChart, Activity } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
-import { Badge, Card, IconButton, Label, Pills, SectionTitle, Txt, s } from '../../../ui/components';
+import { Badge, Card, IconButton, Label, Pills, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import { area, number } from '../../../domain/clinical';
 
@@ -36,7 +36,7 @@ export default function IndicatorsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
+        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Indicadores Clínicos</Txt>
           <Txt muted style={{ fontSize: 13 }}>Métricas longitudinais de desfecho</Txt>
