@@ -240,7 +240,7 @@ export function Field({
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={[{ gap: 7, flexGrow: 1, flexBasis: 140 }, containerStyle]}>
+    <View style={[{ gap: 7, flexGrow: 1, flexBasis: 140, minWidth: 0 }, containerStyle]}>
       {Boolean(label) && <Txt style={{ fontSize: 13, fontFamily: fonts.medium }}>{label}</Txt>}
       <TextInput
         accessibilityLabel={label}
@@ -274,16 +274,19 @@ export function Pills({
   options,
   value,
   onChange,
+  style,
 }: {
   options: string[];
   value: string;
   onChange: (value: string) => void;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { colors: c, isDark } = useTheme();
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={[{ flexGrow: 0, alignSelf: 'flex-start', maxWidth: '100%' }, style]}
       contentContainerStyle={[s.pillContainer, { backgroundColor: isDark ? '#1C1C1E' : '#FFF', borderColor: c.border }]}
     >
       {options.map(option => {
@@ -471,7 +474,7 @@ export function Skeleton() {
 export const s = StyleSheet.create({
   text: { fontFamily: fonts.regular, fontSize: 16 },
   label: { fontSize: 11, letterSpacing: 1.4, fontFamily: fonts.semibold },
-  card: { padding: 24, borderRadius: 24, borderWidth: 1, gap: 16 },
+  card: { padding: 20, borderRadius: 24, borderWidth: 1, gap: 16 },
   button: {
     minHeight: 48,
     borderRadius: 14,
@@ -492,7 +495,14 @@ export const s = StyleSheet.create({
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   badge: { alignSelf: 'flex-start', borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5 },
-  pillContainer: { padding: 4, borderRadius: 24, borderWidth: 1, gap: 4, alignSelf: 'flex-start' },
+  pillContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    padding: 4, 
+    borderRadius: 24, 
+    borderWidth: 1, 
+    gap: 4 
+  },
   pill: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 20 },
   choice: { borderWidth: 1, paddingHorizontal: 14, minHeight: 48, justifyContent: 'center', borderRadius: 12 },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },

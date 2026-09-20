@@ -52,7 +52,7 @@ export default function PatientDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 80, gap: 16 }}>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingTop: 16, paddingBottom: 80, gap: 16, width: '100%', maxWidth: 840, alignSelf: 'center' }}>
         {/* Header com Navegação */}
         <View style={s.between}>
           <IconButton icon={ArrowLeft} label="Voltar" onPress={() => router.back()} />

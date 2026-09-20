@@ -97,13 +97,11 @@ export default function AdvancedAgenda() {
         </View>
 
         {/* Seletor de Modo de Visualização */}
-        <View style={styles.viewModeRow}>
-          <Pills 
-            options={['Diária', 'Semanal', 'Mensal']} 
-            value={viewMode} 
-            onChange={v => setViewMode(v as any)} 
-          />
-        </View>
+        <Pills 
+          options={['Diária', 'Semanal', 'Mensal']} 
+          value={viewMode} 
+          onChange={v => setViewMode(v as any)} 
+        />
 
         {/* Filtros de Status */}
         <Pills 
@@ -122,8 +120,8 @@ export default function AdvancedAgenda() {
                 : { backgroundColor: '#FFF8F8', borderColor: '#F5C6C6' }
             ]}
           >
-            <View style={s.between}>
-              <View style={[s.row, { flex: 1 }]}>
+            <View style={[s.between, { flexWrap: 'wrap', gap: 8 }]}>
+              <View style={[s.row, { flex: 1, minWidth: isNarrow ? 160 : 200 }]}>
                 <AlertCircle size={20} color={colors.red} />
                 <Txt style={[styles.withoutReturnTitle, { flex: 1, color: colors.red }]} numberOfLines={1}>
                   Pacientes sem Retorno ({patientsWithoutReturn.length})
@@ -163,7 +161,7 @@ export default function AdvancedAgenda() {
                       small 
                       variant="outline" 
                       onPress={() => router.push(`/care/new?patientId=${p.id}` as never)}
-                      style={{ paddingHorizontal: 12 }}
+                      style={{ paddingHorizontal: 12, minHeight: 36 }}
                     />
                   </Pressable>
                 );
@@ -209,14 +207,20 @@ export default function AdvancedAgenda() {
                 </Pressable>
 
                 {!isCompleted && (
-                  <View style={[styles.visitActions, { borderTopColor: colors.border }]}>
+                  <View style={[
+                    styles.visitActions, 
+                    { 
+                      borderTopColor: colors.border,
+                      flexDirection: isNarrow ? 'column' : 'row'
+                    }
+                  ]}>
                     <Button 
                       title="Lembrete" 
                       variant="outline" 
                       icon={Bell} 
                       small 
                       onPress={() => handleSetReminder(v, p.name)}
-                      style={{ flex: 1, minWidth: 100 }}
+                      style={{ flex: 1, minWidth: isNarrow ? '100%' : 100 }}
                     />
                     <Button 
                       title="Iniciar" 
@@ -224,7 +228,7 @@ export default function AdvancedAgenda() {
                       icon={Play}
                       small 
                       onPress={() => router.push(`/care/new?visitId=${v.id}` as never)}
-                      style={{ flex: 1.3, minWidth: 110 }}
+                      style={{ flex: isNarrow ? 1 : 1.2, minWidth: isNarrow ? '100%' : 110 }}
                     />
                   </View>
                 )}
@@ -251,11 +255,17 @@ export default function AdvancedAgenda() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
+  content: { 
+    paddingTop: 18, 
+    paddingBottom: 160, 
+    gap: 18, 
+    width: '100%', 
+    maxWidth: 840, 
+    alignSelf: 'center' 
+  },
   topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
   sectionLabel: { fontSize: 11, letterSpacing: 1.4, fontFamily: fonts.semibold },
-  viewModeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   withoutReturnCard: {
     gap: 10,
     padding: 16,
@@ -271,10 +281,8 @@ const styles = StyleSheet.create({
   },
   visitCard: { gap: 12, padding: 16 },
   visitActions: {
-    flexDirection: 'row',
     gap: 8,
     borderTopWidth: 1,
     paddingTop: 10,
-    flexWrap: 'wrap',
   },
 });

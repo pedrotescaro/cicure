@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Ruler, Stethoscope } from 'lucide-react-native';
-import { ScrollView, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, Badge, Button, Card, Divider, IconButton, Label, SectionTitle, Txt, s } from './components';
@@ -207,4 +207,4 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
   );
 }
 function Metric({ label, value }: { label: string; value: string }) { return <View style={{ flex: 1, minWidth: 80, gap: 4 }}><Label>{label}</Label><Txt style={styles.metricValue}>{value}</Txt></View>; }
-const styles = { content: { padding: 24, paddingTop: 20, paddingBottom: 160, gap: 16 }, empty: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 12, padding: 24 }, hero: { padding: 18, gap: 14 }, heroName: { color: '#FFF', fontFamily: fonts.semibold, fontSize: 18 }, heroMuted: { color: '#C5C5C5', fontSize: 12 }, statusCard: { padding: 16 }, statusIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center' as const, justifyContent: 'center' as const }, metrics: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 10, padding: 16 }, metricValue: { fontFamily: fonts.semibold, fontSize: 16 }, evolution: { padding: 18, gap: 12 }, evolutionNumber: { fontFamily: fonts.brand, fontSize: 22 }, recordRow: { minHeight: 44, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12 }, recordNumber: { width: 28, fontFamily: fonts.brand, fontSize: 20 }, actions: { gap: 10 } };
+const styles = StyleSheet.create({ content: { padding: 24, paddingTop: 20, paddingBottom: 160, gap: 16, width: '100%', maxWidth: 840, alignSelf: 'center' }, empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 }, hero: { padding: 18, gap: 14 }, heroName: { color: '#FFF', fontFamily: fonts.semibold, fontSize: 18 }, heroMuted: { color: '#C5C5C5', fontSize: 12 }, statusCard: { padding: 16 }, statusIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }, metrics: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, padding: 16 }, metricValue: { fontFamily: fonts.semibold, fontSize: 16 }, evolution: { padding: 18, gap: 12 }, evolutionNumber: { fontFamily: fonts.brand, fontSize: 22 }, recordRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 12 }, recordNumber: { width: 28, fontFamily: fonts.brand, fontSize: 20 }, actions: { gap: 10 } });

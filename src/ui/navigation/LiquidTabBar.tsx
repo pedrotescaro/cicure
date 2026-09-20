@@ -186,9 +186,14 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                minimumFontScale={0.85}
+                minimumFontScale={0.8}
                 maxFontSizeMultiplier={1.25}
-                style={[styles.label, { color: active ? glassColors.active : glassColors.inactive }, active && styles.activeLabel]}
+                style={[
+                  styles.label,
+                  { color: active ? glassColors.active : glassColors.inactive },
+                  screenWidth < 380 && { fontSize: 10, lineHeight: 14 },
+                  active && styles.activeLabel,
+                ]}
               >
                 {label}
               </Text>

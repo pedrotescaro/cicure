@@ -29,7 +29,9 @@ export default function TabsLayout() {
         tabBar={props => <LiquidTabBar {...props} blurTarget={getBlurTarget(props.state.routes[props.state.index].key)} />}
         screenLayout={({ children, route }) => (
           <BlurTargetView ref={getBlurTarget(route.key)} style={[styles.scene, { backgroundColor: colors.bg }]}>
-            {children}
+            <View style={styles.responsiveScene}>
+              {children}
+            </View>
           </BlurTargetView>
         )}
         screenOptions={{
@@ -68,6 +70,12 @@ export default function TabsLayout() {
 
 const styles = StyleSheet.create({
   scene: { flex: 1 },
+  responsiveScene: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 840,
+    alignSelf: 'center',
+  },
   fab: {
     position: 'absolute',
     zIndex: 7,

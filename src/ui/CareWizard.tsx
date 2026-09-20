@@ -525,15 +525,15 @@ function MeasurementStep({
 
       {/* Card Minimalista de Cálculo */}
       <Card style={{ padding: 18 }}>
-        <View style={s.between}>
-          <View style={{ gap: 3 }}>
+        <View style={[s.between, { flexWrap: 'wrap', gap: 12 }]}>
+          <View style={{ gap: 3, minWidth: 90 }}>
             <Label>ÁREA CALCULADA</Label>
             <Txt style={{ fontFamily: fonts.semibold, fontSize: 20 }}>
               {currentArea > 0 ? `${number(currentArea)} cm²` : '—'}
             </Txt>
           </View>
 
-          <View style={{ gap: 3 }}>
+          <View style={{ gap: 3, minWidth: 90 }}>
             <Label>VOLUME ESTIMADO</Label>
             <Txt style={{ fontFamily: fonts.semibold, fontSize: 20 }}>
               {currentVol > 0 ? `${number(currentVol)} cm³` : '—'}
@@ -1290,6 +1290,9 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 40,
     gap: 18,
+    width: '100%',
+    maxWidth: 840,
+    alignSelf: 'center',
   },
   sliderBox: {
     borderRadius: 16,
