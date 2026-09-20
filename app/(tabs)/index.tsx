@@ -1,23 +1,390 @@
-import { useEffect, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useTabContentInset } from '../../src/ui/navigation/useTabContentInset';
+import { useEffect, useState, useMemo } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { addDays, format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { AlarmClock, ChevronRight, HeartPulse, Play, RotateCcw, Settings2 } from 'lucide-react-native';
+import { 
+  AlarmClock, 
+  ChevronRight, 
+  HeartPulse, 
+  Play, 
+  RotateCcw, 
+  Settings2, 
+  Search, 
+  AlertCircle, 
+  BarChart3, 
+  Package, 
+  Building2, 
+  Sparkles,
+  Cloud
+} from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
-import { Avatar, Badge, Card, Divider, IconButton, Label, SectionTitle, Txt, s } from '../../src/ui/components';
+import { Avatar, Badge, Button, Card, Divider, IconButton, Label, SectionTitle, Txt, s } from '../../src/ui/components';
 import { colors as c, fonts } from '../../src/ui/theme';
 import { useStore } from '../../src/data/store';
 import { area, dateLabel, number } from '../../src/domain/clinical';
 import type { Visit } from '../../src/domain/types';
 import { useRouter } from 'expo-router';
+import { computePendingItems } from '../../src/features/pending/domain/pending.service';
+import { GlobalSearchModal } from '../../src/features/search/ui/GlobalSearchModal';
+import { PendingNotification } from '../../src/features/pending/ui/PendingNotification';
 
-function Header() { const profile = useStore(st => st.data.profiles[0]); const toggle = useStore(st => st.setPresentation); const presentation = useStore(st => st.presentation); return <View style={styles.header}><View><Txt style={styles.brand}>cicura</Txt><Txt muted style={{ fontSize: 13, marginTop: 13 }}>{format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}</Txt><Txt style={[s.h1, { marginTop: 3 }]}>Olá, <Txt style={{ color: c.red, fontFamily: fonts.brand, fontSize: 32 }}>{presentation ? 'profissional' : profile?.name.split(' ')[0] ?? 'profissional'}</Txt></Txt><Txt muted style={{ marginTop: 4 }}>Vamos cuidar da evolução de hoje?</Txt></View><View style={{ alignItems: 'flex-end', gap: 5 }}><Pressable onPress={() => toggle(!presentation)} style={styles.presentation}><Txt style={{ color: c.secondary, fontSize: 10, fontFamily: fonts.medium }}>{presentation ? 'Sair da apresentação' : 'Apresentação'}</Txt></Pressable><IconButton icon={Settings2} label="Configurações" onPress={() => {}} /></View></View>; }
-function WeekStrip() { const [selected, setSelected] = useState(new Date()); return <View style={styles.week}>{Array.from({ length: 7 }).map((_, i) => { const date = addDays(new Date(), i - 2); const active = format(date, 'yyyy-MM-dd') === format(selected, 'yyyy-MM-dd'); return <Pressable key={i} onPress={() => setSelected(date)} style={styles.day}><Txt muted style={{ fontSize: 10, textTransform: 'uppercase' }}>{format(date, 'EEE', { locale: ptBR }).replace('.', '')}</Txt><View style={[styles.dayCircle, active && { backgroundColor: c.dark }]}><Txt style={{ fontFamily: fonts.semibold, color: active ? '#FFF' : c.text }}>{format(date, 'd')}</Txt></View>{isToday(date) && <View style={styles.todayDot} />}</Pressable>; })}</View>; }
-function Sparkline() { return <Svg width="100%" height={75} viewBox="0 0 238 75"><Path d="M0 62 C30 55,65 66,102 44 S170 40,238 12 L238 75 L0 75 Z" fill={c.redSoft} /><Path d="M0 62 C30 55,65 66,102 44 S170 40,238 12" fill="none" stroke={c.red} strokeWidth="2.2" strokeLinecap="round" /></Svg>; }
-function TodayCard({ visits }: { visits: Visit[] }) { const router = useRouter(); const patients = useStore(st => st.data.patients); const wounds = useStore(st => st.data.wounds); const today = visits.filter(v => v.state === 'Agendado' && isToday(parseISO(v.date))); return <Card dark style={{ padding: 24, gap: 20 }}><View style={s.between}><View style={{ gap: 6 }}><Label style={{ color: '#A8A8A8' }}>HOJE · {format(new Date(), 'dd/MM')}</Label><Txt style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 20 }}>{today.length} atendimentos</Txt></View><View style={styles.darkCounter}><Txt style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 22 }}>{today.length}</Txt><Txt style={{ color: '#BDBDBD', fontSize: 10 }}>PENDENTES</Txt></View></View>{today.length === 0 ? <Txt style={{ color: '#BABABA' }}>Nenhum atendimento agendado para hoje.</Txt> : today.slice(0, 3).map(visit => { const patient = patients.find(p => p.id === visit.patientId); const wound = wounds.find(w => w.id === visit.woundId); if (!patient || !wound) return null; return <Pressable key={visit.id} accessibilityRole="button" accessibilityLabel={`Abrir resumo de ${patient.name}`} onPress={() => router.push(`/care/${visit.id}`)} style={styles.darkRow}><View style={styles.time}><Txt style={{ color: '#FFF', fontFamily: fonts.semibold }}>{visit.scheduledTime}</Txt><View style={styles.timeline} /></View><Avatar name={patient.name} color={patient.color} size={40} /><View style={{ flex: 1, gap: 3 }}><Txt style={{ color: '#FFF', fontFamily: fonts.semibold }}>{patient.name}</Txt><Txt style={{ color: '#A9A9A9', fontSize: 12 }}>{wound.location} · {wound.etiology}</Txt></View><ChevronRight size={18} color="#8C8C8C" /></Pressable>; })}</Card>; }
-function NextVisits({ visits }: { visits: Visit[] }) { const router = useRouter(); const patients = useStore(st => st.data.patients); const future = visits.filter(v => v.state === 'Agendado').sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3); return <View style={{ gap: 12 }}><SectionTitle title="PRÓXIMOS DIAS" action="Ver agenda" onPress={() => router.push('/care')} /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>{future.map(v => { const p = patients.find(x => x.id === v.patientId); if (!p) return null; const d = parseISO(v.date); return <Pressable key={v.id} onPress={() => router.push(`/care/${v.id}`)} style={styles.nextCard}><Txt style={{ color: c.red, fontFamily: fonts.semibold, fontSize: 11 }}>{format(d, 'EEE', { locale: ptBR }).replace('.', '').toUpperCase()}</Txt><Txt style={{ fontFamily: fonts.brand, fontSize: 31 }}>{format(d, 'dd')}</Txt><Divider /><Txt numberOfLines={1} style={{ fontFamily: fonts.medium, fontSize: 12 }}>{p.name}</Txt><Txt muted style={{ fontSize: 11 }}>{v.scheduledTime}</Txt></Pressable>; })}</ScrollView></View>; }
-function FollowUp() { const visits = useStore(st => st.data.visits); const patients = useStore(st => st.data.patients); const completed = visits.filter(v => v.state === 'Concluído'); const avg = completed.length ? completed.reduce((sum, v) => sum + area(v), 0) / completed.length : 0; const wounds = useStore(st => st.data.wounds); return <Card style={{ padding: 24, gap: 18 }}><View style={s.between}><View><Label>ACOMPANHAMENTO</Label><Txt style={{ fontFamily: fonts.semibold, fontSize: 19, marginTop: 7 }}>Evolução dos pacientes</Txt></View><Badge tone="red">últimos 30 dias</Badge></View><View style={{ height: 76 }}><Sparkline /></View><View style={styles.metrics}><View><Txt style={styles.metricNumber}>{patients.length}</Txt><Label>ATIVOS</Label></View><View><Txt style={[styles.metricNumber, { color: c.red }]}>{wounds.filter(w => w.status === 'Em cicatrização').length}</Txt><Label>CICATRIZANDO</Label></View><View><Txt style={[styles.metricNumber, { color: c.secondary }]}>{wounds.filter(w => w.status === 'Estagnada').length}</Txt><Label>ESTAGNADAS</Label></View></View><Txt muted style={{ fontSize: 12 }}>Área média registrada: <Txt style={{ fontFamily: fonts.semibold }}>{number(avg)} cm²</Txt></Txt></Card>; }
-function QuickTimer() { const [seconds, setSeconds] = useState(0); const [running, setRunning] = useState(false); useEffect(() => { if (!running) return; const id = setInterval(() => setSeconds(v => v + 1), 1000); return () => clearInterval(id); }, [running]); return <Card style={{ padding: 24, flexDirection: 'row', alignItems: 'center' }}><View style={{ flex: 1, gap: 7 }}><Label>CRONÔMETRO RÁPIDO</Label><Txt style={{ fontFamily: fonts.semibold, fontSize: 18 }}>Tempo de contato</Txt><Txt muted style={{ fontSize: 12 }}>Vincule ao atendimento ao finalizar.</Txt></View><View style={{ alignItems: 'flex-end', gap: 8 }}><Txt style={{ fontFamily: fonts.bold, fontSize: 27, letterSpacing: 1 }}>{`${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`}</Txt><View style={{ flexDirection: 'row', gap: 4 }}><IconButton label="Zerar cronômetro" icon={RotateCcw} onPress={() => { setSeconds(0); setRunning(false); }} /><IconButton label={running ? 'Pausar' : 'Iniciar'} icon={running ? AlarmClock : Play} color={c.red} onPress={() => setRunning(v => !v)} /></View></View></Card>; }
-function Recent({ visits }: { visits: Visit[] }) { const patients = useStore(st => st.data.patients); const wounds = useStore(st => st.data.wounds); const recent = visits.filter(v => v.state === 'Concluído').sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4); return <View style={{ gap: 12 }}><SectionTitle title="ATENDIMENTOS RECENTES" action="Ver histórico" /><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>{recent.map(v => { const p = patients.find(x => x.id === v.patientId); const w = wounds.find(x => x.id === v.woundId); if (!p || !w) return null; return <Card key={v.id} style={{ width: 250, padding: 18, gap: 14 }}><View style={s.between}><Avatar name={p.name} color={p.color} size={38} /><Badge tone="red">{w.status}</Badge></View><View style={{ gap: 4 }}><Txt style={{ fontFamily: fonts.semibold }}>{p.name}</Txt><Txt muted style={{ fontSize: 12 }}>{w.location} · {w.etiology}</Txt></View><View style={styles.photoPlaceholder}><HeartPulse size={30} color={c.red} strokeWidth={1.3} /><Txt muted style={{ fontSize: 11 }}>Registro · {dateLabel(v.date)}</Txt></View></Card>; })}</ScrollView></View>; }
-export default function Home() { const visits = useStore(st => st.data.visits); const pending = useStore(st => st.pending); const syncState = useStore(st => st.syncState); const init = useStore(st => st.init); const error = useStore(st => st.error); return <View style={{ flex: 1, backgroundColor: c.bg }}><ScrollView contentContainerStyle={{ padding: 24, paddingTop: 22, paddingBottom: 170, gap: 28 }} refreshControl={<RefreshControl refreshing={syncState === 'syncing'} onRefresh={() => init()} tintColor={c.red} />}><Header /><WeekStrip />{error && <Pressable onPress={() => init()} style={styles.error}><Txt style={{ color: c.red, fontSize: 12, flex: 1 }}>{error}</Txt><Txt style={{ color: c.red, fontFamily: fonts.semibold, fontSize: 12 }}>Tentar novamente</Txt></Pressable>}{pending > 0 && <View style={styles.sync}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.amber }} /><Txt style={{ color: c.amber, fontSize: 12 }}> {pending} registro(s) aguardam sincronização</Txt></View>}<TodayCard visits={visits} /><NextVisits visits={visits} /><FollowUp /><QuickTimer /><Recent visits={visits} /></ScrollView></View>; }
-const styles = StyleSheet.create({ header: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start' }, brand: { fontFamily: fonts.brand, fontSize: 25, color: c.red, letterSpacing: -0.7 }, presentation: { minHeight: 32, paddingHorizontal: 10, borderRadius: 9, backgroundColor: '#FFF', borderWidth: 1, borderColor: c.border, justifyContent: 'center' }, week: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8 }, day: { alignItems: 'center', gap: 8, minWidth: 36 }, dayCircle: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 20 }, todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.red }, darkCounter: { alignItems: 'flex-end', gap: 1 }, darkRow: { flexDirection: 'row', alignItems: 'center', gap: 11 }, time: { width: 43, alignItems: 'center', gap: 5 }, timeline: { height: 23, width: 1, backgroundColor: '#505050' }, nextCard: { width: 132, minHeight: 145, padding: 16, borderRadius: 20, borderWidth: 1, borderColor: c.border, backgroundColor: '#FFF', gap: 8 }, metrics: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderColor: c.border, paddingTop: 16, gap: 8 }, metricNumber: { fontFamily: fonts.semibold, fontSize: 22, marginBottom: 5 }, photoPlaceholder: { height: 72, borderRadius: 15, backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center', gap: 5 }, sync: { minHeight: 38, paddingHorizontal: 13, backgroundColor: c.amberSoft, borderRadius: 11, flexDirection: 'row', alignItems: 'center' }, error: { padding: 14, borderRadius: 12, backgroundColor: c.redSoft, borderWidth: 1, borderColor: '#F1C3C3', flexDirection: 'row', alignItems: 'center', gap: 10 } });
+function Topbar({ onOpenSearch }: { onOpenSearch: () => void }) {
+  const router = useRouter();
+  return (
+    <View style={styles.topbar}>
+      <Txt style={styles.brand}>cicure</Txt>
+      <View style={styles.topbarActions}>
+        <IconButton icon={Search} label="Busca Global" onPress={onOpenSearch} style={styles.topbarBtn} />
+        <IconButton icon={Building2} label="Clínica / Workspace" onPress={() => router.push('/organization' as never)} style={styles.topbarBtn} />
+      </View>
+    </View>
+  );
+}
+
+function Greeting() {
+  const profile = useStore(st => st.data.profiles[0]);
+  const presentation = useStore(st => st.presentation);
+
+  return (
+    <View style={styles.greeting}>
+      <Txt muted style={{ fontSize: 13 }}>
+        {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+      </Txt>
+      <Txt style={[s.h1, { marginTop: 2 }]}>
+        Olá, <Txt style={{ color: c.red, fontFamily: fonts.brand, fontSize: 30 }}>
+          {presentation ? 'profissional' : profile?.name.split(' ')[0] ?? 'profissional'}
+        </Txt>
+      </Txt>
+      <Txt muted style={{ marginTop: 2 }}>Vamos cuidar da evolução de hoje?</Txt>
+    </View>
+  );
+}
+
+function WeekStrip() {
+  const [selected, setSelected] = useState(new Date());
+  return (
+    <View style={styles.week}>
+      {Array.from({ length: 7 }).map((_, i) => {
+        const date = addDays(new Date(), i - 2);
+        const active = format(date, 'yyyy-MM-dd') === format(selected, 'yyyy-MM-dd');
+        return (
+          <Pressable key={i} onPress={() => setSelected(date)} style={styles.day}>
+            <Txt muted style={{ fontSize: 10, textTransform: 'uppercase' }}>
+              {format(date, 'EEE', { locale: ptBR }).replace('.', '')}
+            </Txt>
+            <View style={[styles.dayCircle, active && { backgroundColor: c.dark }]}>
+              <Txt style={{ fontFamily: fonts.semibold, color: active ? '#FFF' : c.text }}>
+                {format(date, 'd')}
+              </Txt>
+            </View>
+            {isToday(date) && <View style={styles.todayDot} />}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function Sparkline() {
+  return (
+    <Svg width="100%" height={75} viewBox="0 0 238 75">
+      <Path d="M0 62 C30 55,65 66,102 44 S170 40,238 12 L238 75 L0 75 Z" fill={c.redSoft} />
+      <Path d="M0 62 C30 55,65 66,102 44 S170 40,238 12" fill="none" stroke={c.red} strokeWidth="2.2" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+function TodayCard({ visits }: { visits: Visit[] }) {
+  const router = useRouter();
+  const patients = useStore(st => st.data.patients);
+  const wounds = useStore(st => st.data.wounds);
+  const today = visits.filter(v => v.state === 'Agendado' && isToday(parseISO(v.date)));
+
+  return (
+    <Card dark style={{ padding: 24, gap: 18 }}>
+      <View style={s.between}>
+        <View style={{ gap: 4 }}>
+          <Label style={{ color: '#A8A8A8' }}>HOJE · {format(new Date(), 'dd/MM')}</Label>
+          <Txt style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 20 }}>
+            {today.length} atendimentos
+          </Txt>
+        </View>
+        <View style={styles.darkCounter}>
+          <Txt style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 22 }}>{today.length}</Txt>
+          <Txt style={{ color: '#BDBDBD', fontSize: 10 }}>PENDENTES</Txt>
+        </View>
+      </View>
+
+      {today.length === 0 ? (
+        <Txt style={{ color: '#BABABA' }}>Nenhum atendimento agendado para hoje.</Txt>
+      ) : (
+        today.slice(0, 3).map(visit => {
+          const patient = patients.find(p => p.id === visit.patientId);
+          const wound = wounds.find(w => w.id === visit.woundId);
+          if (!patient || !wound) return null;
+          return (
+            <Pressable key={visit.id} onPress={() => router.push(`/care/${visit.id}` as never)} style={styles.darkRow}>
+              <View style={styles.time}>
+                <Txt style={{ color: '#FFF', fontFamily: fonts.semibold }}>{visit.scheduledTime || '09:00'}</Txt>
+                <View style={styles.timeline} />
+              </View>
+              <Avatar name={patient.name} color={patient.color} size={40} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Txt style={{ color: '#FFF', fontFamily: fonts.semibold }}>{patient.name}</Txt>
+                <Txt style={{ color: '#A9A9A9', fontSize: 12 }}>{wound.location} · {wound.etiology}</Txt>
+              </View>
+              <ChevronRight size={18} color="#8C8C8C" />
+            </Pressable>
+          );
+        })
+      )}
+    </Card>
+  );
+}
+
+function QuickHub() {
+  const router = useRouter();
+  const hubItems = [
+    { label: 'Indicadores', icon: BarChart3, route: '/indicators' },
+    { label: 'Estoque & Lotes', icon: Package, route: '/inventory' },
+    { label: 'Templates', icon: Sparkles, route: '/templates' },
+    { label: 'Sync Offline', icon: Cloud, route: '/sync' },
+  ];
+
+  return (
+    <ScrollView 
+      horizontal 
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.hubScroll}
+    >
+      {hubItems.map((item, i) => {
+        const Icon = item.icon;
+        return (
+          <Pressable 
+            key={i} 
+            onPress={() => router.push(item.route as never)} 
+            style={({ pressed }) => [styles.hubChip, pressed && { opacity: 0.75 }]}
+          >
+            <View style={styles.hubChipIcon}>
+              <Icon size={14} color={c.red} />
+            </View>
+            <Txt style={styles.hubChipText}>{item.label}</Txt>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function FollowUp() {
+  const visits = useStore(st => st.data.visits);
+  const patients = useStore(st => st.data.patients);
+  const wounds = useStore(st => st.data.wounds);
+  const router = useRouter();
+
+  const completed = visits.filter(v => v.state === 'Concluído');
+  const avg = completed.length ? completed.reduce((sum, v) => sum + area(v), 0) / completed.length : 0;
+
+  return (
+    <Card style={{ padding: 18, gap: 14 }}>
+      <View style={s.between}>
+        <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+          <Label>ACOMPANHAMENTO LONGITUDINAL</Label>
+          <Txt style={{ fontFamily: fonts.semibold, fontSize: 17, marginTop: 2 }} numberOfLines={1}>
+            Evolução dos Pacientes
+          </Txt>
+        </View>
+        <Pressable 
+          onPress={() => router.push('/indicators' as never)}
+          hitSlop={8}
+          style={styles.indicatorLink}
+        >
+          <Txt style={styles.indicatorLinkText}>Indicadores</Txt>
+          <ChevronRight size={13} color={c.red} />
+        </Pressable>
+      </View>
+
+      <View style={{ height: 76 }}>
+        <Sparkline />
+      </View>
+
+      <View style={styles.metrics}>
+        <View>
+          <Txt style={styles.metricNumber}>{patients.length}</Txt>
+          <Label>ATIVOS</Label>
+        </View>
+        <View>
+          <Txt style={[styles.metricNumber, { color: c.green }]}>
+            {wounds.filter(w => w.status === 'Em cicatrização').length}
+          </Txt>
+          <Label>CICATRIZANDO</Label>
+        </View>
+        <View>
+          <Txt style={[styles.metricNumber, { color: c.amber }]}>
+            {wounds.filter(w => w.status === 'Estagnada').length}
+          </Txt>
+          <Label>ESTAGNADAS</Label>
+        </View>
+      </View>
+
+      <Txt muted style={{ fontSize: 12 }}>
+        Área média registrada: <Txt style={{ fontFamily: fonts.semibold }}>{number(avg)} cm²</Txt>
+      </Txt>
+    </Card>
+  );
+}
+
+function QuickTimer() {
+  const [seconds, setSeconds] = useState(0);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => setSeconds(v => v + 1), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  return (
+    <Card style={{ padding: 20, flexDirection: 'row', alignItems: 'center' }}>
+      <View style={{ flex: 1, gap: 4 }}>
+        <Label>CRONÔMETRO RÁPIDO</Label>
+        <Txt style={{ fontFamily: fonts.semibold, fontSize: 17 }}>Tempo de contato</Txt>
+        <Txt muted style={{ fontSize: 12 }}>Para fotobiomodulação ou curativos.</Txt>
+      </View>
+      <View style={{ alignItems: 'flex-end', gap: 6 }}>
+        <Txt style={{ fontFamily: fonts.bold, fontSize: 24, letterSpacing: 1 }}>
+          {`${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`}
+        </Txt>
+        <View style={{ flexDirection: 'row', gap: 4 }}>
+          <IconButton label="Zerar" icon={RotateCcw} onPress={() => { setSeconds(0); setRunning(false); }} />
+          <IconButton label={running ? 'Pausar' : 'Iniciar'} icon={running ? AlarmClock : Play} color={c.red} onPress={() => setRunning(v => !v)} />
+        </View>
+      </View>
+    </Card>
+  );
+}
+
+export default function Home() {
+  const bottomInset = useTabContentInset();
+  const { width } = useWindowDimensions();
+  const store = useStore();
+  const visits = store.data.visits;
+  const pendingSync = store.pending;
+  const syncState = store.syncState;
+  const init = store.init;
+  const error = store.error;
+  const router = useRouter();
+
+  const [searchVisible, setSearchVisible] = useState(false);
+
+  // Calcula pendências clínicas
+  const pendingItems = useMemo(() => computePendingItems(store.data, pendingSync), [store.data, pendingSync]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <ScrollView 
+        contentContainerStyle={[
+          styles.content, 
+          { paddingHorizontal: width < 380 ? 16 : 20, paddingBottom: bottomInset }
+        ]}
+        refreshControl={<RefreshControl refreshing={syncState === 'syncing'} onRefresh={() => init()} tintColor={c.red} />}
+        showsVerticalScrollIndicator={false}
+      >
+        <Topbar onOpenSearch={() => setSearchVisible(true)} />
+
+        <Greeting />
+
+        <WeekStrip />
+
+        {/* Notificação & Popup de Pendências */}
+        <PendingNotification items={pendingItems} />
+
+        {/* Hub de Acesso Rápido aos Novos Módulos */}
+        <QuickHub />
+
+
+        <TodayCard visits={visits} />
+
+        <FollowUp />
+
+        <QuickTimer />
+      </ScrollView>
+
+      {/* Modal de Busca Global (§22) */}
+      <GlobalSearchModal 
+        visible={searchVisible}
+        onClose={() => setSearchVisible(false)}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
+  topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  brand: { color: c.red, fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
+  topbarActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  topbarBtn: { width: 42, height: 42, borderRadius: 21 },
+  greeting: { gap: 2 },
+  week: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
+  day: { alignItems: 'center', gap: 6, minWidth: 36 },
+  dayCircle: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
+  todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.red },
+  darkCounter: { alignItems: 'flex-end', gap: 1 },
+  darkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  time: { width: 44, alignItems: 'center', gap: 4 },
+  timeline: { height: 20, width: 1, backgroundColor: '#505050' },
+  metrics: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderColor: c.border, paddingTop: 14, gap: 8 },
+  metricNumber: { fontFamily: fonts.semibold, fontSize: 20, marginBottom: 3 },
+  indicatorLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: c.redSoft,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+  },
+  indicatorLinkText: {
+    fontSize: 12,
+    fontFamily: fonts.semibold,
+    color: c.red,
+  },
+  hubScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
+  },
+  hubChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAEAEA',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 13,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  hubChipIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: c.redSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hubChipText: {
+    fontSize: 12.5,
+    fontFamily: fonts.medium,
+    color: c.text,
+  },
+});
