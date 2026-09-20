@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Bookmark, Check, Sparkles, X } from 'lucide-react-native';
 import { Badge, Card, Empty, Field, IconButton, Label, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { fonts, useTheme } from '../../../ui/theme';
 import { DEFAULT_TEMPLATES } from '../domain/template.service';
 import type { ClinicalTemplate, TemplateType } from '../domain/types';
 
@@ -17,6 +17,7 @@ export function TemplatePickerModal({
   onSelect: (template: ClinicalTemplate) => void;
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
   const [search, setSearch] = useState('');
 
   const filtered = DEFAULT_TEMPLATES.filter(t => {
@@ -28,7 +29,7 @@ export function TemplatePickerModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: colors.bg }]}>
           {/* Header */}
           <View style={s.between}>
             <View style={{ gap: 2 }}>
@@ -57,7 +58,11 @@ export function TemplatePickerModal({
                   onSelect(tmpl);
                   onClose();
                 }}
-                style={({ pressed }) => [styles.templateCard, pressed && { opacity: 0.85 }]}
+                style={({ pressed }) => [
+                  styles.templateCard, 
+                  { backgroundColor: colors.surface, borderColor: colors.border },
+                  pressed && { opacity: 0.85 }
+                ]}
               >
                 <View style={s.between}>
                   <Badge tone={tmpl.scope === 'organization' ? 'green' : 'neutral'}>
@@ -70,8 +75,8 @@ export function TemplatePickerModal({
                 <Txt muted style={{ fontSize: 13, lineHeight: 18 }}>{tmpl.description}</Txt>
 
                 <View style={styles.cardFooter}>
-                  <Sparkles size={14} color={c.red} />
-                  <Txt style={{ color: c.red, fontSize: 12, fontFamily: fonts.semibold }}>
+                  <Sparkles size={14} color={colors.red} />
+                  <Txt style={{ color: colors.red, fontSize: 12, fontFamily: fonts.semibold }}>
                     Toque para aplicar
                   </Txt>
                 </View>
@@ -98,23 +103,20 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: c.bg,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     maxHeight: '85%',
     padding: 20,
     gap: 14,
   },
-  title: { fontFamily: fonts.brand, fontSize: 20, color: c.text },
+  title: { fontFamily: fonts.brand, fontSize: 20 },
   list: { gap: 12, paddingBottom: 40 },
   templateCard: {
-    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: c.border,
     borderRadius: 18,
     padding: 16,
     gap: 8,
   },
-  templateName: { fontFamily: fonts.semibold, fontSize: 15, color: c.text },
+  templateName: { fontFamily: fonts.semibold, fontSize: 15 },
   cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingTop: 4 },
 });

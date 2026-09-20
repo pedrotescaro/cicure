@@ -20,7 +20,7 @@ import {
 import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
 import { Avatar, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, s } from './components';
-import { colors as c, fonts } from './theme';
+import { fonts, useTheme } from './theme';
 import { area, decimal, measurementSchema, number, visitErrors } from '../domain/clinical';
 import { useStore, uid } from '../data/store';
 import type { Patient, Visit, Wound } from '../domain/types';
@@ -39,6 +39,7 @@ type FormValues = Pick<Visit, 'length' | 'width' | 'depth'>;
 export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; patientId?: string; woundId?: string }) {
   const router = useRouter();
   const store = useStore();
+  const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const isNarrow = width < 380;
   const [step, setStep] = useState(0);
@@ -242,7 +243,7 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
 
   if (!patient || !wound) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.bg }]}>
         <Empty 
           title="Selecione paciente e ferida" 
           description="O atendimento precisa estar vinculado a um prontuário cadastrado."
@@ -254,7 +255,7 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView 
         ref={scrollRef}
         style={{ flex: 1 }}
@@ -266,12 +267,12 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
       >
         {/* Topbar padrão das telas Home e Pacientes */}
         <View style={styles.topbar}>
-          <Txt style={styles.brand}>cicure</Txt>
+          <Txt style={[styles.brand, { color: colors.red }]}>cicure</Txt>
           <View style={s.row}>
             <IconButton 
               icon={Save} 
               label="Salvar rascunho" 
-              color={saving ? c.red : c.secondary} 
+              color={saving ? colors.red : colors.secondary} 
               onPress={() => void persist()} 
             />
             <IconButton 
@@ -591,6 +592,7 @@ function MeasurementStep({
 // ETAPA 1: LEITO, EXSUDATO E ESCALA DE DOR (EVA)
 // ============================================================
 function BedStep({ local, onChange }: { local: Visit; onChange: (value: Partial<Visit>) => void }) {
+  const { colors, isDark } = useTheme();
   const painPresets = [
     '0 - Sem dor',
     '2 - Leve',
@@ -738,13 +740,13 @@ function BedStep({ local, onChange }: { local: Visit; onChange: (value: Partial<
           {tissues.map(({ name, color }) => {
             const val = local.tissue[name] ?? 0;
             return (
-              <View key={name} style={styles.sliderBox}>
+              <View key={name} style={[styles.sliderBox, { backgroundColor: colors.surface, borderColor: colors.border }]}>
                 <View style={s.between}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: color }} />
                     <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }}>{name}</Txt>
                   </View>
-                  <Txt style={{ fontFamily: fonts.bold, fontSize: 15, color: c.text }}>
+                  <Txt style={{ fontFamily: fonts.bold, fontSize: 15, color: colors.text }}>
                     {val}%
                   </Txt>
                 </View>
@@ -755,7 +757,7 @@ function BedStep({ local, onChange }: { local: Visit; onChange: (value: Partial<
                   value={val}
                   onValueChange={v => handleSliderChange(name, v)}
                   minimumTrackTintColor={color}
-                  maximumTrackTintColor="#EAEAEA"
+                  maximumTrackTintColor={isDark ? '#2C2C30' : '#EAEAEA'}
                   thumbTintColor={color}
                   style={{ width: '100%', height: 38 }}
                 />
@@ -815,6 +817,7 @@ function BedStep({ local, onChange }: { local: Visit; onChange: (value: Partial<
 // ETAPA 2: SINAIS VITAIS E ESCALAS
 // ============================================================
 function VitalsAndScalesStep({ local, onChange }: { local: Visit; onChange: (value: Partial<Visit>) => void }) {
+  const { colors } = useTheme();
   const [w, setW] = useState(0);
   const [i, setI] = useState(0);
   const [fi, setFi] = useState(0);
@@ -822,7 +825,7 @@ function VitalsAndScalesStep({ local, onChange }: { local: Visit; onChange: (val
   const stages = [[0, 0, 0, 1], [0, 1, 1, 2], [1, 1, 2, 3], [2, 2, 2, 3], [3, 3, 3, 4]];
   const stage = stages[Math.min(4, Math.max(w, i, fi))][Math.min(3, Math.floor((w + i + fi) / 3))];
 
-  const saveWifi = () => {
+  const handleSaveWiFi = () => {
     onChange({
       assessments: [
         {
@@ -852,7 +855,7 @@ function VitalsAndScalesStep({ local, onChange }: { local: Visit; onChange: (val
       <Card style={{ padding: 18, gap: 14 }}>
         <View style={s.between}>
           <View style={s.row}>
-            <ShieldAlert size={20} color={c.red} />
+            <ShieldAlert size={20} color={colors.red} />
             <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>WIfI · Estratificação SVS</Txt>
           </View>
           <Badge tone="red">Estágio {stage}</Badge>
@@ -866,7 +869,7 @@ function VitalsAndScalesStep({ local, onChange }: { local: Visit; onChange: (val
         <ScaleChoice label="Ischemia (Comprometimento Arterial)" value={i} setValue={setI} />
         <ScaleChoice label="foot Infection (Infecção Local ou Sistêmica)" value={fi} setValue={setFi} />
 
-        <Button title="Salvar Escala WIfI" variant="outline" small onPress={saveWifi} />
+        <Button title="Salvar Escala WIfI" variant="outline" small onPress={handleSaveWiFi} />
       </Card>
     </View>
   );
@@ -1045,6 +1048,7 @@ function PhotosStep({
   addPhoto: () => void;
   onRemovePhoto: (photoId: string) => void;
 }) {
+  const { colors } = useTheme();
   const handleRemove = (photoId: string) => {
     const doRemove = () => {
       onRemovePhoto(photoId);
@@ -1103,13 +1107,13 @@ function PhotosStep({
                     : p
                   ) 
                 })}>
-                  <Txt style={{ color: c.red, fontSize: 12, fontFamily: fonts.medium }}>
+                  <Txt style={{ color: colors.red, fontSize: 12, fontFamily: fonts.medium }}>
                     {photo.rulerConfirmed ? 'Desfazer régua' : 'Confirmar régua'}
                   </Txt>
                 </Pressable>
                 <Txt muted style={{ fontSize: 11 }}>•</Txt>
                 <Pressable onPress={() => handleRemove(photo.id)}>
-                  <Txt style={{ color: c.red, fontSize: 12, fontFamily: fonts.medium }}>
+                  <Txt style={{ color: colors.red, fontSize: 12, fontFamily: fonts.medium }}>
                     Remover foto
                   </Txt>
                 </Pressable>
@@ -1119,9 +1123,9 @@ function PhotosStep({
             <IconButton 
               icon={Trash2} 
               label="Remover foto" 
-              color={c.red} 
+              color={colors.red} 
               onPress={() => handleRemove(photo.id)} 
-              style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: c.redSoft }} 
+              style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: colors.redSoft }} 
             />
           </View>
 
@@ -1266,7 +1270,6 @@ function ConductStep({
 const styles = StyleSheet.create({
   center: { 
     flex: 1, 
-    backgroundColor: c.bg, 
     alignItems: 'center', 
     justifyContent: 'center', 
     padding: 24 
@@ -1281,7 +1284,6 @@ const styles = StyleSheet.create({
   brand: {
     fontFamily: fonts.brand,
     fontSize: 26,
-    color: c.red,
     letterSpacing: -0.8,
   },
   content: {
@@ -1290,10 +1292,8 @@ const styles = StyleSheet.create({
     gap: 18,
   },
   sliderBox: {
-    backgroundColor: '#FFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#EAEAEA',
     padding: 14,
     gap: 8,
   },

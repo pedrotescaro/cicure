@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { Sparkles, Check, FileCheck, ShieldAlert } from 'lucide-react-native';
 import { Accordion, Badge, Button, Card, Field, Label, SectionTitle, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { fonts, useTheme } from '../../../ui/theme';
 import type { Patient, Wound, Visit } from '../../../domain/types';
 import type { SOAPNote, SOAPStatus } from '../domain/types';
 import { generateSOAPDraft } from '../domain/soap.service';
@@ -18,6 +18,7 @@ export default function SOAPEditor({
   wound: Wound;
   onSave?: (soap: SOAPNote) => void;
 }) {
+  const { colors } = useTheme();
   const [soap, setSoap] = useState<SOAPNote>(() => generateSOAPDraft(visit, patient, wound));
   const [hasReviewed, setHasReviewed] = useState(false);
 
@@ -53,7 +54,7 @@ export default function SOAPEditor({
     <Card style={styles.card}>
       <View style={s.between}>
         <View style={s.row}>
-          <FileCheck size={20} color={c.red} />
+          <FileCheck size={20} color={colors.red} />
           <Txt style={styles.title}>Evolução no Modelo SOAP</Txt>
         </View>
         <Badge tone={soap.status === 'Confirmado' ? 'green' : 'amber'}>
@@ -128,7 +129,7 @@ export default function SOAPEditor({
       {/* P - Plano */}
       <View style={styles.soapSection}>
         <View style={s.row}>
-          <View style={[styles.letterTag, { backgroundColor: c.red }]}>
+          <View style={[styles.letterTag, { backgroundColor: colors.red }]}>
             <Txt style={styles.letterText}>P</Txt>
           </View>
           <Txt style={styles.sectionLabel}>Plano (Conduta, curativos, encaminhamentos, retorno)</Txt>
@@ -154,10 +155,10 @@ export default function SOAPEditor({
 }
 
 const styles = StyleSheet.create({
-  card: { gap: 14, backgroundColor: '#FFF' },
-  title: { fontFamily: fonts.semibold, fontSize: 16, color: c.text },
+  card: { gap: 14 },
+  title: { fontFamily: fonts.semibold, fontSize: 16 },
   soapSection: { gap: 6, paddingTop: 4 },
-  sectionLabel: { fontFamily: fonts.medium, fontSize: 13, color: c.text },
+  sectionLabel: { fontFamily: fonts.medium, fontSize: 13 },
   letterTag: {
     width: 24,
     height: 24,

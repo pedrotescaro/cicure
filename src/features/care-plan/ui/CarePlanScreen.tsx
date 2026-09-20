@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, Plus, Check, Clock, History, Target } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
 import { Accordion, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { fonts, useTheme } from '../../../ui/theme';
 import { productNames } from '../../../domain/clinical';
 import { CarePlanGoalCard } from './CarePlanGoalCard';
 import { createCarePlan, createGoal, reviseCarePlan, updateGoalStatus } from '../domain/care-plan.service';
@@ -13,6 +13,7 @@ import type { CarePlan, CarePlanGoal, GoalStatus } from '../domain/types';
 export default function CarePlanScreen({ patientId }: { patientId: string }) {
   const router = useRouter();
   const store = useStore();
+  const { colors } = useTheme();
 
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
   const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
@@ -55,7 +56,7 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
 
   if (!patient || !activeWound) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: colors.bg }]}>
         <Empty 
           title="Paciente ou ferida não encontrada" 
           description="O plano terapêutico requer uma ferida cadastrada."
@@ -116,9 +117,9 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Plano Terapêutico</Txt>
@@ -230,7 +231,7 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
         {historyPlans.length > 0 && (
           <Accordion title={`Histórico de Versões (${historyPlans.length})`}>
             {historyPlans.map(hp => (
-              <Card key={hp.id} style={{ backgroundColor: '#F9F9F9', gap: 6, marginBottom: 8 }}>
+              <Card key={hp.id} style={{ gap: 6, marginBottom: 8 }}>
                 <View style={s.between}>
                   <Txt style={{ fontFamily: fonts.semibold }}>Versão {hp.version}</Txt>
                   <Badge tone="neutral">{hp.status}</Badge>
@@ -255,8 +256,8 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -265,8 +266,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   content: { padding: 16, gap: 16, paddingBottom: 100 },
 });

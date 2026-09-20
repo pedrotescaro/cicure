@@ -4,20 +4,37 @@ import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Avatar, Badge, Button, Card, Divider, IconButton, Label, SectionTitle, Txt, s } from './components';
-import { colors as c, fonts } from './theme';
+import { fonts, useTheme } from './theme';
 import { area, dateLabel, number, volume } from '../domain/clinical';
 import { useStore } from '../data/store';
 
 export function VisitSummary({ visitId }: { visitId?: string }) {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const isNarrow = width < 380;
   const { visits, patients, wounds } = useStore(state => state.data);
   const visit = visits.find(item => item.id === visitId);
-  if (!visit) return <View style={styles.empty}><Txt style={s.h2}>Atendimento não encontrado</Txt><Txt muted>Esse registro pode ter sido removido ou ainda não foi sincronizado.</Txt><Button title="Voltar" onPress={() => router.back()} /></View>;
+  if (!visit) {
+    return (
+      <View style={[styles.empty, { backgroundColor: colors.bg }]}>
+        <Txt style={s.h2}>Atendimento não encontrado</Txt>
+        <Txt muted>Esse registro pode ter sido removido ou ainda não foi sincronizado.</Txt>
+        <Button title="Voltar" onPress={() => router.back()} />
+      </View>
+    );
+  }
   const patient = patients.find(item => item.id === visit.patientId);
   const wound = wounds.find(item => item.id === visit.woundId);
-  if (!patient || !wound) return <View style={styles.empty}><Txt style={s.h2}>Prontuário incompleto</Txt><Txt muted>Vincule o atendimento a um paciente e uma ferida para visualizar o resumo.</Txt><Button title="Voltar" onPress={() => router.back()} /></View>;
+  if (!patient || !wound) {
+    return (
+      <View style={[styles.empty, { backgroundColor: colors.bg }]}>
+        <Txt style={s.h2}>Prontuário incompleto</Txt>
+        <Txt muted>Vincule o atendimento a um paciente e uma ferida para visualizar o resumo.</Txt>
+        <Button title="Voltar" onPress={() => router.back()} />
+      </View>
+    );
+  }
   const previous = visits.filter(item => item.id !== visit.id && item.patientId === visit.patientId && item.woundId === visit.woundId && item.state === 'Concluído' && item.date < visit.date).sort((a, b) => b.date.localeCompare(a.date))[0];
   const hasMeasurement = Boolean(visit.length && visit.width);
   const currentArea = hasMeasurement ? area(visit) : 0;
@@ -27,7 +44,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
   const statusText = visit.state === 'Agendado' ? 'Atendimento agendado' : visit.state === 'Rascunho' ? 'Rascunho em andamento' : 'Atendimento concluído';
   const description = visit.state === 'Agendado' ? 'Este atendimento ainda não foi iniciado. Confira o contexto clínico antes de começar o registro.' : visit.plan || 'O atendimento foi registrado, mas ainda não há conduta descrita.';
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView 
         contentContainerStyle={[styles.content, { padding: isNarrow ? 16 : 24, paddingBottom: 160 }]} 
         showsVerticalScrollIndicator={false}
@@ -42,7 +59,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
               </Txt>
             </View>
           </View>
-          <IconButton icon={FileText} label="Abrir relatório" color={c.red} onPress={() => router.push('/reports')} />
+          <IconButton icon={FileText} label="Abrir relatório" color={colors.red} onPress={() => router.push('/reports')} />
         </View>
 
         <Card dark style={styles.hero}>
@@ -65,10 +82,17 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
           </View>
         </Card>
 
-        <Card style={styles.statusCard}>
+        <Card 
+          style={[
+            styles.statusCard,
+            isDark 
+              ? { backgroundColor: 'rgba(255, 77, 77, 0.12)', borderColor: 'rgba(255, 77, 77, 0.25)' } 
+              : { backgroundColor: colors.redSoft, borderColor: '#F3D2D2' }
+          ]}
+        >
           <View style={s.row}>
-            <View style={styles.statusIcon}>
-              <Stethoscope size={20} color={c.red} />
+            <View style={[styles.statusIcon, { backgroundColor: isDark ? '#2C2C30' : '#FFF' }]}>
+              <Stethoscope size={20} color={colors.red} />
             </View>
             <View style={{ flex: 1, gap: 4 }}>
               <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>{statusText}</Txt>
@@ -87,7 +111,14 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
         </View>
 
         {Boolean(previous && hasMeasurement) && (
-          <Card style={styles.evolution}>
+          <Card 
+            style={[
+              styles.evolution,
+              isDark 
+                ? { backgroundColor: 'rgba(255, 77, 77, 0.08)', borderColor: 'rgba(255, 77, 77, 0.25)' } 
+                : { backgroundColor: '#FFF8F8', borderColor: '#F3D2D2' }
+            ]}
+          >
             <View style={s.between}>
               <View style={{ flex: 1 }}>
                 <Label>EVOLUÇÃO</Label>
@@ -99,8 +130,8 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
             </View>
             <View style={s.row}>
               <Txt style={styles.evolutionNumber}>{number(previousArea)} cm²</Txt>
-              <ChevronRight size={18} color={c.tertiary} />
-              <Txt style={[styles.evolutionNumber, reduction !== null && reduction >= 0 ? { color: c.green } : { color: c.red }]}>
+              <ChevronRight size={18} color={colors.tertiary} />
+              <Txt style={[styles.evolutionNumber, reduction !== null && reduction >= 0 ? { color: colors.green } : { color: colors.red }]}>
                 {number(currentArea)} cm²
               </Txt>
             </View>
@@ -131,7 +162,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
             <Badge tone={visit.photos.length ? 'green' : 'neutral'}>{visit.photos.length} foto(s)</Badge>
           </View>
           <View style={styles.recordRow}>
-            <Txt style={styles.recordNumber}>{visit.assessments.length}</Txt>
+            <Txt style={[styles.recordNumber, { color: colors.red }]}>{visit.assessments.length}</Txt>
             <View style={{ flex: 1 }}>
               <Txt style={{ fontFamily: fonts.semibold }}>Escalas aplicadas</Txt>
               <Txt muted style={{ fontSize: 12 }}>
@@ -140,7 +171,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
             </View>
           </View>
           <View style={styles.recordRow}>
-            <Txt style={styles.recordNumber}>{visit.dressings.length}</Txt>
+            <Txt style={[styles.recordNumber, { color: colors.red }]}>{visit.dressings.length}</Txt>
             <View style={{ flex: 1 }}>
               <Txt style={{ fontFamily: fonts.semibold }}>Produtos e coberturas</Txt>
               <Txt muted style={{ fontSize: 12 }}>
@@ -149,7 +180,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
             </View>
           </View>
           <View style={styles.recordRow}>
-            <ImageIcon size={19} color={c.red} />
+            <ImageIcon size={19} color={colors.red} />
             <View style={{ flex: 1 }}>
               <Txt style={{ fontFamily: fonts.semibold }}>Fotos clínicas</Txt>
               <Txt muted style={{ fontSize: 12 }}>
@@ -176,4 +207,4 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
   );
 }
 function Metric({ label, value }: { label: string; value: string }) { return <View style={{ flex: 1, minWidth: 80, gap: 4 }}><Label>{label}</Label><Txt style={styles.metricValue}>{value}</Txt></View>; }
-const styles = { content: { padding: 24, paddingTop: 20, paddingBottom: 160, gap: 16 }, empty: { flex: 1, backgroundColor: c.bg, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 12, padding: 24 }, hero: { padding: 18, gap: 14 }, heroName: { color: '#FFF', fontFamily: fonts.semibold, fontSize: 18 }, heroMuted: { color: '#C5C5C5', fontSize: 12 }, statusCard: { padding: 16, backgroundColor: c.redSoft, borderColor: '#F3D2D2' }, statusIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#FFF', alignItems: 'center' as const, justifyContent: 'center' as const }, metrics: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 10, padding: 16 }, metricValue: { fontFamily: fonts.semibold, fontSize: 16 }, evolution: { padding: 18, gap: 12, backgroundColor: '#FFF8F8', borderColor: '#F3D2D2' }, evolutionNumber: { fontFamily: fonts.brand, fontSize: 22 }, recordRow: { minHeight: 44, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12 }, recordNumber: { width: 28, fontFamily: fonts.brand, fontSize: 20, color: c.red }, actions: { gap: 10 } };
+const styles = { content: { padding: 24, paddingTop: 20, paddingBottom: 160, gap: 16 }, empty: { flex: 1, alignItems: 'center' as const, justifyContent: 'center' as const, gap: 12, padding: 24 }, hero: { padding: 18, gap: 14 }, heroName: { color: '#FFF', fontFamily: fonts.semibold, fontSize: 18 }, heroMuted: { color: '#C5C5C5', fontSize: 12 }, statusCard: { padding: 16 }, statusIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center' as const, justifyContent: 'center' as const }, metrics: { flexDirection: 'row' as const, flexWrap: 'wrap' as const, gap: 10, padding: 16 }, metricValue: { fontFamily: fonts.semibold, fontSize: 16 }, evolution: { padding: 18, gap: 12 }, evolutionNumber: { fontFamily: fonts.brand, fontSize: 22 }, recordRow: { minHeight: 44, flexDirection: 'row' as const, alignItems: 'center' as const, gap: 12 }, recordNumber: { width: 28, fontFamily: fonts.brand, fontSize: 20 }, actions: { gap: 10 } };

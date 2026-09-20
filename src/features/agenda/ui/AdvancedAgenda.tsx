@@ -13,7 +13,7 @@ import {
   Play
 } from 'lucide-react-native';
 import { Avatar, Badge, Button, Card, Empty, IconButton, Label, Pills, SectionTitle, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { fonts, useTheme } from '../../../ui/theme';
 import { useStore } from '../../../data/store';
 import { dateLabel } from '../../../domain/clinical';
 import type { Visit } from '../../../domain/types';
@@ -23,6 +23,7 @@ export default function AdvancedAgenda() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const { visits, patients, wounds } = useStore(st => st.data);
+  const { colors, isDark } = useTheme();
 
   const [viewMode, setViewMode] = useState<'Diária' | 'Semanal' | 'Mensal'>('Diária');
   const [statusFilter, setStatusFilter] = useState('Todos');
@@ -68,7 +69,7 @@ export default function AdvancedAgenda() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.bg }]}>
       <ScrollView 
         contentContainerStyle={[
           styles.content, 
@@ -78,12 +79,12 @@ export default function AdvancedAgenda() {
       >
         {/* Topbar Padronizada */}
         <View style={styles.topbar}>
-          <Txt style={styles.brand}>cicure</Txt>
+          <Txt style={[styles.brand, { color: colors.red }]}>cicure</Txt>
           <View style={s.row}>
             <IconButton 
               icon={Plus} 
               label="Novo atendimento" 
-              color={c.red} 
+              color={colors.red} 
               onPress={() => router.push('/care/new')} 
             />
           </View>
@@ -113,11 +114,18 @@ export default function AdvancedAgenda() {
 
         {/* SEÇÃO RESPONSIVA: PACIENTES SEM RETORNO */}
         {patientsWithoutReturn.length > 0 && (
-          <Card style={styles.withoutReturnCard}>
+          <Card 
+            style={[
+              styles.withoutReturnCard,
+              isDark 
+                ? { backgroundColor: 'rgba(255, 77, 77, 0.08)', borderColor: 'rgba(255, 77, 77, 0.25)' }
+                : { backgroundColor: '#FFF8F8', borderColor: '#F5C6C6' }
+            ]}
+          >
             <View style={s.between}>
               <View style={[s.row, { flex: 1 }]}>
-                <AlertCircle size={20} color={c.red} />
-                <Txt style={[styles.withoutReturnTitle, { flex: 1 }]} numberOfLines={1}>
+                <AlertCircle size={20} color={colors.red} />
+                <Txt style={[styles.withoutReturnTitle, { flex: 1, color: colors.red }]} numberOfLines={1}>
                   Pacientes sem Retorno ({patientsWithoutReturn.length})
                 </Txt>
               </View>
@@ -135,7 +143,13 @@ export default function AdvancedAgenda() {
                   <Pressable 
                     key={p.id}
                     onPress={() => router.push(`/patient/${p.id}` as never)}
-                    style={styles.withoutReturnItem}
+                    style={[
+                      styles.withoutReturnItem,
+                      {
+                        backgroundColor: colors.surface,
+                        borderColor: colors.border,
+                      }
+                    ]}
                   >
                     <Avatar name={p.name} color={p.color} size={36} />
                     <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -195,7 +209,7 @@ export default function AdvancedAgenda() {
                 </Pressable>
 
                 {!isCompleted && (
-                  <View style={styles.visitActions}>
+                  <View style={[styles.visitActions, { borderTopColor: colors.border }]}>
                     <Button 
                       title="Lembrete" 
                       variant="outline" 
@@ -236,35 +250,30 @@ export default function AdvancedAgenda() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
   topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { color: c.red, fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
+  brand: { fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
   sectionLabel: { fontSize: 11, letterSpacing: 1.4, fontFamily: fonts.semibold },
   viewModeRow: { flexDirection: 'row', justifyContent: 'space-between' },
   withoutReturnCard: {
-    backgroundColor: '#FFF8F8',
-    borderColor: '#F5C6C6',
     gap: 10,
     padding: 16,
   },
-  withoutReturnTitle: { fontFamily: fonts.semibold, color: c.red, fontSize: 15 },
+  withoutReturnTitle: { fontFamily: fonts.semibold, fontSize: 15 },
   withoutReturnItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#FFF',
     padding: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: c.border,
   },
   visitCard: { gap: 12, padding: 16 },
   visitActions: {
     flexDirection: 'row',
     gap: 8,
     borderTopWidth: 1,
-    borderTopColor: c.border,
     paddingTop: 10,
     flexWrap: 'wrap',
   },

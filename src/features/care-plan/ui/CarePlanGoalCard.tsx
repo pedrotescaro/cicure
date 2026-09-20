@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Badge, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { fonts, useTheme } from '../../../ui/theme';
 import type { CarePlanGoal, GoalStatus } from '../domain/types';
 
 const STATUS_TONES: Record<GoalStatus, 'neutral' | 'red' | 'green' | 'amber'> = {
@@ -20,8 +20,9 @@ export function CarePlanGoalCard({
   onUpdateStatus: (newStatus: GoalStatus) => void;
   onUpdateProgress: (newProgress: number) => void;
 }) {
+  const { colors, isDark } = useTheme();
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={s.between}>
         <Txt style={styles.description}>{goal.description}</Txt>
         <Badge tone={STATUS_TONES[goal.status]}>{goal.status}</Badge>
@@ -37,13 +38,13 @@ export function CarePlanGoalCard({
           <Txt muted style={{ fontSize: 11 }}>Progresso</Txt>
           <Txt style={{ fontFamily: fonts.semibold, fontSize: 12 }}>{goal.progress}%</Txt>
         </View>
-        <View style={styles.progressBarBg}>
+        <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
           <View 
             style={[
               styles.progressBarFill, 
               { 
                 width: `${goal.progress}%`,
-                backgroundColor: goal.status === 'Atingida' ? c.green : c.red 
+                backgroundColor: goal.status === 'Atingida' ? colors.green : colors.red 
               }
             ]} 
           />
@@ -58,12 +59,14 @@ export function CarePlanGoalCard({
             onPress={() => onUpdateStatus(st)}
             style={[
               styles.statusBtn,
-              goal.status === st && styles.statusBtnActive
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              goal.status === st && { backgroundColor: colors.dark, borderColor: colors.dark }
             ]}
           >
             <Txt style={[
               styles.statusBtnText,
-              goal.status === st && styles.statusBtnTextActive
+              { color: colors.secondary },
+              goal.status === st && { color: isDark ? '#141414' : '#FFF' }
             ]}>
               {st}
             </Txt>
@@ -76,17 +79,15 @@ export function CarePlanGoalCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#FAFAFA',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: c.border,
     padding: 14,
     gap: 10,
     marginBottom: 10,
   },
-  description: { fontFamily: fonts.semibold, fontSize: 14, flex: 1, color: c.text },
+  description: { fontFamily: fonts.semibold, fontSize: 14, flex: 1 },
   progressContainer: { gap: 4 },
-  progressBarBg: { height: 8, backgroundColor: c.border, borderRadius: 4, overflow: 'hidden' },
+  progressBarBg: { height: 8, borderRadius: 4, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 4 },
   actionsRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', paddingTop: 4 },
   statusBtn: {
@@ -94,10 +95,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: c.border,
-    backgroundColor: '#FFF'
   },
-  statusBtnActive: { backgroundColor: c.dark, borderColor: c.dark },
-  statusBtnText: { fontSize: 11, color: c.secondary, fontFamily: fonts.medium },
-  statusBtnTextActive: { color: '#FFF' }
+  statusBtnText: { fontSize: 11, fontFamily: fonts.medium },
 });
