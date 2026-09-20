@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,7 +23,7 @@ import {
   Sparkles
 } from 'lucide-react-native';
 import { Badge, Button, Card, Divider, IconButton, Label, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { fonts, useTheme } from '../../../ui/theme';
 import { useStore } from '../../../data/store';
 import type { Organization } from '../domain/types';
 
@@ -33,7 +34,9 @@ type Props = {
 
 export function WorkspaceSelectorModal({ visible, onClose }: Props) {
   const { width } = useWindowDimensions();
+  const isDesktop = width >= 640;
   const store = useStore();
+  const { colors: c, isDark } = useTheme();
   const { workMode, activeOrg, organizations, setWorkMode, createGroup, joinGroup } = store;
 
   const [activeTab, setActiveTab] = useState<'list' | 'create' | 'join'>('list');
@@ -117,13 +120,38 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={[styles.sheet, { maxHeight: '90%' }]}>
+    <Modal visible={visible} animationType={isDesktop ? 'fade' : 'slide'} transparent onRequestClose={onClose}>
+      <View 
+        style={[
+          styles.overlay,
+          { 
+            backgroundColor: isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.5)',
+            justifyContent: isDesktop ? 'center' : 'flex-end',
+            alignItems: isDesktop ? 'center' : 'stretch',
+            padding: isDesktop ? 20 : 0
+          }
+        ]}
+      >
+        <View 
+          style={[
+            styles.sheet, 
+            { 
+              backgroundColor: c.surface,
+              borderRadius: isDesktop ? 28 : 0,
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              width: isDesktop ? '100%' : undefined,
+              maxWidth: isDesktop ? 540 : undefined,
+              maxHeight: '90%',
+              borderWidth: isDesktop && isDark ? 1 : 0,
+              borderColor: c.border
+            }
+          ]}
+        >
           {/* Header */}
-          <View style={styles.header}>
+          <View style={[styles.header, { borderBottomColor: c.border }]}>
             <View style={{ flex: 1, gap: 2 }}>
-              <Txt style={styles.sheetTitle}>
+              <Txt style={[styles.sheetTitle, { color: c.text }]}>
                 {activeTab === 'list' && 'Alternar Workspace'}
                 {activeTab === 'create' && 'Nova Clínica ou Grupo'}
                 {activeTab === 'join' && 'Entrar em uma Clínica'}
@@ -150,15 +178,31 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
                     onPress={handleSelectIndividual}
                     style={[
                       styles.modeCard,
-                      workMode === 'individual' && styles.activeModeCard
+                      {
+                        backgroundColor: isDark ? c.surfaceSubtle : '#FAFAFA',
+                        borderColor: isDark ? c.border : '#EFEFEF',
+                      },
+                      workMode === 'individual' && {
+                        backgroundColor: isDark ? c.redSoft : '#FFF8F8',
+                        borderColor: c.red,
+                      }
                     ]}
                   >
-                    <View style={[styles.avatar, workMode === 'individual' && { backgroundColor: c.dark }]}>
-                      <User size={22} color={workMode === 'individual' ? '#FFF' : c.text} />
+                    <View 
+                      style={[
+                        styles.avatar, 
+                        { 
+                          backgroundColor: isDark 
+                            ? (workMode === 'individual' ? '#333338' : '#252528') 
+                            : (workMode === 'individual' ? c.dark : '#EAEAEA') 
+                        }
+                      ]}
+                    >
+                      <User size={22} color={workMode === 'individual' ? '#FFF' : c.secondary} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Txt style={[styles.cardTitle, { flexShrink: 1 }]} numberOfLines={1}>Consultório Individual</Txt>
+                        <Txt style={[styles.cardTitle, { color: c.text, flexShrink: 1 }]} numberOfLines={1}>Consultório Individual</Txt>
                         {workMode === 'individual' ? (
                           <Badge tone="green">Ativo</Badge>
                         ) : null}
@@ -190,15 +234,28 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
                         onPress={() => handleSelectGroup(org.id)}
                         style={[
                           styles.modeCard,
-                          isSelected && styles.activeModeCard
+                          {
+                            backgroundColor: isDark ? c.surfaceSubtle : '#FAFAFA',
+                            borderColor: isDark ? c.border : '#EFEFEF',
+                          },
+                          isSelected && {
+                            backgroundColor: isDark ? c.redSoft : '#FFF8F8',
+                            borderColor: c.red,
+                          }
                         ]}
                       >
-                        <View style={[styles.avatar, isSelected && { backgroundColor: c.red }]}>
-                          <Building2 size={22} color={isSelected ? '#FFF' : c.text} />
+                        <View 
+                          style={[
+                            styles.avatar, 
+                            { backgroundColor: isDark ? '#252528' : '#EAEAEA' },
+                            isSelected && { backgroundColor: c.red }
+                          ]}
+                        >
+                          <Building2 size={22} color={isSelected ? '#FFF' : c.secondary} />
                         </View>
                         <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Txt style={[styles.cardTitle, { flexShrink: 1 }]} numberOfLines={1}>{org.name}</Txt>
+                            <Txt style={[styles.cardTitle, { color: c.text, flexShrink: 1 }]} numberOfLines={1}>{org.name}</Txt>
                             {isSelected ? (
                               <Badge tone="green">Ativo</Badge>
                             ) : null}
@@ -239,7 +296,13 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
 
             {activeTab === 'create' && (
               <View style={{ gap: 14 }}>
-                <Card style={{ backgroundColor: '#FDF7F7', borderColor: '#F5C6C6', gap: 6 }}>
+                <Card 
+                  style={{ 
+                    backgroundColor: isDark ? c.redSoft : '#FDF7F7', 
+                    borderColor: isDark ? 'rgba(255, 77, 77, 0.3)' : '#F5C6C6', 
+                    gap: 6 
+                  }}
+                >
                   <Txt style={{ fontFamily: fonts.semibold, fontSize: 13, color: c.red }}>Criando Espaço de Trabalho Compartilhado</Txt>
                   <Txt muted style={{ fontSize: 12, lineHeight: 17 }}>
                     Você será o Administrador desta clínica. Um código de convite único será gerado para que outros profissionais e assistentes possam ingressar.
@@ -249,7 +312,14 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
                 <View style={styles.fieldBlock}>
                   <Label>Nome da Clínica ou Equipe *</Label>
                   <TextInput 
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: isDark ? c.surfaceSubtle : '#FFF',
+                        borderColor: c.border,
+                        color: c.text,
+                      }
+                    ]}
                     placeholder="Ex: Clínica Cicatrizar & Saúde Vascular"
                     placeholderTextColor={c.secondary}
                     value={newOrgName}
@@ -261,7 +331,14 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
                 <View style={styles.fieldBlock}>
                   <Label>CNPJ (Opcional)</Label>
                   <TextInput 
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: isDark ? c.surfaceSubtle : '#FFF',
+                        borderColor: c.border,
+                        color: c.text,
+                      }
+                    ]}
                     placeholder="00.000.000/0001-00"
                     placeholderTextColor={c.secondary}
                     value={newOrgCnpj}
@@ -273,7 +350,14 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
                 <View style={styles.fieldBlock}>
                   <Label>Telefone / WhatsApp de Contato</Label>
                   <TextInput 
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: isDark ? c.surfaceSubtle : '#FFF',
+                        borderColor: c.border,
+                        color: c.text,
+                      }
+                    ]}
                     placeholder="(11) 99999-9999"
                     placeholderTextColor={c.secondary}
                     value={newOrgPhone}
@@ -300,7 +384,7 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
 
             {activeTab === 'join' && (
               <View style={{ gap: 14 }}>
-                <Card style={{ backgroundColor: '#F8F9FA', gap: 6 }}>
+                <Card style={{ backgroundColor: isDark ? c.surfaceSubtle : '#F8F9FA', borderColor: c.border, gap: 6 }}>
                   <Txt style={{ fontFamily: fonts.semibold, fontSize: 13 }}>Como funciona o código de convite</Txt>
                   <Txt muted style={{ fontSize: 12, lineHeight: 17 }}>
                     Peça ao administrador da clínica o código no formato <Txt style={{ fontFamily: fonts.semibold }}>CIC-XXXX</Txt>. Ao entrar, você terá acesso aos prontuários compartilhados dessa unidade.
@@ -310,7 +394,18 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
                 <View style={styles.fieldBlock}>
                   <Label>Código de Convite da Clínica *</Label>
                   <TextInput 
-                    style={[styles.input, { letterSpacing: 2, textTransform: 'uppercase', fontSize: 18, textAlign: 'center' }]}
+                    style={[
+                      styles.input, 
+                      { 
+                        letterSpacing: 2, 
+                        textTransform: 'uppercase', 
+                        fontSize: 18, 
+                        textAlign: 'center',
+                        backgroundColor: isDark ? c.surfaceSubtle : '#FFF',
+                        borderColor: c.border,
+                        color: c.text,
+                      }
+                    ]}
                     placeholder="CIC-8241"
                     placeholderTextColor={c.secondary}
                     value={inviteCode}
@@ -344,13 +439,8 @@ export function WorkspaceSelectorModal({ visible, onClose }: Props) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end'
   },
   sheet: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     paddingTop: 20,
     paddingBottom: 32,
   },
@@ -361,7 +451,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: c.border
   },
   sheetTitle: {
     fontFamily: fonts.brand,
@@ -376,20 +465,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderRadius: 18,
-    backgroundColor: '#FAFAFA',
     borderWidth: 1.5,
-    borderColor: '#EFEFEF',
     gap: 12
-  },
-  activeModeCard: {
-    backgroundColor: '#FFF8F8',
-    borderColor: c.red
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#EAEAEA',
     alignItems: 'center',
     justifyContent: 'center'
   },
@@ -403,10 +485,10 @@ const styles = StyleSheet.create({
   input: {
     height: 48,
     borderWidth: 1,
-    borderColor: c.border,
     borderRadius: 14,
     paddingHorizontal: 14,
     fontFamily: fonts.regular,
-    fontSize: 14
+    fontSize: 14,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   }
 });

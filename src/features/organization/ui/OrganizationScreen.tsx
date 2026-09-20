@@ -15,7 +15,7 @@ import {
   Share2
 } from 'lucide-react-native';
 import { Badge, Button, Card, Divider, Empty, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { fonts, useTheme } from '../../../ui/theme';
 import { useStore } from '../../../data/store';
 import { WorkspaceSelectorModal } from './WorkspaceSelectorModal';
 import type { Organization } from '../domain/types';
@@ -24,6 +24,7 @@ export default function OrganizationScreen() {
   const router = useRouter();
   const store = useStore();
   const { workMode, activeOrg, organizations, setWorkMode } = store;
+  const { colors: c, isDark } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
 
   const individualOrg = organizations.find(o => o.isIndividual);
@@ -48,12 +49,12 @@ export default function OrganizationScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Clínicas e Workspaces</Txt>
+          <Txt style={[styles.headerTitle, { color: c.text }]}>Clínicas e Workspaces</Txt>
           <Txt muted style={{ fontSize: 13 }}>Alterne entre seu consultório particular e equipes</Txt>
         </View>
         <IconButton 
@@ -71,9 +72,9 @@ export default function OrganizationScreen() {
         ListHeaderComponent={
           <View style={{ gap: 16, marginBottom: 8 }}>
             {/* Explicação de Isolamento */}
-            <Card style={{ backgroundColor: '#FAFAFA', gap: 6 }}>
+            <Card style={{ backgroundColor: isDark ? c.surfaceSubtle : '#FAFAFA', borderColor: c.border, gap: 6 }}>
               <View style={s.row}>
-                <Shield size={18} color={c.dark} />
+                <Shield size={18} color={isDark ? c.red : c.dark} />
                 <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }}>Segurança & Isolamento de Dados</Txt>
               </View>
               <Txt muted style={{ fontSize: 12, lineHeight: 18 }}>
@@ -85,11 +86,31 @@ export default function OrganizationScreen() {
             {/* Bloco 1: Prática Autônoma / Individual */}
             <View style={{ gap: 8 }}>
               <Label>PRÁTICA AUTÔNOMA (INDIVIDUAL)</Label>
-              <Card style={[styles.orgCard, workMode === 'individual' && styles.activeOrgCard]}>
+              <Card 
+                style={[
+                  styles.orgCard, 
+                  workMode === 'individual' && {
+                    borderColor: c.red,
+                    backgroundColor: isDark ? c.redSoft : '#FFF8F8',
+                  }
+                ]}
+              >
                 <View style={s.between}>
                   <View style={s.row}>
-                    <View style={[styles.avatar, workMode === 'individual' && { backgroundColor: c.dark }]}>
-                      <User size={22} color={workMode === 'individual' ? '#FFF' : c.text} />
+                    <View 
+                      style={[
+                        styles.avatar, 
+                        { 
+                          backgroundColor: isDark 
+                            ? (workMode === 'individual' ? '#333338' : c.surfaceSubtle) 
+                            : (workMode === 'individual' ? c.dark : '#F0F0F0') 
+                        }
+                      ]}
+                    >
+                      <User 
+                        size={22} 
+                        color={workMode === 'individual' ? '#FFF' : c.secondary} 
+                      />
                     </View>
                     <View style={{ flex: 1, gap: 3 }}>
                       <Txt style={styles.orgName}>{individualOrg?.name || 'Consultório Individual (Autônomo)'}</Txt>
@@ -107,7 +128,7 @@ export default function OrganizationScreen() {
                 </View>
 
                 {workMode !== 'individual' ? (
-                  <View style={styles.cardActions}>
+                  <View style={[styles.cardActions, { borderTopColor: c.border }]}>
                     <Button 
                       title="Ativar Modo Individual" 
                       variant="dark" 
@@ -131,11 +152,25 @@ export default function OrganizationScreen() {
         renderItem={({ item }) => {
           const isCurrent = workMode === 'group' && activeOrg.id === item.id;
           return (
-            <Card style={[styles.orgCard, isCurrent && styles.activeOrgCard]}>
+            <Card 
+              style={[
+                styles.orgCard, 
+                isCurrent && {
+                  borderColor: c.red,
+                  backgroundColor: isDark ? c.redSoft : '#FFF8F8',
+                }
+              ]}
+            >
               <View style={s.between}>
                 <View style={s.row}>
-                  <View style={[styles.avatar, isCurrent && { backgroundColor: c.red }]}>
-                    <Building2 size={22} color={isCurrent ? '#FFF' : c.text} />
+                  <View 
+                    style={[
+                      styles.avatar, 
+                      { backgroundColor: isDark ? c.surfaceSubtle : '#F0F0F0' },
+                      isCurrent && { backgroundColor: c.red }
+                    ]}
+                  >
+                    <Building2 size={22} color={isCurrent ? '#FFF' : c.secondary} />
                   </View>
                   <View style={{ flex: 1, gap: 3 }}>
                     <Txt style={styles.orgName}>{item.name}</Txt>
@@ -156,7 +191,7 @@ export default function OrganizationScreen() {
                 ) : null}
               </View>
 
-              <View style={styles.cardActions}>
+              <View style={[styles.cardActions, { borderTopColor: c.border }]}>
                 <Button 
                   title="Equipe e Permissões" 
                   variant="outline" 
@@ -197,7 +232,7 @@ export default function OrganizationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -206,18 +241,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   },
   headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
-  content: { padding: 16, gap: 12, paddingBottom: 100 },
+  content: { padding: 16, gap: 12, paddingBottom: 100, width: '100%', maxWidth: 840, alignSelf: 'center' },
   orgCard: { gap: 12, marginBottom: 8 },
-  activeOrgCard: { borderColor: c.red, backgroundColor: '#FFFDFD' },
   orgName: { fontFamily: fonts.semibold, fontSize: 15 },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: '#F0F0F0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -226,7 +258,7 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: c.border,
     paddingTop: 10,
   }
 });
+
