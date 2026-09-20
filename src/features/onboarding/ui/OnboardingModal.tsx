@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   brand: { fontFamily: fonts.brand, fontSize: 36, color: c.red, letterSpacing: -1 },
-  subtitle: { fontFamily: fonts.semibold, fontSize: 16, color: c.text, textAlign: 'center' },
+  subtitle: { fontFamily: fonts.semibold, fontSize: 16, textAlign: 'center' },
   stepCard: {
     width: '100%',
     alignItems: 'center',
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepTitle: { fontFamily: fonts.semibold, fontSize: 18, textAlign: 'center', color: c.text },
+  stepTitle: { fontFamily: fonts.semibold, fontSize: 18, textAlign: 'center' },
   stepDesc: { fontSize: 14, lineHeight: 20, textAlign: 'center', color: c.secondary },
   dotsRow: { flexDirection: 'row', gap: 6, marginVertical: 8 },
   dot: { height: 6, borderRadius: 3 },

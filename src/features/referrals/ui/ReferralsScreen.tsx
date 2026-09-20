@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, Plus, Share2, ArrowUpRight, Check, X, Clock } from 'lucide-react-native';
 import { useStore, uid } from '../../../data/store';
 import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { REFERRAL_SPECIALTIES, type Referral, type ReferralPriority, type ReferralStatus } from '../domain/types';
 
 const STATUS_TONES: Record<ReferralStatus, 'neutral' | 'red' | 'green' | 'amber'> = {
@@ -16,6 +16,7 @@ const STATUS_TONES: Record<ReferralStatus, 'neutral' | 'red' | 'green' | 'amber'
 
 export default function ReferralsScreen({ patientId }: { patientId: string }) {
   const router = useRouter();
+  const { colors: c } = useTheme();
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
   const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
 
@@ -45,7 +46,7 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
 
   if (!patient) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: c.bg }]}>
         <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => router.back()} />
       </View>
     );
@@ -84,19 +85,18 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Encaminhamentos</Txt>
-          <Txt muted style={{ fontSize: 13 }}>{patient.name} · Especialidades e Serviços</Txt>
+          <Txt muted style={{ fontSize: 13 }}>{patient.name} · Rede de Cuidado Interprofissional</Txt>
         </View>
         <IconButton 
           icon={Plus} 
-          label="Novo Encaminhamento" 
+          label="Novo" 
           onPress={() => setModalVisible(true)} 
-          color={c.red} 
         />
       </View>
 
@@ -107,20 +107,18 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
         renderItem={({ item }) => (
           <Card style={styles.refCard}>
             <View style={s.between}>
+              <Badge tone={STATUS_TONES[item.status]}>{item.status.toUpperCase()}</Badge>
               <Badge tone={item.priority === 'Urgente' ? 'red' : item.priority === 'Prioritário' ? 'amber' : 'neutral'}>
                 {item.priority}
               </Badge>
-              <Badge tone={STATUS_TONES[item.status]}>
-                Status: {item.status.toUpperCase()}
-              </Badge>
             </View>
 
-            <View style={{ gap: 4 }}>
+            <View style={{ gap: 2 }}>
               <Txt style={styles.specialtyTitle}>{item.specialty}</Txt>
               <Txt muted style={{ fontSize: 13 }}>Destino: {item.destinationService}</Txt>
             </View>
 
-            <View style={styles.boxReason}>
+            <View style={[styles.boxReason, { backgroundColor: c.surfaceSubtle, borderColor: c.border }]}>
               <Txt style={{ fontFamily: fonts.medium, fontSize: 13 }}>Motivo Clínico:</Txt>
               <Txt style={{ fontSize: 13, lineHeight: 18 }}>{item.reason}</Txt>
               {item.observations ? (
@@ -129,7 +127,7 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
             </View>
 
             {/* Controle de Status */}
-            <View style={styles.actionsBar}>
+            <View style={[styles.actionsBar, { borderTopColor: c.border }]}>
               <Txt muted style={{ fontSize: 11 }}>Alterar status:</Txt>
               <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
                 {(['solicitado', 'agendado', 'realizado', 'cancelado'] as ReferralStatus[]).map(st => (
@@ -159,7 +157,7 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
       {/* Modal Novo Encaminhamento */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: c.surface }]}>
             <View style={s.between}>
               <Txt style={{ fontFamily: fonts.brand, fontSize: 20 }}>Novo Encaminhamento</Txt>
               <IconButton icon={X} label="Fechar" onPress={() => setModalVisible(false)} />
@@ -218,8 +216,8 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -228,28 +226,24 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   content: { padding: 16, gap: 12, paddingBottom: 100 },
   refCard: { gap: 12, marginBottom: 8 },
-  specialtyTitle: { fontFamily: fonts.semibold, fontSize: 16, color: c.text },
+  specialtyTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   boxReason: {
-    backgroundColor: '#FAFAFA',
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: c.border,
     gap: 4,
   },
-  actionsBar: { gap: 6, borderTopWidth: 1, borderTopColor: c.border, paddingTop: 8 },
+  actionsBar: { gap: 6, borderTopWidth: 1, paddingTop: 8 },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: c.bg,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     maxHeight: '90%',

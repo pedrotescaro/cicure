@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { ChevronLeft, Plus, Package, AlertTriangle, Clock, Check, X, ArrowDownRight, ArrowUpRight } from 'lucide-react-native';
 import { useStore, uid } from '../../../data/store';
 import { Badge, Button, Card, Empty, Field, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { INITIAL_INVENTORY, checkInventoryAlerts } from '../domain/inventory.service';
 import type { InventoryItem, InventoryLot } from '../domain/types';
 
@@ -20,6 +20,7 @@ function formatDateBR(dateStr: string): string {
 
 export default function InventoryScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const [items, setItems] = useState<InventoryItem[]>(INITIAL_INVENTORY);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -155,7 +156,11 @@ export default function InventoryScreen() {
 
               {/* Detalhes de Lote com Alto Contraste e Formatação Alinhada */}
               {lot && (
-                <View style={[styles.lotBox, isExpiringSoon && styles.lotBoxExpiring]}>
+                <View style={[
+                  styles.lotBox, 
+                  isDark && { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+                  isExpiringSoon && (isDark ? { backgroundColor: 'rgba(255, 77, 77, 0.12)', borderColor: 'rgba(255, 77, 77, 0.3)' } : styles.lotBoxExpiring)
+                ]}>
                   <View style={styles.lotCol}>
                     <Txt style={styles.lotLabel}>LOTE ATUAL</Txt>
                     <Txt style={styles.lotValue} numberOfLines={1}>
@@ -186,7 +191,7 @@ export default function InventoryScreen() {
       {/* Modal Cadastrar Item */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={s.between}>
               <Txt style={{ fontFamily: fonts.brand, fontSize: 20 }}>Novo Item de Estoque</Txt>
               <IconButton icon={X} label="Fechar" onPress={() => setModalVisible(false)} />
@@ -269,11 +274,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   content: { padding: 16, gap: 10, paddingBottom: 100 },
   itemCard: { gap: 12, marginBottom: 10, padding: 16 },
-  itemName: { fontFamily: fonts.semibold, fontSize: 15, color: '#111827', lineHeight: 20 },
-  stockQty: { fontFamily: fonts.bold, fontSize: 20, color: '#111827' },
+  itemName: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 20 },
+  stockQty: { fontFamily: fonts.bold, fontSize: 20 },
   lotBox: {
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 14,
@@ -307,7 +312,6 @@ const styles = StyleSheet.create({
   lotValue: {
     fontFamily: fonts.bold,
     fontSize: 14,
-    color: '#111827',
   },
   lotExpiringValue: {
     color: '#B91C1C',
@@ -324,7 +328,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: c.bg,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     maxHeight: '90%',

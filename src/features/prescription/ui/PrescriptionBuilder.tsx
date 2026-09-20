@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   content: { padding: 16, gap: 16, paddingBottom: 120 },
   topActions: { flexDirection: 'row', gap: 10, justifyContent: 'flex-end' },
 });

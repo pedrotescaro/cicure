@@ -3,12 +3,13 @@ import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Laptop, Smartphone, Tablet, LogOut, ShieldCheck } from 'lucide-react-native';
 import { Badge, Button, Card, Empty, IconButton, SectionTitle, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { INITIAL_SESSIONS } from '../domain/security.service';
 import type { DeviceSession } from '../domain/types';
 
 export default function SessionsScreen() {
   const router = useRouter();
+  const { colors: c } = useTheme();
   const [sessions, setSessions] = useState<DeviceSession[]>(INITIAL_SESSIONS);
 
   const handleRevoke = (id: string, name: string) => {
@@ -48,9 +49,9 @@ export default function SessionsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Sessões Ativas</Txt>
@@ -64,7 +65,7 @@ export default function SessionsScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <View style={{ gap: 12, marginBottom: 12 }}>
-            <Card style={{ backgroundColor: '#F9F9F9', gap: 6 }}>
+            <Card style={{ backgroundColor: c.surfaceSubtle, gap: 6 }}>
               <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }}>Segurança de Acesso Multidispositivo</Txt>
               <Txt muted style={{ fontSize: 12, lineHeight: 18 }}>
                 Se você não reconhecer algum aparelho conectado ou tiver utilizado um computador público, encerre a sessão correspondente imediatamente.
@@ -87,7 +88,7 @@ export default function SessionsScreen() {
           return (
             <Card style={styles.sessionCard}>
               <View style={s.row}>
-                <View style={styles.iconCircle}>
+                <View style={[styles.iconCircle, { backgroundColor: c.surfaceSubtle }]}>
                   <Icon size={20} color={c.text} />
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
@@ -117,7 +118,7 @@ export default function SessionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -126,17 +127,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   content: { padding: 16, gap: 10, paddingBottom: 100 },
   sessionCard: { gap: 8, marginBottom: 8 },
-  deviceName: { fontFamily: fonts.semibold, fontSize: 15, color: c.text },
+  deviceName: { fontFamily: fonts.semibold, fontSize: 15 },
   iconCircle: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F0F0F0',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -108,5 +108,5 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: { fontFamily: fonts.brand, fontSize: 32, color: c.red },
-  subtitle: { fontFamily: fonts.semibold, fontSize: 16, color: c.text },
+  subtitle: { fontFamily: fonts.semibold, fontSize: 16 },
 });

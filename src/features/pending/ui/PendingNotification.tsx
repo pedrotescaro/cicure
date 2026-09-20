@@ -20,7 +20,7 @@ import {
   Cloud 
 } from 'lucide-react-native';
 import { Badge, Button, Card, Divider, IconButton, Label, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import type { PendingItem } from '../domain/pending.service';
 
 type Props = {
@@ -29,6 +29,7 @@ type Props = {
 
 export function PendingNotification({ items }: Props) {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   const { width } = useWindowDimensions();
   const [modalVisible, setModalVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -51,12 +52,13 @@ export function PendingNotification({ items }: Props) {
 
   return (
     <>
-      {/* Notificação Compacta (Estilo Toast / Banner Notificação) */}
+      {/* Barra de Notificação Sutil no Topo */}
       <View style={styles.notificationWrapper}>
         <Pressable 
           onPress={() => setModalVisible(true)}
           style={({ pressed }) => [
             styles.notificationPill,
+            isDark && { backgroundColor: 'rgba(255, 77, 77, 0.1)', borderColor: 'rgba(255, 77, 77, 0.25)' },
             pressed && { opacity: 0.85 }
           ]}
         >
@@ -106,12 +108,12 @@ export function PendingNotification({ items }: Props) {
         <View style={styles.modalOverlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setModalVisible(false)} />
           
-          <View style={[styles.popupCard, { maxWidth: Math.min(width - 32, 460) }]}>
+          <View style={[styles.popupCard, { maxWidth: Math.min(width - 32, 460) }, isDark && { backgroundColor: colors.surface }]}>
             {/* Header do Popup */}
-            <View style={styles.popupHeader}>
+            <View style={[styles.popupHeader, isDark && { borderBottomColor: colors.border }]}>
               <View style={s.row}>
-                <View style={styles.popupIconCircle}>
-                  <AlertCircle size={20} color={c.red} />
+                <View style={[styles.popupIconCircle, isDark && { backgroundColor: 'rgba(255, 77, 77, 0.15)' }]}>
+                  <AlertCircle size={20} color={colors.red} />
                 </View>
                 <View style={{ gap: 1 }}>
                   <View style={s.row}>
@@ -140,7 +142,8 @@ export function PendingNotification({ items }: Props) {
                     onPress={() => handleOpenItem(item.route)}
                     style={({ pressed }) => [
                       styles.itemRow,
-                      isHigh && styles.highPriorityRow,
+                      isDark && { backgroundColor: colors.surfaceSubtle, borderColor: colors.border },
+                      isHigh && (isDark ? { backgroundColor: 'rgba(255, 77, 77, 0.12)', borderColor: 'rgba(255, 77, 77, 0.3)' } : styles.highPriorityRow),
                       pressed && { opacity: 0.8 }
                     ]}
                   >
@@ -231,7 +234,6 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontFamily: fonts.semibold,
     fontSize: 13,
-    color: c.text,
   },
   notificationSubtitle: {
     fontFamily: fonts.medium,
@@ -296,7 +298,6 @@ const styles = StyleSheet.create({
   popupTitle: {
     fontFamily: fonts.brand,
     fontSize: 17,
-    color: c.text,
   },
   popupList: {
     gap: 8,
@@ -319,7 +320,6 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontFamily: fonts.semibold,
     fontSize: 13,
-    color: c.text,
     flex: 1,
   },
   popupFooter: {

@@ -19,7 +19,7 @@ import {
 import { useStore } from '../../../data/store';
 import { useNetworkStatus } from '../../../data/network';
 import { Badge, Button, Card, Empty, IconButton, Label, Pills, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { INITIAL_SYNC_ITEMS, resolveSyncConflict } from '../domain/sync.service';
 import { ConflictResolutionModal } from './ConflictResolutionModal';
 import type { SyncItem, SyncItemStatus } from '../domain/types';
@@ -34,6 +34,7 @@ const STATUS_CONFIG: Record<SyncItemStatus, { label: string; tone: 'green' | 'am
 
 export default function SyncCenterScreen() {
   const router = useRouter();
+  const { colors: c } = useTheme();
   const store = useStore();
   const { isOnline, pending, syncState } = useNetworkStatus();
   const { workMode, activeOrg } = store;
@@ -63,7 +64,7 @@ export default function SyncCenterScreen() {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
       <View style={styles.header}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
@@ -218,7 +219,7 @@ export default function SyncCenterScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -229,11 +230,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border },
   content: { padding: 16, gap: 10, paddingBottom: 100 },
   syncCard: { gap: 10, marginBottom: 8 },
-  itemTitle: { fontFamily: fonts.semibold, fontSize: 15, color: c.text },
+  itemTitle: { fontFamily: fonts.semibold, fontSize: 15 },
   conflictAction: {
     borderTopWidth: 1,
     borderTopColor: c.border,

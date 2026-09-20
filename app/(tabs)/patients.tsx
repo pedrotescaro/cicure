@@ -492,7 +492,6 @@ const styles = StyleSheet.create({
   searchInput: { 
     flex: 1, 
     minHeight: 44, 
-    color: c.text, 
     fontFamily: fonts.regular, 
     fontSize: 14,
     backgroundColor: 'transparent',
@@ -520,6 +519,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalTitle: { fontFamily: fonts.brand, fontSize: 20, color: c.text },
+  modalTitle: { fontFamily: fonts.brand, fontSize: 20 },
   rowFields: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
 });

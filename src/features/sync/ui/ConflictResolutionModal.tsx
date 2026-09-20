@@ -110,8 +110,8 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 14,
   },
-  title: { fontFamily: fonts.brand, fontSize: 20, color: c.text },
+  title: { fontFamily: fonts.brand, fontSize: 20 },
   versionCard: { gap: 10, borderColor: c.border },
-  versionTitle: { fontFamily: fonts.semibold, fontSize: 14, color: c.text },
+  versionTitle: { fontFamily: fonts.semibold, fontSize: 14 },
   dataBox: { backgroundColor: '#FAFAFA', padding: 10, borderRadius: 10, gap: 4 },
 });

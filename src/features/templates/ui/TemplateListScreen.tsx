@@ -12,7 +12,7 @@ import {
   Check 
 } from 'lucide-react-native';
 import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { DEFAULT_TEMPLATES, createTemplate, duplicateTemplate } from '../domain/template.service';
 import type { ClinicalTemplate, TemplateType } from '../domain/types';
 
@@ -36,6 +36,7 @@ const PILL_TYPE_MAP: Record<string, TemplateType | 'todos'> = {
 
 export default function TemplateListScreen() {
   const router = useRouter();
+  const { colors: c } = useTheme();
   const [templates, setTemplates] = useState<ClinicalTemplate[]>(DEFAULT_TEMPLATES);
   const [selectedPill, setSelectedPill] = useState('Todos');
   const [scopeFilter, setScopeFilter] = useState<'todos' | 'personal' | 'organization'>('todos');
@@ -64,54 +65,56 @@ export default function TemplateListScreen() {
       name: newName.trim(),
       type: newType,
       description: newDesc.trim(),
+      content: { text: newContentText.trim() },
       scope: newScope,
-      content: { note: newContentText.trim() },
-      createdBy: 'Profissional autenticado'
+      createdBy: 'Você'
     });
+
     setTemplates(prev => [created, ...prev]);
     setModalVisible(false);
     setNewName('');
     setNewDesc('');
     setNewContentText('');
-    Alert.alert('Template Salvo', 'O novo modelo clínico está disponível para uso imediato.');
+    Alert.alert('Sucesso', 'Template clínico criado com sucesso!');
   };
 
-  const handleDuplicate = (item: ClinicalTemplate) => {
-    const copy = duplicateTemplate(item);
-    setTemplates(prev => [copy, ...prev]);
-    Alert.alert('Template Duplicado', `Criada cópia de "${item.name}".`);
+  const handleDuplicate = (tpl: ClinicalTemplate) => {
+    const dup = duplicateTemplate(tpl);
+    setTemplates(prev => [dup, ...prev]);
+    Alert.alert('Duplicado', `Cópia de "${tpl.name}" foi adicionada aos seus templates.`);
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('Excluir Template', 'Deseja remover este modelo?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Excluir',
-        style: 'destructive',
-        onPress: () => setTemplates(prev => prev.filter(t => t.id !== id))
-      }
-    ]);
+    Alert.alert(
+      'Excluir Template',
+      'Tem certeza de que deseja remover este modelo clínico?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Excluir', 
+          style: 'destructive', 
+          onPress: () => {
+            setTemplates(prev => prev.filter(t => t.id !== id));
+          } 
+        }
+      ]
+    );
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Templates Clínicos</Txt>
-          <Txt muted style={{ fontSize: 13 }}>Padronização ágil e segura de condutas</Txt>
+          <Txt style={styles.headerTitle}>Biblioteca de Modelos</Txt>
+          <Txt muted style={{ fontSize: 13 }}>Protocolos padronizados de curativos e condutas</Txt>
         </View>
-        <IconButton 
-          icon={Plus} 
-          label="Novo Template" 
-          onPress={() => setModalVisible(true)} 
-          color={c.red} 
-        />
+        <IconButton icon={Plus} label="Novo" onPress={() => setModalVisible(true)} />
       </View>
 
       {/* Filtros em Pills */}
-      <View style={styles.filterBar}>
+      <View style={[styles.filterBar, { borderBottomColor: c.border }]}>
         <Pills 
           options={TYPE_PILLS} 
           value={selectedPill} 
@@ -127,9 +130,7 @@ export default function TemplateListScreen() {
         renderItem={({ item }) => (
           <Card style={styles.templateCard}>
             <View style={s.between}>
-              <Badge tone={item.scope === 'organization' ? 'green' : 'neutral'}>
-                {item.scope === 'organization' ? 'Compartilhado com Clínica' : 'Uso Pessoal'}
-              </Badge>
+              <Badge tone="green">{item.type.toUpperCase()}</Badge>
               <View style={s.row}>
                 <IconButton 
                   icon={Copy} 
@@ -150,7 +151,7 @@ export default function TemplateListScreen() {
             <Txt style={styles.cardName}>{item.name}</Txt>
             <Txt muted style={{ fontSize: 13, lineHeight: 18 }}>{item.description}</Txt>
 
-            <View style={styles.cardFooter}>
+            <View style={[styles.cardFooter, { borderTopColor: c.border }]}>
               <Txt muted style={{ fontSize: 11 }}>Autor: {item.createdBy}</Txt>
               <Txt muted style={{ fontSize: 11 }}>Atualizado em {item.updatedAt.slice(0, 10)}</Txt>
             </View>
@@ -169,7 +170,7 @@ export default function TemplateListScreen() {
       {/* Modal Criar Template */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: c.surface }]}>
             <View style={s.between}>
               <Txt style={{ fontFamily: fonts.brand, fontSize: 20 }}>Novo Template Clínico</Txt>
               <IconButton icon={X} label="Fechar" onPress={() => setModalVisible(false)} />
@@ -230,7 +231,7 @@ export default function TemplateListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -239,18 +240,16 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
-  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
+  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
   listContent: { padding: 16, gap: 14, paddingBottom: 100 },
   templateCard: { gap: 10 },
-  cardName: { fontFamily: fonts.semibold, fontSize: 16, color: c.text },
+  cardName: { fontFamily: fonts.semibold, fontSize: 16 },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: c.border,
     paddingTop: 8,
   },
   modalOverlay: {
@@ -259,7 +258,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: c.bg,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     maxHeight: '90%',

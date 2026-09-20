@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   selectorBar: { paddingVertical: 10, alignItems: 'center' },
   svgContainer: {
     alignItems: 'center',

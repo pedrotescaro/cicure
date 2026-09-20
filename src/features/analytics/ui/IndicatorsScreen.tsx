@@ -94,7 +94,7 @@ export default function IndicatorsScreen() {
           <View style={s.between}>
             <View style={{ gap: 2 }}>
               <Txt muted style={{ fontSize: 12 }}>Área Média das Lesões</Txt>
-              <Txt style={{ fontFamily: fonts.bold, fontSize: 24, color: c.text }}>
+              <Txt style={{ fontFamily: fonts.bold, fontSize: 24 }}>
                 {number(avgArea)} cm²
               </Txt>
             </View>
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border },
   content: { padding: 16, gap: 16, paddingBottom: 100 },
   metricsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  metricValue: { fontFamily: fonts.bold, fontSize: 26, color: c.text },
+  metricValue: { fontFamily: fonts.bold, fontSize: 26 },
   barTrack: { height: 8, backgroundColor: '#EAEAEA', borderRadius: 4, overflow: 'hidden' },
   barFill: { height: '100%', backgroundColor: c.red, borderRadius: 4 },
 });

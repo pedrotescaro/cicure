@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     padding: 20,
     gap: 14,
   },
-  title: { fontFamily: fonts.brand, fontSize: 20, color: c.text },
+  title: { fontFamily: fonts.brand, fontSize: 20 },
   groupLabel: { fontFamily: fonts.semibold, fontSize: 11, letterSpacing: 1.2, color: c.secondary, marginTop: 6 },
   resultItem: {
     flexDirection: 'row',
@@ -173,5 +173,5 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: c.border,
   },
-  itemTitle: { fontFamily: fonts.semibold, fontSize: 14, color: c.text },
+  itemTitle: { fontFamily: fonts.semibold, fontSize: 14 },
 });

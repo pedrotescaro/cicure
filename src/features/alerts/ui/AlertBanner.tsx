@@ -64,7 +64,7 @@ export function AlertBanner({ alerts }: { alerts: ClinicalAlert[] }) {
 const styles = StyleSheet.create({
   container: { gap: 10, marginVertical: 8 },
   alertCard: { padding: 14, gap: 8, borderWidth: 1 },
-  title: { fontFamily: fonts.semibold, fontSize: 14, color: c.text },
-  message: { fontSize: 13, lineHeight: 18, color: c.text },
+  title: { fontFamily: fonts.semibold, fontSize: 14 },
+  message: { fontSize: 13, lineHeight: 18 },
   recommendation: { fontSize: 12, lineHeight: 16, color: c.secondary },
 });

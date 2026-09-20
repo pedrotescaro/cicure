@@ -15,7 +15,7 @@ import {
 } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
 import { Badge, Card, Empty, IconButton, Label, Pills, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { dateLabel } from '../../../domain/clinical';
 import { buildTimeline, filterTimeline } from '../domain/timeline.service';
 import type { TimelineEvent, TimelineEventType } from '../domain/types';
@@ -44,7 +44,7 @@ const CATEGORY_MAP: Record<string, TimelineEventType | 'todos'> = {
 
 export default function TimelineScreen({ patientId }: { patientId: string }) {
   const router = useRouter();
-  const store = useStore();
+  const { colors: c } = useTheme();
   const [selectedPill, setSelectedPill] = useState('Todos');
 
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
@@ -64,7 +64,7 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
 
   if (!patient) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: c.bg }]}>
         <Empty 
           title="Paciente não encontrado" 
           description="Verifique o identificador e tente novamente."
@@ -92,11 +92,12 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
         <View style={styles.timelineCol}>
           <View style={[
             styles.timelineDot,
+            { backgroundColor: c.dark, borderColor: c.bg },
             item.badgeTone === 'green' && { backgroundColor: c.green, borderColor: c.greenSoft },
             item.badgeTone === 'amber' && { backgroundColor: c.amber, borderColor: c.amberSoft },
             item.badgeTone === 'red' && { backgroundColor: c.red, borderColor: c.redSoft },
           ]} />
-          <View style={styles.timelineLine} />
+          <View style={[styles.timelineLine, { backgroundColor: c.border }]} />
         </View>
 
         {/* Card do Evento */}
@@ -107,7 +108,11 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
                 router.push(`/care/${item.referenceId}` as never);
               }
             }}
-            style={({ pressed }) => [styles.eventCard, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [
+              styles.eventCard, 
+              { backgroundColor: c.surface, borderColor: c.border },
+              pressed && { opacity: 0.85 }
+            ]}
           >
             <View style={s.between}>
               <Badge tone={item.badgeTone || 'neutral'}>{item.category}</Badge>
@@ -122,9 +127,9 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Linha do Tempo</Txt>
@@ -133,7 +138,7 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
       </View>
 
       {/* Filtros em Pills */}
-      <View style={styles.filterBar}>
+      <View style={[styles.filterBar, { borderBottomColor: c.border }]}>
         <Pills 
           options={CATEGORY_OPTIONS} 
           value={selectedPill} 
@@ -163,8 +168,8 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg },
+  container: { flex: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -173,14 +178,13 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
-  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
+  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
   listContent: { padding: 16, paddingBottom: 100 },
   eventRow: { flexDirection: 'row', marginBottom: 12 },
   dateCol: { width: 56, alignItems: 'flex-end', paddingTop: 8, paddingRight: 10 },
-  eventDate: { fontFamily: fonts.semibold, fontSize: 14, color: c.text },
+  eventDate: { fontFamily: fonts.semibold, fontSize: 14 },
   eventYear: { fontSize: 11 },
   eventTime: { fontSize: 10, marginTop: 2 },
   timelineCol: { width: 24, alignItems: 'center' },
@@ -188,27 +192,22 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: c.dark,
     borderWidth: 2,
-    borderColor: '#FFF',
     marginTop: 10,
     zIndex: 2,
   },
   timelineLine: {
     flex: 1,
     width: 2,
-    backgroundColor: c.border,
     marginTop: -2,
   },
   contentCol: { flex: 1, paddingLeft: 6 },
   eventCard: {
-    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: c.border,
     borderRadius: 16,
     padding: 14,
     gap: 6,
   },
-  eventTitle: { fontFamily: fonts.semibold, fontSize: 15, color: c.text },
-  eventSummary: { fontSize: 13, lineHeight: 18, color: c.secondary },
+  eventTitle: { fontFamily: fonts.semibold, fontSize: 15 },
+  eventSummary: { fontSize: 13, lineHeight: 18 },
 });

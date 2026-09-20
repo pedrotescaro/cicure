@@ -208,11 +208,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   content: { padding: 16, gap: 12, paddingBottom: 100 },
   orgCard: { gap: 12, marginBottom: 8 },
   activeOrgCard: { borderColor: c.red, backgroundColor: '#FFFDFD' },
-  orgName: { fontFamily: fonts.semibold, fontSize: 15, color: c.text },
+  orgName: { fontFamily: fonts.semibold, fontSize: 15 },
   avatar: {
     width: 44,
     height: 44,

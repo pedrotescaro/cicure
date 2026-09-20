@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border },
   content: { padding: 16, gap: 10, paddingBottom: 100 },
   pendingCard: {
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
   },
-  itemTitle: { fontFamily: fonts.semibold, fontSize: 15, color: c.text },
+  itemTitle: { fontFamily: fonts.semibold, fontSize: 15 },
   iconCircle: {
     width: 42,
     height: 42,

@@ -3,7 +3,7 @@ import { FlatList, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Shield, Eye, Edit3, CheckCircle, Share2, Download, LogIn } from 'lucide-react-native';
 import { Badge, Card, Empty, IconButton, Label, Pills, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { dateLabel } from '../../../domain/clinical';
 import { getAuditEvents } from '../domain/security.service';
 import type { AuditAction, AuditEvent } from '../domain/types';
@@ -21,6 +21,7 @@ const ACTION_ICONS: Record<string, any> = {
 
 export default function AuditLogScreen() {
   const router = useRouter();
+  const { colors: c } = useTheme();
   const [events] = useState<AuditEvent[]>(getAuditEvents);
   const [filter, setFilter] = useState('Todos');
 
@@ -32,9 +33,9 @@ export default function AuditLogScreen() {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt style={styles.headerTitle}>Trilha de Auditoria</Txt>
@@ -44,7 +45,7 @@ export default function AuditLogScreen() {
       </View>
 
       {/* Filtros em Pills */}
-      <View style={styles.filterBar}>
+      <View style={[styles.filterBar, { borderBottomColor: c.border }]}>
         <Pills 
           options={['Todos', 'Acessos', 'Assinaturas', 'Exportações']} 
           value={filter} 
@@ -63,14 +64,14 @@ export default function AuditLogScreen() {
           return (
             <Card style={styles.eventCard}>
               <View style={s.row}>
-                <View style={styles.iconCircle}>
+                <View style={[styles.iconCircle, { backgroundColor: c.surfaceSubtle }]}>
                   <Icon size={18} color={c.text} />
                 </View>
 
                 <View style={{ flex: 1, gap: 2 }}>
                   <Txt style={styles.actionTitle}>{item.actionLabel}</Txt>
                   <Txt muted style={{ fontSize: 12 }}>
-                    Profissional: <Txt style={{ color: c.text, fontFamily: fonts.medium }}>{item.userName}</Txt>
+                    Profissional: <Txt style={{ fontFamily: fonts.medium }}>{item.userName}</Txt>
                   </Txt>
                   {item.patientName && (
                     <Txt muted style={{ fontSize: 12 }}>Paciente: {item.patientName}</Txt>
@@ -95,7 +96,7 @@ export default function AuditLogScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -104,18 +105,16 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
-  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
+  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
   content: { padding: 16, gap: 10, paddingBottom: 100 },
   eventCard: { gap: 8, marginBottom: 8 },
-  actionTitle: { fontFamily: fonts.semibold, fontSize: 14, color: c.text },
+  actionTitle: { fontFamily: fonts.semibold, fontSize: 14 },
   iconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
   },

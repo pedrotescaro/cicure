@@ -3,12 +3,13 @@ import { Alert, FlatList, Modal, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Plus, UserPlus, Shield, Mail, Check, X } from 'lucide-react-native';
 import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { DEFAULT_MEMBERS, inviteMember } from '../domain/organization.service';
 import type { OrganizationMember, OrganizationRole } from '../domain/types';
 
 export default function MembersScreen() {
   const router = useRouter();
+  const { colors: c } = useTheme();
   const [members, setMembers] = useState<OrganizationMember[]>(DEFAULT_MEMBERS);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -30,19 +31,18 @@ export default function MembersScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => router.back()} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Equipe da Clínica</Txt>
-          <Txt muted style={{ fontSize: 13 }}>Membros, papéis e permissões granulares</Txt>
+          <Txt style={styles.headerTitle}>Equipe & Permissões</Txt>
+          <Txt muted style={{ fontSize: 13 }}>Membros da Clínica Cicatrizar</Txt>
         </View>
         <IconButton 
-          icon={UserPlus} 
-          label="Convidar Membro" 
+          icon={Plus} 
+          label="Convidar" 
           onPress={() => setModalVisible(true)} 
-          color={c.red} 
         />
       </View>
 
@@ -50,31 +50,24 @@ export default function MembersScreen() {
         data={members}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.content}
-        ListHeaderComponent={
-          <Card style={{ backgroundColor: '#FAFAFA', gap: 6, marginBottom: 12 }}>
-            <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }}>Acesso Granular ao Prontuário</Txt>
-            <Txt muted style={{ fontSize: 12, lineHeight: 18 }}>
-              Nem todos os membros da clínica têm acesso irrestrito a todos os pacientes. O prontuário só é visível se houver associação explícita na equipe de atendimento.
-            </Txt>
-          </Card>
-        }
         renderItem={({ item }) => (
           <Card style={styles.memberCard}>
             <View style={s.between}>
-              <View style={{ flex: 1, gap: 3 }}>
-                <Txt style={styles.memberName}>{item.name}</Txt>
-                <Txt muted style={{ fontSize: 12 }}>{item.email}</Txt>
+              <View style={s.row}>
+                <View style={{ gap: 2 }}>
+                  <Txt style={styles.memberName}>{item.name}</Txt>
+                  <Txt muted style={{ fontSize: 13 }}>{item.email}</Txt>
+                </View>
               </View>
-              <Badge tone={item.role === 'Administrador' ? 'red' : item.role === 'Profissional' ? 'green' : 'neutral'}>
+
+              <Badge tone={item.role === 'Administrador' ? 'green' : 'neutral'}>
                 {item.role}
               </Badge>
             </View>
 
-            <View style={styles.cardFooter}>
-              <Txt muted style={{ fontSize: 11 }}>
-                Status: {item.status === 'active' ? 'Ativo na clínica' : 'Convite pendente'}
-              </Txt>
-              <Txt muted style={{ fontSize: 11 }}>Desde {item.invitedAt}</Txt>
+            <View style={[styles.cardFooter, { borderTopColor: c.border }]}>
+              <Txt muted style={{ fontSize: 11 }}>Status: {item.status.toUpperCase()}</Txt>
+              <Txt muted style={{ fontSize: 11 }}>Desde {item.invitedAt.slice(0, 10)}</Txt>
             </View>
           </Card>
         )}
@@ -83,7 +76,7 @@ export default function MembersScreen() {
       {/* Modal Convidar Membro */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: c.surface }]}>
             <View style={s.between}>
               <Txt style={{ fontFamily: fonts.brand, fontSize: 20 }}>Convidar Profissional</Txt>
               <IconButton icon={X} label="Fechar" onPress={() => setModalVisible(false)} />
@@ -126,7 +119,7 @@ export default function MembersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -135,17 +128,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     gap: 12,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22, color: c.text },
+  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
   content: { padding: 16, gap: 10, paddingBottom: 100 },
   memberCard: { gap: 10, marginBottom: 8 },
-  memberName: { fontFamily: fonts.semibold, fontSize: 15, color: c.text },
+  memberName: { fontFamily: fonts.semibold, fontSize: 15 },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: c.border,
     paddingTop: 8,
   },
   modalOverlay: {
@@ -154,7 +145,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: c.bg,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     padding: 20,

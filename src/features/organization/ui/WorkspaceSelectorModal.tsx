@@ -365,8 +365,7 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontFamily: fonts.brand,
-    fontSize: 20,
-    color: c.text
+    fontSize: 20
   },
   content: {
     padding: 20,
@@ -396,21 +395,18 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontFamily: fonts.semibold,
-    fontSize: 15,
-    color: c.text
+    fontSize: 15
   },
   fieldBlock: {
     gap: 6
   },
   input: {
     height: 48,
-    backgroundColor: '#FAFAFA',
     borderWidth: 1,
     borderColor: c.border,
     borderRadius: 14,
     paddingHorizontal: 14,
     fontFamily: fonts.regular,
-    fontSize: 14,
-    color: c.text
+    fontSize: 14
   }
 });
