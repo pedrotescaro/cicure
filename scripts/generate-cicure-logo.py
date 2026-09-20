@@ -18,6 +18,7 @@ from fontTools.pens.recordingPen import DecomposingRecordingPen, RecordingPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
+from fontTools.ttLib.removeOverlaps import removeOverlaps
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -97,6 +98,7 @@ def svg_path(recording: RecordingPen) -> str:
 
 def generate() -> str:
     font = TTFont(FONT_PATH)
+    removeOverlaps(font)
     glyphs = positioned_glyphs(font)
     bounds = BoundsPen(None)
     for _, recording in glyphs:
@@ -133,10 +135,12 @@ def generate() -> str:
             cursor += contour["length"]
         letters.append({"letter": character, "d": svg_path(normalized), "contours": contours})
     assert "".join(letter["letter"] for letter in letters) == WORD
-    # Comfortaa's e follows its outer edge and counter in one connected contour;
-    # u/r use overlapping contours, so their eventual fill must use nonzero.
-    assert len(letters[-1]["contours"]) == 1, "Preserve the e's connected outline"
+    # Comfortaa uses overlapping components in glyphs such as u and r;
+    # removeOverlaps merges them into clean, non-intersecting stroke contours.
     assert len(letters[1]["contours"]) == 2, "The i dot must be preserved"
+    assert len(letters[3]["contours"]) == 1, "The u must have a clean unified contour without overlaps"
+    assert len(letters[4]["contours"]) == 1, "The r must have a clean unified contour without overlaps"
+    assert len(letters[5]["contours"]) == 2, "The e outer and counter outlines must be preserved"
     data = json.dumps({"width": width, "height": height, "letters": letters}, indent=2)
     digest = hashlib.sha256(FONT_PATH.read_bytes()).hexdigest()
     return (
