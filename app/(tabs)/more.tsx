@@ -39,7 +39,7 @@ export default function More() {
   const setPresentation = useStore(st => st.setPresentation);
   const workMode = useStore(st => st.workMode);
   const activeOrg = useStore(st => st.activeOrg);
-  const { isOnline, pending } = useNetworkStatus();
+  const { isOnline, pending, syncState } = useNetworkStatus();
 
   const [lockModalVisible, setLockModalVisible] = useState(false);
   const [onboardingVisible, setOnboardingVisible] = useState(false);
@@ -80,10 +80,10 @@ export default function More() {
           </View>
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
             <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }} numberOfLines={1}>
-              {profile?.name || 'Caroline Ferreira'}
+              {profile?.name || 'Profissional'}
             </Txt>
             <Txt muted style={{ fontSize: 12 }} numberOfLines={2}>
-              {profile?.specialty || 'Enfermagem Estomaterapeuta'} · {profile?.council || 'COREN'} {profile?.registration || '123456-SP'}
+              {profile ? [profile.specialty, profile.council, profile.registration].filter(Boolean).join(' · ') : 'Perfil profissional não configurado'}
             </Txt>
           </View>
         </Card>
@@ -239,7 +239,7 @@ export default function More() {
           <MenuRow 
             icon={RefreshCw} 
             title="Central de Sincronização" 
-            subtitle={isOnline ? (pending > 0 ? `Online · ${pending} alteração(ões) pendente(s)` : 'Online · Nuvem sincronizada') : 'Offline · Armazenado no SQLite local'}
+            subtitle={isOnline ? (pending > 0 ? `Online · ${pending} alteração(ões) pendente(s)` : syncState === 'synced' ? 'Online · Nuvem sincronizada' : 'Salvo no aparelho · Nuvem não confirmada') : 'Offline · Armazenado no SQLite local'}
             onPress={() => router.push('/sync' as never)} 
           />
         </Card>

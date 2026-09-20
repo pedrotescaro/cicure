@@ -24,7 +24,7 @@ import { fonts, useTheme } from './theme';
 import { area, decimal, measurementSchema, number, visitErrors } from '../domain/clinical';
 import { useStore, uid } from '../data/store';
 import type { Patient, Visit, Wound } from '../domain/types';
-import { newVisit } from '../domain/demo';
+import { newVisit } from '../domain/visit';
 import { duplicateVisit, duplicateSummary } from '../features/duplicate-visit/domain/duplicate-visit.service';
 import { TemplatePickerModal } from '../features/templates/ui/TemplatePickerModal';
 import type { ClinicalTemplate } from '../features/templates/domain/types';

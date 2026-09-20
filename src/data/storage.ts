@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import type { EntityKind, QueueItem } from '../domain/types';
+import { isDemoRecord } from './demo-cleanup';
 let database: Promise<SQLite.SQLiteDatabase>;
 export async function db() {
   if (!database) database = (async () => {
@@ -10,6 +11,21 @@ export async function db() {
   return database;
 }
 export async function readRecords(scope: string) { return (await (await db()).getAllAsync<{ kind: EntityKind; payload: string }>('SELECT kind,payload FROM records WHERE scope=?', scope)).map(r => ({ kind: r.kind, payload: JSON.parse(r.payload) })); }
+export async function removeDemoRecords(scope: string) {
+  await (await db()).withExclusiveTransactionAsync(async tx => {
+    const rows = await tx.getAllAsync<{ kind: EntityKind; id: string; payload: string }>('SELECT kind,id,payload FROM records WHERE scope=?', scope);
+    for (const row of rows) {
+      if (isDemoRecord(row.kind, row.id, JSON.parse(row.payload))) {
+        await tx.runAsync('DELETE FROM records WHERE scope=? AND kind=? AND id=?', scope, row.kind, row.id);
+        await tx.runAsync('DELETE FROM sync_queue WHERE scope=? AND kind=? AND entity_id=?', scope, row.kind, row.id);
+      }
+    }
+    const queued = await tx.getAllAsync<{ kind: EntityKind; id: string; entity_id: string; payload: string }>('SELECT kind,id,entity_id,payload FROM sync_queue WHERE scope=?', scope);
+    for (const row of queued) {
+      if (isDemoRecord(row.kind, row.entity_id, JSON.parse(row.payload))) await tx.runAsync('DELETE FROM sync_queue WHERE scope=? AND id=?', scope, row.id);
+    }
+  });
+}
 export async function writeRecord(scope: string, kind: EntityKind, id: string, payload: unknown, enqueue: boolean, remoteVersion?: number) {
   const database = await db();
   await database.withExclusiveTransactionAsync(async tx => {

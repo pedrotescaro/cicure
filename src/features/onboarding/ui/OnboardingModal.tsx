@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Modal, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { 
   UserPlus, 
   HeartPulse, 
@@ -10,14 +10,14 @@ import {
   Check, 
   Sparkles 
 } from 'lucide-react-native';
-import { Button, Card, IconButton, Txt, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { Button, Card, Txt } from '../../../ui/components';
+import { useTheme, type ColorPalette, fonts } from '../../../ui/theme';
 
 const ONBOARDING_STEPS = [
   {
     icon: UserPlus,
     title: '1. Prontuário do Paciente',
-    description: 'Cadastre identificação, comorbidades, alergias e histórico clínico do paciente com proteção LGPD total.'
+    description: 'Comece pela aba Pacientes: toque em Novo paciente e registre os dados necessários para o acompanhamento.'
   },
   {
     icon: HeartPulse,
@@ -27,27 +27,32 @@ const ONBOARDING_STEPS = [
   {
     icon: Camera,
     title: '3. Fotografia Calibrada',
-    description: 'Anexe fotos clínicas com régua descartável para medição automática e nunca salve no rolo pessoal da câmera.'
+    description: 'Adicione fotos ao atendimento para acompanhar a evolução da ferida ao longo das consultas.'
   },
   {
     icon: RefreshCw,
     title: '4. Funcionamento Offline-First',
-    description: 'Atenda em domicílio ou zonas sem sinal de celular: seus registros ficam salvos no SQLite e sincronizam depois.'
+    description: 'Seus registros ficam salvos neste aparelho, mesmo sem internet. Acompanhe os envios à nuvem na Central de Sincronização quando ela estiver configurada.'
   },
   {
     icon: FileText,
     title: '5. Laudos, Relatórios e Prescrições',
-    description: 'Emita relatórios completos em PDF com assinatura digital, carimbo de tempo e rastreabilidade técnica.'
+    description: 'Consulte os atendimentos registrados e gere relatórios em PDF pela aba Relatórios.'
   }
 ];
 
 export function OnboardingModal({
   visible,
-  onFinish
+  onFinish,
+  onShow
 }: {
   visible: boolean;
   onFinish: () => void;
+  onShow?: () => void;
 }) {
+  const { colors: c } = useTheme();
+  const styles = makeStyles(c);
+  useEffect(() => { if (visible) setStep(0); }, [visible]);
   const [step, setStep] = useState(0);
 
   const current = ONBOARDING_STEPS[step];
@@ -62,8 +67,8 @@ export function OnboardingModal({
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent={false}>
-      <View style={styles.container}>
+    <Modal visible={visible} animationType="fade" transparent={false} onShow={onShow} onRequestClose={onFinish}>
+      <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={styles.container}>
         <View style={styles.content}>
           <Txt style={styles.brand}>cicure</Txt>
           <Txt style={styles.subtitle}>Boas-vindas à sua plataforma clínica</Txt>
@@ -98,14 +103,14 @@ export function OnboardingModal({
             style={{ width: '100%', minHeight: 52 }}
           />
         </View>
-      </View>
+      </ScrollView>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ColorPalette) => StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     backgroundColor: c.bg,
     alignItems: 'center',
     justifyContent: 'center',

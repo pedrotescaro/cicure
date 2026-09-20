@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import * as Crypto from 'expo-crypto';
 import { QueryClient } from '@tanstack/react-query';
-import { Platform } from 'react-native';
-import { acknowledge, markError, queue, readRecords, writeRecord } from './storage';
+import { Alert } from 'react-native';
+import { readPreference, writePreference } from './preferences';
+import { isDemoRecord } from './demo-cleanup';
+import { acknowledge, markError, queue, readRecords, removeDemoRecords, writeRecord } from './storage';
 import { supabase } from './supabase';
-import { demoData, demoPatientColors } from '../domain/demo';
 import type { Data, Entities, EntityKind } from '../domain/types';
 import type { Organization, WorkMode } from '../features/organization/domain/types';
 import { 
@@ -31,6 +32,12 @@ export type Store = {
   error: string | null; 
   
   // Tema (Claro, Escuro, Sistema)
+  preferencesReady: boolean;
+  preferencesError: string | null;
+  onboardingVisible: boolean;
+  loadPreferences: () => void;
+  markOnboardingSeen: () => void;
+  finishOnboarding: () => void;
   themeMode: ThemeMode;
   setThemeMode: (mode: ThemeMode) => void;
 
@@ -65,15 +72,42 @@ export const useStore = create<Store>((set, get) => ({
   activeOrg: INDIVIDUAL_ORG,
   organizations: DEFAULT_ORGS,
 
-  themeMode: (Platform.OS === 'web' && typeof localStorage !== 'undefined'
-    ? ((localStorage.getItem('cicure_theme_mode') as ThemeMode) || 'system')
-    : 'system'),
-
-  setThemeMode: (mode: ThemeMode) => {
-    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-      try { localStorage.setItem('cicure_theme_mode', mode); } catch {}
+  preferencesReady: false,
+  preferencesError: null,
+  onboardingVisible: false,
+  themeMode: 'system',
+  loadPreferences: () => {
+    try {
+      const mode = readPreference('cicure_theme_mode');
+      const seen = readPreference('cicure_onboarding_seen');
+      set({ themeMode: mode === 'light' || mode === 'dark' ? mode : 'system',
+        onboardingVisible: seen !== 'true', preferencesReady: true, preferencesError: null });
+    } catch {
+      set({ preferencesError: 'Não foi possível carregar suas preferências. Tente novamente.' });
     }
-    set({ themeMode: mode });
+  },
+  markOnboardingSeen: () => {
+    try {
+      writePreference('cicure_onboarding_seen', 'true');
+    } catch {
+      Alert.alert('Preferência não salva', 'Não foi possível salvar a primeira abertura. Tente concluir o tutorial novamente.');
+    }
+  },
+  finishOnboarding: () => {
+    try {
+      writePreference('cicure_onboarding_seen', 'true');
+      set({ onboardingVisible: false });
+    } catch {
+      Alert.alert('Preferência não salva', 'Não foi possível salvar o tutorial. Tente novamente.');
+    }
+  },
+  setThemeMode: (mode: ThemeMode) => {
+    try {
+      writePreference('cicure_theme_mode', mode);
+      set({ themeMode: mode });
+    } catch {
+      Alert.alert('Tema não salvo', 'Não foi possível salvar sua preferência. Tente novamente.');
+    }
   },
 
   toast: message => set({ message }), 
@@ -129,32 +163,8 @@ export const useStore = create<Store>((set, get) => ({
     const currentScope = scope ?? (get().workMode === 'individual' ? 'individual' : `org_${get().activeOrg.id}`);
     set({ ready: false, data: empty(), scope: currentScope, error: null, syncState: 'local' });
     try {
-      let rows = await readRecords(currentScope);
-      if (!rows.length) { 
-        const seed = demoData(); 
-        for (const kind of Object.keys(seed) as EntityKind[]) {
-          for (const record of seed[kind]) {
-            await writeRecord(currentScope, kind, record.id, record, false); 
-          }
-        }
-        rows = await readRecords(currentScope); 
-      }
-
-      if (rows.length) {
-        const profile = rows.find(row => row.kind === 'profiles' && (row.payload as { name?: string }).name === 'Camila Ferreira');
-        if (profile) await writeRecord(currentScope, 'profiles', (profile.payload as { id: string }).id, { ...profile.payload, name: 'Caroline Ferreira' }, false);
-        for (const row of rows.filter(item => item.kind === 'patients')) {
-          const patient = row.payload as { id: string; color?: string };
-          const index = patient.id.match(/^demo-p-(\d+)$/)?.[1];
-          const color = index === undefined ? undefined : demoPatientColors[Number(index)];
-          if (color && patient.color !== color) await writeRecord(currentScope, 'patients', patient.id, { ...row.payload, color }, false);
-        }
-        for (const row of rows.filter(item => item.kind === 'visits')) {
-          const visit = row.payload as { signedBy?: string };
-          if (visit.signedBy?.includes('Camila')) await writeRecord(currentScope, 'visits', (row.payload as { id: string }).id, { ...row.payload, signedBy: visit.signedBy.replaceAll('Camila', 'Caroline') }, false);
-        }
-        rows = await readRecords(currentScope);
-      }
+      await removeDemoRecords(currentScope);
+      const rows = await readRecords(currentScope);
 
       const data = empty(); 
       rows.forEach(r => (data[r.kind] as unknown[]).push(r.payload));
@@ -232,7 +242,7 @@ export const useStore = create<Store>((set, get) => ({
                   updated_at: new Date().toISOString()
                 });
 
-              if (upsertError && !upsertError.message.includes('relation') && !upsertError.message.includes('does not exist')) {
+              if (upsertError) {
                 throw upsertError;
               }
             }
@@ -245,16 +255,14 @@ export const useStore = create<Store>((set, get) => ({
         }
       }
 
-      // Tenta puxar registros atualizados da nuvem (se disponível)
-      try {
-        const { data: remoteData, error: pullError } = await supabase.rpc('pull_records');
-        if (!pullError && remoteData && Array.isArray(remoteData)) {
-          for (const record of remoteData) {
-            await writeRecord(scope, record.kind, record.id, record.payload, false, record.version);
-          }
+      // Only report cloud success after the server confirms the read.
+      const { data: remoteData, error: pullError } = await supabase.rpc('pull_records');
+      if (pullError) throw pullError;
+      if (Array.isArray(remoteData)) {
+        for (const record of remoteData) {
+          if (isDemoRecord(record.kind, record.id, record.payload)) continue;
+          await writeRecord(scope, record.kind, record.id, record.payload, false, record.version);
         }
-      } catch {
-        // Puxada remota opcional não bloqueia a sincronização local
       }
 
       if (get().scope === scope) { 

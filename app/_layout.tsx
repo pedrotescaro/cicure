@@ -10,6 +10,8 @@ import { queryClient, useStore } from '../src/data/store';
 import { useTheme } from '../src/ui/theme';
 import { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { OnboardingModal } from '../src/features/onboarding/ui/OnboardingModal';
+import { Button, Txt } from '../src/ui/components';
 import { AnimatedSplash } from '../src/ui/brand/AnimatedSplash';
 
 // Global scope is intentional: the native splash must be retained before render on mobile.
@@ -30,6 +32,11 @@ export default function RootLayout() {
   });
   const init = useStore(s => s.init);
   const ready = useStore(s => s.ready);
+  const { preferencesReady, preferencesError, loadPreferences, onboardingVisible, markOnboardingSeen, finishOnboarding } = useStore();
+  useEffect(() => { loadPreferences(); }, [loadPreferences]);
+  useEffect(() => {
+    if (preferencesError) void SplashScreen.hideAsync().catch(() => {});
+  }, [preferencesError]);
   const [showSplash, setShowSplash] = useState(!launchSplashFinished);
   const [appLaidOut, setAppLaidOut] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
@@ -41,7 +48,7 @@ export default function RootLayout() {
     return () => clearTimeout(timer);
   }, []);
 
-  const resourcesReady = (fontsLoaded || Boolean(fontError) || startupGraceElapsed) && (ready || startupGraceElapsed);
+  const resourcesReady = (fontsLoaded || Boolean(fontError) || startupGraceElapsed) && ready && preferencesReady;
 
   const finishSplash = useCallback(() => {
     launchSplashFinished = true;
@@ -101,7 +108,14 @@ export default function RootLayout() {
               <ActivityIndicator color={colors.red} />
             </View>
           ) : null}
-          {showSplash && <AnimatedSplash ready={resourcesReady && appLaidOut} onFinish={finishSplash} />}
+          {preferencesError && (
+            <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16 }}>
+              <Txt>{preferencesError}</Txt>
+              <Button title="Tentar novamente" onPress={loadPreferences} />
+            </View>
+          )}
+          <OnboardingModal visible={preferencesReady && ready && !showSplash && onboardingVisible} onShow={markOnboardingSeen} onFinish={finishOnboarding} />
+          {showSplash && preferencesReady && <AnimatedSplash ready={resourcesReady && appLaidOut} onFinish={finishSplash} />}
         </View>
       </QueryClientProvider>
     </SafeAreaProvider>

@@ -3,38 +3,8 @@ import { Platform } from 'react-native';
 import type { AuditAction, AuditEvent, DeviceSession, SecuritySettings } from './types';
 import { uid } from '../../../data/store';
 
-// Memória local de eventos de auditoria para demonstração e offline
-let memoryAuditLog: AuditEvent[] = [
-  {
-    id: 'aud-1',
-    userId: 'demo',
-    userName: 'Caroline Ferreira',
-    action: 'login',
-    actionLabel: 'Autenticação bem-sucedida',
-    ipAddress: '192.168.1.45',
-    createdAt: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: 'aud-2',
-    userId: 'demo',
-    userName: 'Caroline Ferreira',
-    action: 'prontuario_view',
-    actionLabel: 'Visualização de prontuário',
-    patientName: 'Maria Helena Santos',
-    entityKind: 'patients',
-    createdAt: new Date(Date.now() - 2400000).toISOString()
-  },
-  {
-    id: 'aud-3',
-    userId: 'demo',
-    userName: 'Caroline Ferreira',
-    action: 'record_sign',
-    actionLabel: 'Assinatura digital de atendimento',
-    patientName: 'Maria Helena Santos',
-    entityKind: 'visits',
-    createdAt: new Date(Date.now() - 1200000).toISOString()
-  }
-];
+// Eventos registrados nesta sessão.
+let memoryAuditLog: AuditEvent[] = [];
 
 export async function checkBiometricsAvailable(): Promise<{
   hasHardware: boolean;

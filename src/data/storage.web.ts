@@ -1,8 +1,16 @@
 import type { EntityKind, QueueItem } from '../domain/types';
+import { isDemoRecord } from './demo-cleanup';
 type Row = { kind: EntityKind; id: string; payload: unknown; version: number };
 const key = (scope: string) => `cicura-demo-v1:${scope}`;
 const read = (scope: string): { rows: Row[]; queue: QueueItem[] } => JSON.parse(localStorage.getItem(key(scope)) ?? '{"rows":[],"queue":[]}');
 export async function readRecords(scope: string) { return read(scope).rows; }
+export async function removeDemoRecords(scope: string) {
+  const data = read(scope);
+  const removed = new Set(data.rows.filter(r => isDemoRecord(r.kind, r.id, r.payload)).map(r => `${r.kind}:${r.id}`));
+  data.rows = data.rows.filter(r => !removed.has(`${r.kind}:${r.id}`));
+  data.queue = data.queue.filter(r => !removed.has(`${r.kind}:${r.entityId}`) && !isDemoRecord(r.kind, r.entityId, r.payload));
+  localStorage.setItem(key(scope), JSON.stringify(data));
+}
 export async function writeRecord(scope: string, kind: EntityKind, id: string, payload: unknown, enqueue: boolean, remoteVersion?: number) {
   const data = read(scope); const existing = data.rows.find(r => r.kind === kind && r.id === id); const pending = data.queue.find(r => r.id === `${kind}:${id}`);
   if (!enqueue && pending) return;

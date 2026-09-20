@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
@@ -20,7 +20,7 @@ import { useStore } from '../../../data/store';
 import { useNetworkStatus } from '../../../data/network';
 import { Badge, Button, Card, Empty, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
-import { INITIAL_SYNC_ITEMS, resolveSyncConflict } from '../domain/sync.service';
+import { queue } from '../../../data/storage';
 import { ConflictResolutionModal } from './ConflictResolutionModal';
 import type { SyncItem, SyncItemStatus } from '../domain/types';
 
@@ -38,19 +38,35 @@ export default function SyncCenterScreen() {
   const store = useStore();
   const { isOnline, pending, syncState } = useNetworkStatus();
   const { workMode, activeOrg } = store;
-  const [items, setItems] = useState<SyncItem[]>(INITIAL_SYNC_ITEMS);
+  const [items, setItems] = useState<SyncItem[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [selectedConflict, setSelectedConflict] = useState<SyncItem | undefined>(undefined);
   const [filter, setFilter] = useState('Todos');
 
+  useEffect(() => {
+    let active = true;
+    void queue(store.scope).then(rows => {
+      if (active) setItems(rows.map(row => ({
+        id: row.id, idempotencyKey: row.id, entityKind: row.kind, entityId: row.entityId,
+        title: `Registro pendente · ${row.entityId}`,
+        status: row.error ? 'erro' : 'aguardando', version: row.version,
+        attempts: row.attempts, errorMessage: row.error,
+      })));
+    }).catch(() => { if (active) Alert.alert('Fila indisponível', 'Não foi possível ler os envios pendentes. Tente novamente.'); });
+    return () => { active = false; };
+  }, [store.scope, pending, syncState]);
+
   const handleSyncAll = async () => {
+    if (syncing) return;
     setSyncing(true);
     try {
       await store.sync();
-      setItems(prev => prev.map(i => i.status === 'aguardando' ? { ...i, status: 'sincronizado' } : i));
-      Alert.alert('Sincronização Concluída', 'Fila local sincronizada com o Supabase.');
-    } catch {
-      Alert.alert('Sem Conexão', 'Seus registros permanecem seguros no banco SQLite deste dispositivo.');
+      const current = useStore.getState();
+      if (current.syncState === 'synced' && current.pending === 0) {
+        Alert.alert('Sincronização concluída', 'Não há envios pendentes.');
+      } else {
+        Alert.alert('Registros salvos no aparelho', current.error || 'O envio à nuvem ainda não foi confirmado. Tente novamente quando houver conexão.');
+      }
     } finally {
       setSyncing(false);
     }
@@ -75,7 +91,7 @@ export default function SyncCenterScreen() {
         <IconButton 
           icon={RefreshCw} 
           label="Sincronizar" 
-          onPress={handleSyncAll} 
+          onPress={handleSyncAll}
           color={c.red} 
         />
       </View>
@@ -150,7 +166,7 @@ export default function SyncCenterScreen() {
               title="Sincronizar Agora com a Nuvem" 
               icon={RefreshCw} 
               loading={syncing} 
-              onPress={handleSyncAll} 
+              onPress={handleSyncAll}
             />
           </View>
         }
@@ -191,10 +207,7 @@ export default function SyncCenterScreen() {
                     variant="outline" 
                     small 
                     icon={RefreshCw} 
-                    onPress={() => {
-                      setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'sincronizado', errorMessage: undefined } : i));
-                      Alert.alert('Sucesso', 'Reenvio completado com sucesso.');
-                    }} 
+                    onPress={handleSyncAll}
                   />
                 </View>
               )}
@@ -209,9 +222,9 @@ export default function SyncCenterScreen() {
         item={selectedConflict}
         onClose={() => setSelectedConflict(undefined)}
         onResolve={res => {
-          setItems(prev => resolveSyncConflict(res, prev));
+
           setSelectedConflict(undefined);
-          Alert.alert('Conflito Resolvido', 'A versão escolhida foi registrada no prontuário e auditada.');
+          Alert.alert('Resolução indisponível', 'O conflito precisa ser confirmado pelo servidor antes de alterar o prontuário.');
         }}
       />
     </View>
