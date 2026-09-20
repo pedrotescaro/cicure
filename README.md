@@ -1,4 +1,4 @@
-# Cicura
+# Cicure
 
 Aplicativo profissional de avaliação e acompanhamento longitudinal de feridas, construído com Expo SDK 57, Expo Router, Supabase, SQLite e interface pt-BR.
 
@@ -13,7 +13,7 @@ Para usar a sincronização, copie `.env.example` para `.env.local` e informe `E
 
 ## Entregue nesta etapa
 
-- Navegação por abas flutuantes com FAB e wordmark `cicura` em Comfortaa Bold vermelho.
+- Navegação por abas flutuantes com FAB e wordmark `cicure` em Comfortaa Bold vermelho.
 - Dashboard com agenda, strip semanal, acompanhamento, cronômetro e atendimentos recentes.
 - Busca e filtros de pacientes, estado clínico e destaque para atendimento do dia.
 - Ficha do paciente com identificação, dados clínicos, comorbidades, medicamentos, exames, feridas e histórico.

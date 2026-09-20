@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Cicura",
+    "name": "Cicure",
     "slug": "cicura",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -34,7 +34,19 @@
       "expo-sharing",
       "expo-camera",
       "expo-image-picker",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFFFFF",
+          "image": "./assets/splash-blank.png",
+          "imageWidth": 1,
+          "dark": {
+            "backgroundColor": "#FFFFFF",
+            "image": "./assets/splash-blank.png"
+          }
+        }
+      ]
     ]
   }
 }

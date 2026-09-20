@@ -1,4 +1,4 @@
-# Cicura — direção visual
+# Cicure — direção visual
 
 Identidade definida no briefing: ferramenta clínica clara, precisa e acolhedora. Marca em Comfortaa Bold vermelha, sem ícone junto ao wordmark. Títulos principais Comfortaa; interface Inter. Fundo #FAFAFA, cards #FFFFFF, bordas #EAEAEA, texto #141414, secundário #6B6B6B. Vermelho #D62828, pressionado #B01F1F, suave #FDECEC. Verde clínico #2E7D5B e âmbar #C77D00.
 
