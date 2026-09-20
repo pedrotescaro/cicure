@@ -18,6 +18,8 @@ export const queryClient = new QueryClient({ defaultOptions: { queries: { staleT
 export const uid = () => Crypto.randomUUID();
 const empty = (): Data => ({ patients: [], wounds: [], visits: [], reports: [], profiles: [], products: [] });
 
+export type ThemeMode = 'system' | 'light' | 'dark';
+
 export type Store = { 
   data: Data; 
   scope: string; 
@@ -28,6 +30,10 @@ export type Store = {
   message: string | null; 
   error: string | null; 
   
+  // Tema (Claro, Escuro, Sistema)
+  themeMode: ThemeMode;
+  setThemeMode: (mode: ThemeMode) => void;
+
   // Modos de Trabalho (Autônomo Individual vs. Grupo/Clínica)
   workMode: WorkMode;
   activeOrg: Organization;
@@ -58,6 +64,17 @@ export const useStore = create<Store>((set, get) => ({
   workMode: 'individual',
   activeOrg: INDIVIDUAL_ORG,
   organizations: DEFAULT_ORGS,
+
+  themeMode: (Platform.OS === 'web' && typeof localStorage !== 'undefined'
+    ? ((localStorage.getItem('cicure_theme_mode') as ThemeMode) || 'system')
+    : 'system'),
+
+  setThemeMode: (mode: ThemeMode) => {
+    if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+      try { localStorage.setItem('cicure_theme_mode', mode); } catch {}
+    }
+    set({ themeMode: mode });
+  },
 
   toast: message => set({ message }), 
   setPresentation: presentation => set({ presentation }),

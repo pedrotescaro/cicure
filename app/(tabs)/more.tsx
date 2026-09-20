@@ -5,9 +5,10 @@ import { useRouter } from 'expo-router';
 import { 
   Building2, 
   ChevronRight, 
+  EyeOff,
   Fingerprint, 
   HelpCircle, 
-  Layers, 
+  History,
   Lock, 
   Moon, 
   Package, 
@@ -15,13 +16,13 @@ import {
   ShieldCheck, 
   SlidersHorizontal, 
   Sparkles, 
+  SunMedium,
   UserRound,
   BarChart3,
-  History,
   User
 } from 'lucide-react-native';
 import { Card, SectionTitle, Txt, s, Badge, Button, IconButton } from '../../src/ui/components';
-import { colors as c, fonts } from '../../src/ui/theme';
+import { fonts, useTheme } from '../../src/ui/theme';
 import { useStore } from '../../src/data/store';
 import { useNetworkStatus } from '../../src/data/network';
 import { AppLockModal } from '../../src/features/security/ui/AppLockModal';
@@ -32,6 +33,7 @@ export default function More() {
   const bottomInset = useTabContentInset();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { colors: c, isDark, themeMode, setThemeMode } = useTheme();
   const profile = useStore(st => st.data.profiles[0]);
   const presentation = useStore(st => st.presentation);
   const setPresentation = useStore(st => st.setPresentation);
@@ -54,7 +56,7 @@ export default function More() {
       >
         {/* Topbar Padronizada */}
         <View style={styles.topbar}>
-          <Txt style={styles.brand}>cicure</Txt>
+          <Txt style={[styles.brand, { color: c.red }]}>cicure</Txt>
           <View style={s.row}>
             <IconButton 
               icon={ShieldCheck} 
@@ -73,7 +75,7 @@ export default function More() {
 
         {/* Card do Perfil do Profissional */}
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 }}>
-          <View style={styles.profileAvatar}>
+          <View style={[styles.profileAvatar, { backgroundColor: c.redSoft }]}>
             <UserRound size={24} color={c.red} />
           </View>
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
@@ -88,10 +90,10 @@ export default function More() {
 
         {/* Seção Workspaces & Equipes (§1) */}
         <SectionTitle title="ORGANIZAÇÕES E EQUIPES" />
-        <Card style={{ padding: 16, gap: 14, backgroundColor: workMode === 'individual' ? '#FAF9F9' : '#FFFDFD', borderColor: workMode === 'individual' ? c.border : '#F5C6C6' }}>
+        <Card style={{ padding: 16, gap: 14, backgroundColor: workMode === 'individual' ? (isDark ? '#1F1F23' : '#FAF9F9') : (isDark ? '#261C1E' : '#FFFDFD'), borderColor: workMode === 'individual' ? c.border : (isDark ? '#4A2326' : '#F5C6C6') }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-              <View style={[styles.modeMiniAvatar, { backgroundColor: workMode === 'individual' ? c.dark : c.red }]}>
+              <View style={[styles.modeMiniAvatar, { backgroundColor: workMode === 'individual' ? (isDark ? '#2E2E34' : c.dark) : c.red }]}>
                 {workMode === 'individual' ? <User size={16} color="#FFF" /> : <Building2 size={16} color="#FFF" />}
               </View>
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -128,6 +130,65 @@ export default function More() {
             title="Membros e Permissões Granulares" 
             subtitle="Administrador, profissional e assistente"
             onPress={() => router.push('/organization/members' as never)} 
+          />
+        </Card>
+
+        {/* Seção Aparência e Modo Escuro */}
+        <SectionTitle title="APARÊNCIA & TEMA" />
+        <Card style={styles.menuCard}>
+          <View style={[styles.menuRow, { flexDirection: 'column', alignItems: 'flex-start', paddingVertical: 14, gap: 12, borderBottomColor: c.border }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, width: '100%' }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDark ? '#2A241C' : '#FFF4E0', alignItems: 'center', justifyContent: 'center' }}>
+                {isDark ? <Moon size={18} color="#FF4D4D" /> : <SunMedium size={18} color="#C77D00" />}
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }}>Modo de Exibição</Txt>
+                <Txt muted style={{ fontSize: 12 }}>
+                  {themeMode === 'system' ? 'Acompanha o sistema operacional' : themeMode === 'dark' ? 'Modo escuro ativado' : 'Modo claro ativado'}
+                </Txt>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8, width: '100%' }}>
+              {(['system', 'light', 'dark'] as const).map(mode => {
+                const active = themeMode === mode;
+                const label = mode === 'system' ? 'Sistema' : mode === 'light' ? 'Claro' : 'Escuro';
+                return (
+                  <Pressable
+                    key={mode}
+                    onPress={() => setThemeMode(mode)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 9,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: active ? (isDark ? '#2E2E34' : c.dark) : isDark ? '#232328' : '#F4F4F5',
+                      borderWidth: 1,
+                      borderColor: active ? (isDark ? '#4A4A52' : c.dark) : c.border,
+                    }}
+                  >
+                    <Txt style={{ fontSize: 12, fontFamily: fonts.semibold, color: active ? '#FFF' : c.secondary }}>
+                      {label}
+                    </Txt>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <MenuRow 
+            icon={EyeOff} 
+            title="Modo Apresentação" 
+            subtitle={presentation ? 'Ativado (dados confidenciais ocultos)' : 'Ocultar identificadores de pacientes'} 
+            onPress={() => setPresentation(!presentation)}
+            toggleLabel={presentation ? 'Desativar' : 'Ativar'}
+          />
+          <MenuRow 
+            icon={HelpCircle} 
+            title="Tutorial e Onboarding" 
+            subtitle="Rever o passo a passo das funcionalidades do Cicure"
+            onPress={() => setOnboardingVisible(true)} 
           />
         </Card>
 
@@ -183,24 +244,6 @@ export default function More() {
           />
         </Card>
 
-        {/* Preferências do App */}
-        <SectionTitle title="PREFERÊNCIAS" />
-        <Card style={styles.menuCard}>
-          <MenuRow 
-            icon={Moon} 
-            title="Modo Apresentação" 
-            subtitle={presentation ? 'Ativado (dados confidenciais ocultos)' : 'Ocultar identificadores de pacientes'} 
-            onPress={() => setPresentation(!presentation)}
-            toggleLabel={presentation ? 'Desativar' : 'Ativar'}
-          />
-          <MenuRow 
-            icon={HelpCircle} 
-            title="Tutorial e Onboarding" 
-            subtitle="Rever o passo a passo das funcionalidades do Cicure"
-            onPress={() => setOnboardingVisible(true)} 
-          />
-        </Card>
-
         <Txt muted style={{ fontSize: 12, textAlign: 'center', marginTop: 8 }}>
           Cicure · Plataforma Profissional de Acompanhamento de Feridas · v2.0
         </Txt>
@@ -240,11 +283,12 @@ function MenuRow({
   onPress: () => void;
   toggleLabel?: string;
 }) {
+  const { colors: c } = useTheme();
   return (
-    <Pressable onPress={onPress} style={styles.menuRow}>
+    <Pressable onPress={onPress} style={[styles.menuRow, { borderBottomColor: c.border }]}>
       <Icon size={20} color={c.secondary} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Txt style={{ fontFamily: fonts.semibold, fontSize: 14, color: c.text }} numberOfLines={1}>{title}</Txt>
+        <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }} numberOfLines={1}>{title}</Txt>
         <Txt muted style={{ fontSize: 12 }} numberOfLines={2}>{subtitle}</Txt>
       </View>
       {toggleLabel ? (
@@ -259,13 +303,12 @@ function MenuRow({
 const styles = StyleSheet.create({
   content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
   topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { color: c.red, fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
+  brand: { fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
   sectionLabel: { fontSize: 11, letterSpacing: 1.4, fontFamily: fonts.semibold },
   profileAvatar: {
     width: 48,
     height: 48,
     borderRadius: 16,
-    backgroundColor: c.redSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -284,6 +327,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     borderBottomWidth: 1,
-    borderBottomColor: c.border,
   }
 });

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { View, Platform, useWindowDimensions } from 'react-native';
 import Animated, { type SharedValue, useAnimatedProps } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
@@ -46,8 +46,6 @@ function DrawnContour({
     const progress = Math.max(0, Math.min(1, (letterProgress - start) / duration));
     return {
       strokeDashoffset: length * (1 - progress),
-      // A rounded dash cap otherwise leaves a dot before a contour starts.
-      // Visibility never reveals a letter: its actual path is drawn by the dash.
       opacity: progress > 0 ? 1 - fillProgress.value : 0,
     };
   }, [duration, length, letterStart, start]);
@@ -75,7 +73,6 @@ function FilledLetter({ d, fillProgress, color }: {
     fillOpacity: Math.max(0, Math.min(1, fillProgress.value)),
   }));
 
-  // Keep the source font's nonzero winding: Comfortaa has overlapping contours.
   return <AnimatedPath d={d} fill={color} fillRule="nonzero" animatedProps={animatedProps} />;
 }
 
@@ -89,6 +86,34 @@ export function AnimatedLogo({
   const { width: windowWidth } = useWindowDimensions();
   const displayWidth = Math.max(1, Math.min(width, windowWidth - 64));
   const displayHeight = displayWidth * cicurePaths.height / cicurePaths.width;
+
+  // On Web, Reanimated SVG attribute bindings have limited support; render clean visible SVG directly
+  if (Platform.OS === 'web') {
+    return (
+      <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel="cicure"
+        style={{ width: displayWidth, height: displayHeight, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Svg
+          width={displayWidth}
+          height={displayHeight}
+          viewBox={`0 0 ${cicurePaths.width} ${cicurePaths.height}`}
+          preserveAspectRatio="xMidYMid meet"
+        >
+          {cicurePaths.letters.map((letter, letterIndex) => (
+            <Path
+              key={`${letter.letter}-${letterIndex}`}
+              d={letter.d}
+              fill={color}
+              fillRule="nonzero"
+            />
+          ))}
+        </Svg>
+      </View>
+    );
+  }
 
   return (
     <View

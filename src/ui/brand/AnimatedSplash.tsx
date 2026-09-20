@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
 import Animated, {
   Easing,
@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { logoMotion } from '../motion';
-import { colors } from '../theme';
+import { useTheme } from '../theme';
 import { useMotionPreferences } from '../useMotionPreferences';
 import { AnimatedLogo } from './AnimatedLogo';
 
@@ -24,28 +24,42 @@ type AnimatedSplashProps = {
   onFinish: () => void;
 };
 
-/** Native white launch screen -> vector drawing -> the already-laid-out app. */
+/** Native launch screen -> vector drawing -> the already-laid-out app. */
 export function AnimatedSplash({ ready, onFinish }: AnimatedSplashProps) {
+  const { colors } = useTheme();
   const { reduceMotion } = useMotionPreferences();
   const [hasLayout, setHasLayout] = useState(false);
   const [nativeHidden, setNativeHidden] = useState(false);
   const [revealFinished, setRevealFinished] = useState(false);
   const motionSkipped = useRef(false);
+  const finishedRef = useRef(false);
   const drawProgress = useSharedValue(0);
   const fillProgress = useSharedValue(0);
   const opacity = useSharedValue(1);
+
+  const safeFinish = useCallback(() => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    onFinish();
+  }, [onFinish]);
+
   const markRevealFinished = useCallback(() => setRevealFinished(true), []);
+
+  // Failsafe timeout: ensure the app never stays blocked on splash screen
+  useEffect(() => {
+    const timeoutDuration = Platform.OS === 'web' ? 500 : 1200;
+    const timer = setTimeout(() => {
+      safeFinish();
+    }, timeoutDuration);
+    return () => clearTimeout(timer);
+  }, [safeFinish]);
 
   useEffect(() => {
     if (!hasLayout) return;
     let mounted = true;
     let frame: number | undefined;
 
-    // The overlay is already painted in the native splash's background color.
-    // Wait one frame after hiding it before advancing the initially empty SVG.
-    void SplashScreen.hideAsync().catch(() => {
-      // Expo Go/web may not own a native splash; the React sequence still runs.
-    }).finally(() => {
+    void SplashScreen.hideAsync().catch(() => {}).finally(() => {
       if (!mounted) return;
       frame = requestAnimationFrame(() => {
         if (mounted) setNativeHidden(true);
@@ -59,8 +73,9 @@ export function AnimatedSplash({ ready, onFinish }: AnimatedSplashProps) {
   }, [hasLayout]);
 
   useEffect(() => {
-    if (!nativeHidden) return;
-    if (reduceMotion || motionSkipped.current) {
+    if (!nativeHidden && Platform.OS !== 'web') return;
+
+    if (Platform.OS === 'web' || reduceMotion || motionSkipped.current) {
       motionSkipped.current = true;
       drawProgress.value = 1;
       fillProgress.value = 1;
@@ -95,17 +110,17 @@ export function AnimatedSplash({ ready, onFinish }: AnimatedSplashProps) {
   useEffect(() => {
     if (!ready || !revealFinished) return;
     if (reduceMotion) {
-      onFinish();
+      safeFinish();
       return;
     }
     opacity.value = withTiming(0, {
       duration: logoMotion.exitDuration,
       easing: Easing.out(Easing.quad),
     }, finished => {
-      if (finished) runOnJS(onFinish)();
+      if (finished) runOnJS(safeFinish)();
     });
     return () => cancelAnimation(opacity);
-  }, [onFinish, opacity, ready, reduceMotion, revealFinished]);
+  }, [ready, reduceMotion, revealFinished, safeFinish, opacity]);
 
   const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
@@ -115,9 +130,9 @@ export function AnimatedSplash({ ready, onFinish }: AnimatedSplashProps) {
       accessibilityViewIsModal
       importantForAccessibility="yes"
       onLayout={() => setHasLayout(true)}
-      style={[styles.overlay, animatedStyle]}
+      style={[styles.overlay, { backgroundColor: colors.bg }, animatedStyle]}
     >
-      <AnimatedLogo drawProgress={drawProgress} fillProgress={fillProgress} />
+      <AnimatedLogo drawProgress={drawProgress} fillProgress={fillProgress} color={colors.red} />
     </Animated.View>
   );
 }
@@ -128,6 +143,5 @@ const styles = StyleSheet.create({
     zIndex: 100,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.bg,
   },
 });

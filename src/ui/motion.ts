@@ -1,12 +1,12 @@
-import { colors } from './theme';
+import { colors, darkColors, lightColors } from './theme';
 
-// One place to tune the reference motion; times are milliseconds.
+// Reference motion configuration; times are milliseconds.
 export const logoMotion = {
-  drawDuration: 1400,
-  fillDuration: 250,
-  holdDuration: 250,
-  exitDuration: 180,
-  letterStagger: 0.14,
+  drawDuration: 350,
+  fillDuration: 120,
+  holdDuration: 80,
+  exitDuration: 140,
+  letterStagger: 0.08,
   strokeWidth: 1.25,
   width: 260,
 } as const;
@@ -36,21 +36,40 @@ export const navigationMetrics = {
   contentGap: 20,
 } as const;
 
-// App surfaces currently have a single, light theme. Derive glass from it;
-// don't put a dark navigation bar over the existing white clinical screens.
-export const glassColors = {
-  surface: colors.surface,
-  wash: `${colors.surface}B8`,
-  fallback: `${colors.surface}ED`,
-  edge: `${colors.surface}F0`,
-  outline: `${colors.dark}14`,
-  lens: `${colors.red}0C`,
-  lensOutline: `${colors.red}20`,
-  reflection: `${colors.surface}F5`,
-  shadow: colors.dark,
-  active: colors.red,
-  inactive: colors.secondary,
-} as const;
+export function getGlassColors(isDark: boolean) {
+  const c = isDark ? darkColors : lightColors;
+  if (isDark) {
+    return {
+      surface: c.surface,
+      wash: `${c.surface}E0`,
+      fallback: `${c.surface}F2`,
+      edge: '#2C2C30',
+      outline: 'rgba(255, 255, 255, 0.10)',
+      lens: `${c.red}25`,
+      lensOutline: `${c.red}50`,
+      reflection: 'rgba(255, 255, 255, 0.12)',
+      shadow: '#000000',
+      active: c.red,
+      inactive: c.secondary,
+    };
+  }
+  return {
+    surface: c.surface,
+    wash: `${c.surface}B8`,
+    fallback: `${c.surface}ED`,
+    edge: `${c.surface}F0`,
+    outline: `${c.dark}14`,
+    lens: `${c.red}0C`,
+    lensOutline: `${c.red}20`,
+    reflection: `${c.surface}F5`,
+    shadow: c.dark,
+    active: c.red,
+    inactive: c.secondary,
+  };
+}
+
+// Default export for backward compatibility
+export const glassColors = getGlassColors(false);
 
 export function tabBarBottom(inset: number) {
   return Math.max(inset, navigationMetrics.bottomGap);

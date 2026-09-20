@@ -30,7 +30,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Avatar, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, s } from '../../src/ui/components';
-import { colors as c, fonts } from '../../src/ui/theme';
+import { colors as c, fonts, useTheme } from '../../src/ui/theme';
 import { useStore, uid } from '../../src/data/store';
 import { dateLabel } from '../../src/domain/clinical';
 import type { Patient, Wound } from '../../src/domain/types';
@@ -39,6 +39,7 @@ const filters = ['Todos', 'Ativos', 'Alta', 'Arquivados'];
 const weekdays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
 
 function MonthStrip() {
+  const { colors: c, isDark } = useTheme();
   const [selected, setSelected] = useState(new Date());
   const start = addDays(selected, -3);
   return (
@@ -57,12 +58,12 @@ function MonthStrip() {
           return (
             <Pressable key={index} onPress={() => setSelected(date)} style={styles.calendarDay}>
               <Txt muted style={{ fontSize: 11, fontFamily: fonts.medium }}>{weekdays[index]}</Txt>
-              <View style={[styles.dateCircle, active && { backgroundColor: c.dark, borderColor: c.dark }]}>
+              <View style={[styles.dateCircle, { borderColor: c.border }, active && { backgroundColor: isDark ? '#2E2E34' : c.dark, borderColor: isDark ? '#4A4A52' : c.dark }]}>
                 <Txt style={{ color: active ? '#FFF' : c.text, fontFamily: fonts.medium, fontSize: 13 }}>
                   {format(date, 'd')}
                 </Txt>
               </View>
-              {isToday(date) && <View style={styles.todayDot} />}
+              {isToday(date) && <View style={[styles.todayDot, { backgroundColor: c.red }]} />}
             </Pressable>
           );
         })}
@@ -75,6 +76,7 @@ export default function Patients() {
   const bottomInset = useTabContentInset();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { colors: c, isDark } = useTheme();
   const store = useStore();
   const { patients, wounds, visits } = store.data;
   const presentation = store.presentation;
@@ -205,7 +207,7 @@ export default function Patients() {
       >
         {/* Topbar */}
         <View style={styles.topbar}>
-          <Txt style={styles.brand}>cicure</Txt>
+          <Txt style={[styles.brand, { color: c.red }]}>cicure</Txt>
           <View style={s.row}>
             <IconButton 
               icon={UserRoundPlus} 
@@ -229,8 +231,9 @@ export default function Patients() {
           onMouseLeave={() => setSearchHovered(false)}
           style={[
             styles.search, 
-            searchHovered && !searchFocused && styles.searchHovered,
-            searchFocused && styles.searchFocused
+            { backgroundColor: isDark ? '#202024' : '#FFF', borderColor: c.border },
+            searchHovered && !searchFocused && { borderColor: isDark ? '#4F4F56' : '#AEAEAE' },
+            searchFocused && { borderColor: c.red }
           ]}
         >
           <Search size={18} color={searchFocused ? c.red : searchHovered ? c.text : c.tertiary} />
@@ -241,8 +244,8 @@ export default function Patients() {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
             placeholder="Buscar paciente pelo nome..." 
-            placeholderTextColor="#818181" 
-            style={styles.searchInput} 
+            placeholderTextColor={c.tertiary} 
+            style={[styles.searchInput, { color: c.text }]} 
           />
           {query ? (
             <IconButton icon={X} label="Limpar" onPress={() => setQuery('')} style={{ width: 32, height: 32 }} />
@@ -341,7 +344,7 @@ export default function Patients() {
         onRequestClose={() => setAddModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
+          <View style={[styles.modalSheet, { backgroundColor: c.surface }]}>
             {/* Header do Modal */}
             <View style={s.between}>
               <View style={s.row}>

@@ -7,12 +7,12 @@ import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } f
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ActivityIndicator, Platform, View } from 'react-native';
 import { queryClient, useStore } from '../src/data/store';
-import { colors } from '../src/ui/theme';
+import { useTheme } from '../src/ui/theme';
 import { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { AnimatedSplash } from '../src/ui/brand/AnimatedSplash';
 
-// Global scope is intentional: the native splash must be retained before render.
+// Global scope is intentional: the native splash must be retained before render on mobile.
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ fade: false, duration: 0 });
 
@@ -20,12 +20,29 @@ let launchSplashFinished = false;
 let initialStoreLoad: Promise<void> | undefined;
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({ Comfortaa_700Bold, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
-  const init = useStore(s => s.init); const ready = useStore(s => s.ready);
+  const { colors, isDark } = useTheme();
+  const [fontsLoaded, fontError] = useFonts({
+    Comfortaa_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+  });
+  const init = useStore(s => s.init);
+  const ready = useStore(s => s.ready);
   const [showSplash, setShowSplash] = useState(!launchSplashFinished);
   const [appLaidOut, setAppLaidOut] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
-  const resourcesReady = (fontsLoaded || Boolean(fontError)) && ready;
+  const [startupGraceElapsed, setStartupGraceElapsed] = useState(false);
+
+  // Fallback timer: don't let slow font downloads or storage stall the launch screen
+  useEffect(() => {
+    const timer = setTimeout(() => setStartupGraceElapsed(true), 350);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const resourcesReady = (fontsLoaded || Boolean(fontError) || startupGraceElapsed) && (ready || startupGraceElapsed);
+
   const finishSplash = useCallback(() => {
     launchSplashFinished = true;
     setShowSplash(false);
@@ -37,12 +54,11 @@ export default function RootLayout() {
 
   useEffect(() => {
     initialStoreLoad ??= init().catch(() => {
-      // The store already handles SQLite failures; retain a visible error if an
-      // unexpected initialization failure escapes, rather than trapping launch.
       useStore.setState({ ready: true, error: 'Não foi possível iniciar o armazenamento local. Tente abrir o app novamente.' });
     });
+
     if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const styleId = 'cicura-web-focus-reset';
+      const styleId = 'cicure-web-focus-reset';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -59,22 +75,29 @@ export default function RootLayout() {
       }
     }
   }, [init]);
+
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
-        <StatusBar style="dark" />
+        <StatusBar style={isDark ? 'light' : 'dark'} />
         <View style={{ flex: 1, backgroundColor: colors.bg }}>
           {(bootstrapped || resourcesReady) ? (
             <View
-              style={{ flex: 1 }}
+              style={{ flex: 1, backgroundColor: colors.bg }}
               onLayout={() => setAppLaidOut(true)}
               accessibilityElementsHidden={showSplash}
               importantForAccessibility={showSplash ? 'no-hide-descendants' : 'auto'}
             >
-              <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  animation: 'fade',
+                  contentStyle: { backgroundColor: colors.bg },
+                }}
+              />
             </View>
           ) : !showSplash ? (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
               <ActivityIndicator color={colors.red} />
             </View>
           ) : null}

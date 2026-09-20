@@ -1,17 +1,14 @@
 import { useTabContentInset } from '../../src/ui/navigation/useTabContentInset';
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { addDays, format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   AlarmClock, 
   ChevronRight, 
-  HeartPulse, 
   Play, 
   RotateCcw, 
-  Settings2, 
   Search, 
-  AlertCircle, 
   BarChart3, 
   Package, 
   Building2, 
@@ -20,7 +17,7 @@ import {
 } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Avatar, Badge, Button, Card, Divider, IconButton, Label, SectionTitle, Txt, s } from '../../src/ui/components';
-import { colors as c, fonts } from '../../src/ui/theme';
+import { fonts, useTheme } from '../../src/ui/theme';
 import { useStore } from '../../src/data/store';
 import { area, dateLabel, number } from '../../src/domain/clinical';
 import type { Visit } from '../../src/domain/types';
@@ -31,9 +28,10 @@ import { PendingNotification } from '../../src/features/pending/ui/PendingNotifi
 
 function Topbar({ onOpenSearch }: { onOpenSearch: () => void }) {
   const router = useRouter();
+  const { colors: c } = useTheme();
   return (
     <View style={styles.topbar}>
-      <Txt style={styles.brand}>cicure</Txt>
+      <Txt style={[styles.brand, { color: c.red }]}>cicure</Txt>
       <View style={styles.topbarActions}>
         <IconButton icon={Search} label="Busca Global" onPress={onOpenSearch} style={styles.topbarBtn} />
         <IconButton icon={Building2} label="Clínica / Workspace" onPress={() => router.push('/organization' as never)} style={styles.topbarBtn} />
@@ -45,6 +43,7 @@ function Topbar({ onOpenSearch }: { onOpenSearch: () => void }) {
 function Greeting() {
   const profile = useStore(st => st.data.profiles[0]);
   const presentation = useStore(st => st.presentation);
+  const { colors: c } = useTheme();
 
   return (
     <View style={styles.greeting}>
@@ -63,22 +62,25 @@ function Greeting() {
 
 function WeekStrip() {
   const [selected, setSelected] = useState(new Date());
+  const { colors: c, isDark } = useTheme();
+  const start = addDays(new Date(), -2);
+  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+
   return (
     <View style={styles.week}>
-      {Array.from({ length: 7 }).map((_, i) => {
-        const date = addDays(new Date(), i - 2);
+      {days.map((date, i) => {
         const active = format(date, 'yyyy-MM-dd') === format(selected, 'yyyy-MM-dd');
         return (
           <Pressable key={i} onPress={() => setSelected(date)} style={styles.day}>
             <Txt muted style={{ fontSize: 10, textTransform: 'uppercase' }}>
               {format(date, 'EEE', { locale: ptBR }).replace('.', '')}
             </Txt>
-            <View style={[styles.dayCircle, active && { backgroundColor: c.dark }]}>
+            <View style={[styles.dayCircle, active && { backgroundColor: isDark ? '#2E2E34' : c.dark }]}>
               <Txt style={{ fontFamily: fonts.semibold, color: active ? '#FFF' : c.text }}>
                 {format(date, 'd')}
               </Txt>
             </View>
-            {isToday(date) && <View style={styles.todayDot} />}
+            {isToday(date) && <View style={[styles.todayDot, { backgroundColor: c.red }]} />}
           </Pressable>
         );
       })}
@@ -87,6 +89,7 @@ function WeekStrip() {
 }
 
 function Sparkline() {
+  const { colors: c } = useTheme();
   return (
     <Svg width="100%" height={75} viewBox="0 0 238 75">
       <Path d="M0 62 C30 55,65 66,102 44 S170 40,238 12 L238 75 L0 75 Z" fill={c.redSoft} />
@@ -145,6 +148,7 @@ function TodayCard({ visits }: { visits: Visit[] }) {
 
 function QuickHub() {
   const router = useRouter();
+  const { colors: c, isDark } = useTheme();
   const hubItems = [
     { label: 'Indicadores', icon: BarChart3, route: '/indicators' },
     { label: 'Estoque & Lotes', icon: Package, route: '/inventory' },
@@ -164,9 +168,13 @@ function QuickHub() {
           <Pressable 
             key={i} 
             onPress={() => router.push(item.route as never)} 
-            style={({ pressed }) => [styles.hubChip, pressed && { opacity: 0.75 }]}
+            style={({ pressed }) => [
+              styles.hubChip, 
+              { backgroundColor: isDark ? '#222226' : '#FFFFFF', borderColor: c.border },
+              pressed && { opacity: 0.75 }
+            ]}
           >
-            <View style={styles.hubChipIcon}>
+            <View style={[styles.hubChipIcon, { backgroundColor: c.redSoft }]}>
               <Icon size={14} color={c.red} />
             </View>
             <Txt style={styles.hubChipText}>{item.label}</Txt>
@@ -181,6 +189,7 @@ function FollowUp() {
   const visits = useStore(st => st.data.visits);
   const patients = useStore(st => st.data.patients);
   const wounds = useStore(st => st.data.wounds);
+  const { colors: c } = useTheme();
   const router = useRouter();
 
   const completed = visits.filter(v => v.state === 'Concluído');
@@ -198,9 +207,9 @@ function FollowUp() {
         <Pressable 
           onPress={() => router.push('/indicators' as never)}
           hitSlop={8}
-          style={styles.indicatorLink}
+          style={[styles.indicatorLink, { backgroundColor: c.redSoft }]}
         >
-          <Txt style={styles.indicatorLinkText}>Indicadores</Txt>
+          <Txt style={[styles.indicatorLinkText, { color: c.red }]}>Indicadores</Txt>
           <ChevronRight size={13} color={c.red} />
         </Pressable>
       </View>
@@ -238,6 +247,7 @@ function FollowUp() {
 function QuickTimer() {
   const [seconds, setSeconds] = useState(0);
   const [running, setRunning] = useState(false);
+  const { colors: c } = useTheme();
 
   useEffect(() => {
     if (!running) return;
@@ -268,6 +278,7 @@ function QuickTimer() {
 export default function Home() {
   const bottomInset = useTabContentInset();
   const { width } = useWindowDimensions();
+  const { colors: c } = useTheme();
   const store = useStore();
   const visits = store.data.visits;
   const pendingSync = store.pending;
@@ -303,7 +314,6 @@ export default function Home() {
         {/* Hub de Acesso Rápido aos Novos Módulos */}
         <QuickHub />
 
-
         <TodayCard visits={visits} />
 
         <FollowUp />
@@ -323,25 +333,24 @@ export default function Home() {
 const styles = StyleSheet.create({
   content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
   topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { color: c.red, fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
+  brand: { fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
   topbarActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   topbarBtn: { width: 42, height: 42, borderRadius: 21 },
   greeting: { gap: 2 },
   week: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
-  day: { alignItems: 'center', gap: 6, minWidth: 36 },
-  dayCircle: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18 },
-  todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: c.red },
-  darkCounter: { alignItems: 'flex-end', gap: 1 },
-  darkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-  time: { width: 44, alignItems: 'center', gap: 4 },
-  timeline: { height: 20, width: 1, backgroundColor: '#505050' },
-  metrics: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderColor: c.border, paddingTop: 14, gap: 8 },
-  metricNumber: { fontFamily: fonts.semibold, fontSize: 20, marginBottom: 3 },
+  day: { alignItems: 'center', gap: 7, flex: 1 },
+  dayCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  todayDot: { width: 4, height: 4, borderRadius: 2 },
+  darkCounter: { alignItems: 'center', backgroundColor: '#2C2C2C', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  darkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  time: { alignItems: 'center', minWidth: 46 },
+  timeline: { width: 1, height: 20, backgroundColor: '#3A3A3A', marginTop: 4 },
+  metrics: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+  metricNumber: { fontFamily: fonts.bold, fontSize: 22 },
   indicatorLink: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: c.redSoft,
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 12,
@@ -349,7 +358,6 @@ const styles = StyleSheet.create({
   indicatorLinkText: {
     fontSize: 12,
     fontFamily: fonts.semibold,
-    color: c.red,
   },
   hubScroll: {
     flexDirection: 'row',
@@ -362,9 +370,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#EAEAEA',
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 13,
@@ -378,13 +384,11 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: c.redSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   hubChipText: {
     fontSize: 12.5,
     fontFamily: fonts.medium,
-    color: c.text,
   },
 });

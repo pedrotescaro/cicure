@@ -17,7 +17,7 @@ import {
 } from 'lucide-react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Accordion, Avatar, Badge, Button, Card, Choices, Divider, IconButton, Label, SectionTitle, Txt, s } from '../../src/ui/components';
-import { colors as c, fonts } from '../../src/ui/theme';
+import { fonts, useTheme } from '../../src/ui/theme';
 import { age, dateLabel, number } from '../../src/domain/clinical';
 import { useStore } from '../../src/data/store';
 import { evaluateClinicalAlerts } from '../../src/features/alerts/domain/alert-rules';
@@ -27,6 +27,7 @@ import { HomeVisitModeBanner } from '../../src/features/home-visit/ui/HomeVisitM
 export default function PatientDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colors: c, isDark } = useTheme();
   const { patients, wounds, visits } = useStore(st => st.data);
   const presentation = useStore(st => st.presentation);
 
@@ -92,7 +93,7 @@ export default function PatientDetail() {
           <View style={styles.toolsGrid}>
             <Pressable 
               onPress={() => router.push(`/patient/${id}/timeline` as never)}
-              style={styles.toolBtn}
+              style={[styles.toolBtn, { backgroundColor: isDark ? '#222226' : '#FAFAFA', borderColor: c.border }]}
             >
               <Clock size={20} color={c.red} />
               <Txt style={styles.toolLabel}>Linha do Tempo</Txt>
@@ -100,7 +101,7 @@ export default function PatientDetail() {
 
             <Pressable 
               onPress={() => router.push(`/patient/${id}/body-map` as never)}
-              style={styles.toolBtn}
+              style={[styles.toolBtn, { backgroundColor: isDark ? '#222226' : '#FAFAFA', borderColor: c.border }]}
             >
               <Layers size={20} color={c.amber} />
               <Txt style={styles.toolLabel}>Mapa Corporal</Txt>
@@ -108,7 +109,7 @@ export default function PatientDetail() {
 
             <Pressable 
               onPress={() => router.push(`/patient/${id}/care-plan` as never)}
-              style={styles.toolBtn}
+              style={[styles.toolBtn, { backgroundColor: isDark ? '#222226' : '#FAFAFA', borderColor: c.border }]}
             >
               <FileCheck2 size={20} color={c.green} />
               <Txt style={styles.toolLabel}>Plano Terapêutico</Txt>
@@ -116,7 +117,7 @@ export default function PatientDetail() {
 
             <Pressable 
               onPress={() => router.push(`/patient/${id}/prescription/new` as never)}
-              style={styles.toolBtn}
+              style={[styles.toolBtn, { backgroundColor: isDark ? '#222226' : '#FAFAFA', borderColor: c.border }]}
             >
               <FileSpreadsheet size={20} color={c.red} />
               <Txt style={styles.toolLabel}>Prescrição</Txt>
@@ -124,7 +125,7 @@ export default function PatientDetail() {
 
             <Pressable 
               onPress={() => router.push(`/patient/${id}/documents` as never)}
-              style={styles.toolBtn}
+              style={[styles.toolBtn, { backgroundColor: isDark ? '#222226' : '#FAFAFA', borderColor: c.border }]}
             >
               <Files size={20} color={c.secondary} />
               <Txt style={styles.toolLabel}>Documentos</Txt>
@@ -132,7 +133,7 @@ export default function PatientDetail() {
 
             <Pressable 
               onPress={() => router.push(`/patient/${id}/consents` as never)}
-              style={styles.toolBtn}
+              style={[styles.toolBtn, { backgroundColor: isDark ? '#222226' : '#FAFAFA', borderColor: c.border }]}
             >
               <ShieldCheck size={20} color={c.green} />
               <Txt style={styles.toolLabel}>Consentimentos</Txt>
@@ -140,7 +141,7 @@ export default function PatientDetail() {
 
             <Pressable 
               onPress={() => router.push(`/patient/${id}/referrals` as never)}
-              style={styles.toolBtn}
+              style={[styles.toolBtn, { backgroundColor: isDark ? '#222226' : '#FAFAFA', borderColor: c.border }]}
             >
               <Share2 size={20} color={c.secondary} />
               <Txt style={styles.toolLabel}>Encaminhamentos</Txt>
@@ -283,7 +284,7 @@ function FieldRow({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 18 },
-  quickToolsCard: { gap: 14, backgroundColor: '#FFF' },
+  quickToolsCard: { gap: 14 },
   toolsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -295,15 +296,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FAFAFA',
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: c.border,
   },
   toolLabel: {
     fontFamily: fonts.medium,
     fontSize: 13,
-    color: c.text,
   }
 });

@@ -4,15 +4,16 @@ import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native'
 import { useRouter } from 'expo-router';
 import { FileText, FileCheck, UserCheck, Send } from 'lucide-react-native';
 import { Card, Empty, IconButton, SectionTitle, Txt, s } from '../../src/ui/components';
-import { colors as c, fonts } from '../../src/ui/theme';
+import { fonts, useTheme } from '../../src/ui/theme';
 
 export default function Reports() {
   const bottomInset = useTabContentInset();
   const router = useRouter();
   const { width } = useWindowDimensions();
+  const { colors: c } = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
       <ScrollView 
         contentContainerStyle={[
           styles.content, 
@@ -22,7 +23,7 @@ export default function Reports() {
       >
         {/* Topbar Padronizada */}
         <View style={styles.topbar}>
-          <Txt style={styles.brand}>cicure</Txt>
+          <Txt style={[styles.brand, { color: c.red }]}>cicure</Txt>
           <View style={s.row}>
             <IconButton 
               icon={FileText} 
@@ -56,7 +57,7 @@ export default function Reports() {
           
           <Card style={styles.card}>
             <View style={styles.formatItem}>
-              <View style={styles.iconCircle}>
+              <View style={[styles.iconCircle, { backgroundColor: c.redSoft }]}>
                 <FileCheck size={20} color={c.red} />
               </View>
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -67,10 +68,10 @@ export default function Reports() {
               </View>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: c.border }]} />
 
             <View style={styles.formatItem}>
-              <View style={styles.iconCircle}>
+              <View style={[styles.iconCircle, { backgroundColor: c.redSoft }]}>
                 <UserCheck size={20} color={c.red} />
               </View>
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -81,10 +82,10 @@ export default function Reports() {
               </View>
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: c.border }]} />
 
             <View style={styles.formatItem}>
-              <View style={styles.iconCircle}>
+              <View style={[styles.iconCircle, { backgroundColor: c.redSoft }]}>
                 <Send size={20} color={c.red} />
               </View>
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
@@ -102,10 +103,10 @@ export default function Reports() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
+  container: { flex: 1 },
   content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
   topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { color: c.red, fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
+  brand: { fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
   sectionLabel: { fontSize: 11, letterSpacing: 1.4, fontFamily: fonts.semibold },
   card: { padding: 18, gap: 14 },
   formatItem: {
@@ -117,7 +118,6 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: c.redSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -125,7 +125,6 @@ const styles = StyleSheet.create({
   formatTitle: {
     fontFamily: fonts.semibold,
     fontSize: 15,
-    color: c.text,
   },
   formatDesc: {
     fontSize: 12.5,
@@ -133,6 +132,5 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: c.border,
   },
 });

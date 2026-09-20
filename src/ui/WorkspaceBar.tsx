@@ -4,13 +4,11 @@ import { useRouter } from 'expo-router';
 import { 
   Building2, 
   ChevronDown, 
-  Cloud, 
-  CloudOff, 
   RefreshCw, 
   User 
 } from 'lucide-react-native';
-import { Txt, s } from './components';
-import { colors as c, fonts } from './theme';
+import { Txt } from './components';
+import { fonts, useTheme } from './theme';
 import { useStore } from '../data/store';
 import { useNetworkStatus } from '../data/network';
 import { WorkspaceSelectorModal } from '../features/organization/ui/WorkspaceSelectorModal';
@@ -18,6 +16,7 @@ import { WorkspaceSelectorModal } from '../features/organization/ui/WorkspaceSel
 export function WorkspaceBar() {
   const router = useRouter();
   const store = useStore();
+  const { colors: c, isDark } = useTheme();
   const { workMode, activeOrg } = store;
   const { isOnline, pending, syncState } = useNetworkStatus();
   const [modalVisible, setModalVisible] = useState(false);
@@ -31,9 +30,13 @@ export function WorkspaceBar() {
         {/* Workspace Switcher Chip */}
         <Pressable 
           onPress={() => setModalVisible(true)} 
-          style={({ pressed }) => [styles.chip, pressed && { opacity: 0.8 }]}
+          style={({ pressed }) => [
+            styles.chip, 
+            { backgroundColor: isDark ? '#232328' : '#F5F5F5', borderColor: c.border },
+            pressed && { opacity: 0.8 }
+          ]}
         >
-          <View style={[styles.iconCircle, isIndividual ? styles.individualIcon : styles.groupIcon]}>
+          <View style={[styles.iconCircle, { backgroundColor: isIndividual ? (isDark ? '#33333A' : c.dark) : c.red }]}>
             {isIndividual ? (
               <User size={13} color="#FFF" />
             ) : (
@@ -51,11 +54,18 @@ export function WorkspaceBar() {
           onPress={() => router.push('/sync' as never)}
           style={({ pressed }) => [
             styles.statusPill, 
-            !isOnline && styles.offlinePill,
+            { 
+              backgroundColor: isOnline 
+                ? (isDark ? '#142A1D' : '#EEF9F1') 
+                : (isDark ? '#232328' : '#F7F7F7'),
+              borderColor: isOnline 
+                ? (isDark ? '#1B472E' : '#D4EED8') 
+                : c.border,
+            },
             pressed && { opacity: 0.8 }
           ]}
         >
-          <View style={[styles.dot, isOnline ? styles.onlineDot : styles.offlineDot]} />
+          <View style={[styles.dot, { backgroundColor: isOnline ? c.green : '#9E9E9E' }]} />
           <Txt style={styles.statusText}>
             {isOnline 
               ? (pending > 0 ? `${pending} pendente(s)` : 'Online') 
@@ -89,18 +99,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F5F5F5',
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#E8E8E8',
     maxWidth: '65%',
   },
   chipText: {
     fontFamily: fonts.medium,
     fontSize: 12,
-    color: c.text,
     flexShrink: 1,
   },
   iconCircle: {
@@ -110,41 +117,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  individualIcon: {
-    backgroundColor: c.dark,
-  },
-  groupIcon: {
-    backgroundColor: c.red,
-  },
   statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EEF9F1',
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#D4EED8',
-  },
-  offlinePill: {
-    backgroundColor: '#F7F7F7',
-    borderColor: '#E5E5E5',
   },
   dot: {
     width: 7,
     height: 7,
     borderRadius: 4,
   },
-  onlineDot: {
-    backgroundColor: c.green,
-  },
-  offlineDot: {
-    backgroundColor: '#9E9E9E',
-  },
   statusText: {
     fontFamily: fonts.medium,
     fontSize: 11,
-    color: c.text,
   }
 });
