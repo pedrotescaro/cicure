@@ -1,13 +1,12 @@
 import { colors, darkColors, lightColors } from './theme';
 
-// Reference motion configuration; times are milliseconds.
 export const logoMotion = {
-  drawDuration: 350,
-  fillDuration: 120,
-  holdDuration: 80,
-  exitDuration: 140,
-  letterStagger: 0.08,
-  strokeWidth: 1.25,
+  drawDuration: 800,
+  fillDuration: 220,
+  holdDuration: 160,
+  exitDuration: 200,
+  letterStagger: 0.12,
+  strokeWidth: 1.35,
   width: 260,
 } as const;
 

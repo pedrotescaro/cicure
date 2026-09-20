@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Platform, useWindowDimensions } from 'react-native';
+import { View, useWindowDimensions } from 'react-native';
 import Animated, { type SharedValue, useAnimatedProps } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 
@@ -41,30 +41,48 @@ function DrawnContour({
 }) {
   const { length, start, duration } = contour;
   const letterStart = letterIndex * logoMotion.letterStagger;
+
   const animatedProps = useAnimatedProps(() => {
     const letterProgress = Math.max(0, Math.min(1, (drawProgress.value - letterStart) / letterDuration));
     const progress = Math.max(0, Math.min(1, (letterProgress - start) / duration));
     return {
       strokeDashoffset: length * (1 - progress),
-      opacity: progress > 0 ? 1 - fillProgress.value : 0,
+      opacity: progress > 0 ? 1 - fillProgress.value * 0.9 : 0,
     };
   }, [duration, length, letterStart, start]);
 
   return (
-    <AnimatedPath
-      d={contour.d}
-      animatedProps={animatedProps}
-      fill="none"
-      stroke={color}
-      strokeWidth={logoMotion.strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeDasharray={[length, length]}
-    />
+    <>
+      {/* Delicate guide outline visible from frame 0 so the screen is never blank */}
+      <Path
+        d={contour.d}
+        fill="none"
+        stroke={color}
+        strokeWidth={logoMotion.strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.14}
+      />
+      {/* Active animated stroke drawing the letter outline */}
+      <AnimatedPath
+        d={contour.d}
+        animatedProps={animatedProps}
+        fill="none"
+        stroke={color}
+        strokeWidth={logoMotion.strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={[length, length]}
+      />
+    </>
   );
 }
 
-function FilledLetter({ d, fillProgress, color }: {
+function FilledLetter({
+  d,
+  fillProgress,
+  color,
+}: {
   d: string;
   fillProgress: SharedValue<number>;
   color: string;
@@ -73,10 +91,17 @@ function FilledLetter({ d, fillProgress, color }: {
     fillOpacity: Math.max(0, Math.min(1, fillProgress.value)),
   }));
 
-  return <AnimatedPath d={d} fill={color} fillRule="nonzero" animatedProps={animatedProps} />;
+  return (
+    <AnimatedPath
+      d={d}
+      fill={color}
+      fillRule="nonzero"
+      animatedProps={animatedProps}
+    />
+  );
 }
 
-/** Real Comfortaa Bold outlines; all geometry stays fixed throughout the reveal. */
+/** Real Comfortaa Bold outlines with animated stroke and fill */
 export function AnimatedLogo({
   drawProgress,
   fillProgress,
@@ -85,35 +110,7 @@ export function AnimatedLogo({
 }: AnimatedLogoProps) {
   const { width: windowWidth } = useWindowDimensions();
   const displayWidth = Math.max(1, Math.min(width, windowWidth - 64));
-  const displayHeight = displayWidth * cicurePaths.height / cicurePaths.width;
-
-  // On Web, Reanimated SVG attribute bindings have limited support; render clean visible SVG directly
-  if (Platform.OS === 'web') {
-    return (
-      <View
-        accessible
-        accessibilityRole="image"
-        accessibilityLabel="cicure"
-        style={{ width: displayWidth, height: displayHeight, alignItems: 'center', justifyContent: 'center' }}
-      >
-        <Svg
-          width={displayWidth}
-          height={displayHeight}
-          viewBox={`0 0 ${cicurePaths.width} ${cicurePaths.height}`}
-          preserveAspectRatio="xMidYMid meet"
-        >
-          {cicurePaths.letters.map((letter, letterIndex) => (
-            <Path
-              key={`${letter.letter}-${letterIndex}`}
-              d={letter.d}
-              fill={color}
-              fillRule="nonzero"
-            />
-          ))}
-        </Svg>
-      </View>
-    );
-  }
+  const displayHeight = (displayWidth * cicurePaths.height) / cicurePaths.width;
 
   return (
     <View
@@ -122,7 +119,7 @@ export function AnimatedLogo({
       accessibilityLabel="cicure"
       pointerEvents="none"
       testID="animated-logo"
-      style={{ width: displayWidth, height: displayHeight }}
+      style={{ width: displayWidth, height: displayHeight, alignItems: 'center', justifyContent: 'center' }}
     >
       <Svg
         width={displayWidth}
