@@ -19,6 +19,9 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export type Store = { 
   data: Data; 
   scope: string; 
+  authUserId: string | null;
+  setAuthUser: (userId: string) => void;
+  clearAuthUser: () => void;
   ready: boolean; 
   presentation: boolean; 
   syncState: 'local' | 'syncing' | 'synced' | 'error'; 
@@ -55,7 +58,10 @@ let syncing = false;
 
 export const useStore = create<Store>((set, get) => ({
   data: empty(), 
-  scope: 'individual', 
+  scope: '',
+  authUserId: null,
+  setAuthUser: userId => set({ authUserId: userId, ready: false, data: empty(), scope: `user:${userId}`, syncState: 'local', pending: 0, error: null }),
+  clearAuthUser: () => { queryClient.clear(); set({ authUserId: null, ready: false, data: empty(), scope: '', syncState: 'local', pending: 0, error: null }); },
   ready: false, 
   presentation: false, 
   syncState: 'local', 
@@ -110,6 +116,7 @@ export const useStore = create<Store>((set, get) => ({
 
   setWorkMode: async (mode: WorkMode, orgId?: string) => {
     if (mode === 'group') throw new Error('Clínicas e equipes ainda não estão disponíveis.');
+    void orgId;
     const { organizations } = get();
     const targetOrg: Organization = organizations.find(o => o.isIndividual) || INDIVIDUAL_ORG;
 
@@ -118,7 +125,7 @@ export const useStore = create<Store>((set, get) => ({
       isCurrent: o.id === targetOrg.id
     }));
 
-    const nextScope = 'individual';
+    const nextScope = get().scope;
     set({ workMode: mode, activeOrg: targetOrg, organizations: nextOrgs });
     await get().init(nextScope);
   },
@@ -136,7 +143,9 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   init: async (scope) => {
-    const currentScope = scope ?? (get().workMode === 'individual' ? 'individual' : `org_${get().activeOrg.id}`);
+    const userId = get().authUserId;
+    const currentScope = scope ?? get().scope;
+    if (!userId || currentScope !== `user:${userId}`) throw new Error('Entre na sua conta para abrir os registros.');
     set({ ready: false, data: empty(), scope: currentScope, error: null, syncState: 'local' });
     try {
       await removeDemoRecords(currentScope);
@@ -145,17 +154,19 @@ export const useStore = create<Store>((set, get) => ({
       const data = empty(); 
       rows.forEach(r => (data[r.kind] as unknown[]).push(r.payload));
       const pendingCount = (await queue(currentScope)).length;
+      if (get().authUserId !== userId) return;
       set({ data, ready: true, pending: pendingCount });
 
       // Dispara sincronização em segundo plano se houver conexão com o Supabase
       void get().sync();
     } catch { 
-      set({ error: 'Não foi possível abrir o armazenamento SQLite local. Tente novamente.', ready: true }); 
+      if (get().authUserId === userId) set({ error: 'Não foi possível abrir o armazenamento SQLite local. Tente novamente.', ready: true });
     }
   },
 
   save: async (kind, entity) => {
-    const { scope } = get();
+    const { scope, authUserId } = get();
+    if (!authUserId || scope !== `user:${authUserId}`) throw new Error('Entre na sua conta para salvar registros.');
     if (get().presentation) throw new Error('Saia do modo apresentação para editar.');
     
     // 1. Grava no banco local SQLite (Garantia de funcionamento 100% offline)
@@ -180,27 +191,31 @@ export const useStore = create<Store>((set, get) => ({
 
   sync: async () => {
     const client = supabase;
-    if (syncing || !client) return;
+    const userId = get().authUserId;
+    if (syncing || !client || !userId || get().scope !== `user:${userId}`) return;
     syncing = true; 
     const scope = get().scope; 
     set({ syncState: 'syncing', error: null });
 
     try {
       const queued = await queue(scope);
+      if (get().authUserId !== userId) return;
       if (queued.length > 0) {
         const order: EntityKind[] = ['profiles', 'patients', 'wounds', 'products', 'visits', 'reports'];
         queued.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
 
         for (const item of queued) {
+          if (get().authUserId !== userId) return;
           try {
             let payload = item.payload;
             if (item.kind === 'visits') { 
               const { uploadVisitMedia } = await import('./media'); 
               payload = await uploadVisitMedia(scope, payload as Entities['visits']); 
             }
+            if (get().authUserId !== userId) return;
 
             // Tenta salvar via RPC oficial do Supabase
-            const { error: rpcError } = await client.rpc('save_record', {
+            const { data: saved, error: rpcError } = await client.rpc('save_record', {
               p_kind: item.kind, 
               p_id: item.entityId, 
               p_payload: payload, 
@@ -208,21 +223,8 @@ export const useStore = create<Store>((set, get) => ({
               p_base_version: item.baseVersion 
             });
 
-            // Se RPC falhar (ex.: RLS ou auth), tenta upsert direto na tabela do Supabase
-            if (rpcError) {
-              const { error: upsertError } = await client
-                .from(item.kind)
-                .upsert({
-                  id: item.entityId,
-                  payload: payload,
-                  version: item.version,
-                  updated_at: new Date().toISOString()
-                });
-
-              if (upsertError) {
-                throw upsertError;
-              }
-            }
+            if (rpcError) throw rpcError;
+            if (saved?.id !== item.entityId || Number(saved?.version) !== item.version) throw new Error('O servidor não confirmou esta versão.');
 
             // Confirmação: remove da fila do SQLite local
             await acknowledge(scope, item);
@@ -233,27 +235,40 @@ export const useStore = create<Store>((set, get) => ({
       }
 
       // Only report cloud success after the server confirms the read.
+      if (get().authUserId !== userId) return;
       const { data: remoteData, error: pullError } = await client.rpc('pull_records');
       if (pullError) throw pullError;
+      if (get().authUserId !== userId) return;
+      let mediaFailures = 0;
       if (Array.isArray(remoteData)) {
         for (const record of remoteData) {
+          if (get().authUserId !== userId) return;
           if (isDemoRecord(record.kind, record.id, record.payload)) continue;
-          await writeRecord(scope, record.kind, record.id, record.payload, false, record.version);
+          if (!(record.kind in empty())) continue;
+          let payload = record.payload;
+          if (record.kind === 'visits') {
+            const { hydrateVisitMedia } = await import('./media');
+            const result = await hydrateVisitMedia(payload as Entities['visits']);
+            payload = result.visit;
+            mediaFailures += result.failed;
+          }
+          await writeRecord(scope, record.kind, record.id, payload, false, record.version);
         }
       }
 
-      if (get().scope === scope) { 
+      if (get().scope === scope && get().authUserId === userId) {
         const updated = empty(); 
         (await readRecords(scope)).forEach(r => (updated[r.kind] as unknown[]).push(r.payload)); 
         const remainingPending = (await queue(scope)).length;
         set({ 
           data: updated, 
           pending: remainingPending, 
-          syncState: remainingPending === 0 ? 'synced' : 'local' 
+          syncState: remainingPending === 0 && mediaFailures === 0 ? 'synced' : 'local',
+          error: mediaFailures > 0 ? `${mediaFailures} imagem(ns) não puderam ser carregadas. Toque para sincronizar novamente.` : null,
         }); 
       }
     } catch (error) { 
-      if (get().scope === scope) {
+      if (get().scope === scope && get().authUserId === userId) {
         set({ 
           syncState: 'local', 
           error: error instanceof Error ? error.message : 'Modo Offline ativo. Seus registros estão salvos com segurança no aparelho.' 
@@ -261,6 +276,7 @@ export const useStore = create<Store>((set, get) => ({
       }
     } finally { 
       syncing = false; 
+      if (get().authUserId && get().authUserId !== userId) void get().sync();
     }
   },
 }));

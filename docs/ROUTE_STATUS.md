@@ -5,17 +5,20 @@ Inventário do checkout desta PR. **Parcial** significa que a tela usa dados loc
 | Rota | Estado | Evidência e limite |
 | --- | --- | --- |
 | `/` | Parcial | Início mostra registros locais; agenda e indicadores de produção ainda não são integrados. |
-| `/patients` | Parcial | Lista lê o armazenamento local; conta e isolamento ainda pendentes. |
+| `/patients` | Parcial | Lista lê registros locais separados pelo ID da conta; proteção física do armazenamento e teste nativo ainda pendentes. |
 | `/care` | Parcial | Agenda lê visitas locais; lembrete nativo informa indisponibilidade. |
 | `/reports` | Indisponível | Apresenta apenas o planejamento dos formatos, sem PDF gerado. |
-| `/more` | Parcial | Preferências locais funcionam; PIN/biometria e serviços pendentes explicam indisponibilidade. |
+| `/more` | Parcial | Perfil profissional e saída da conta estão disponíveis; PIN/biometria e serviços pendentes explicam indisponibilidade. |
+| `/profile` | Parcial | Edita perfil vinculado ao ID autenticado e enfileira sincronização; falta homologação em dispositivo e checagem externa do conselho. |
+| `/auth/callback` | Parcial | Troca código PKCE por sessão após confirmação de e-mail ou login Google; retorno nativo ainda não homologado. |
+| `/auth/reset-password` | Parcial | Troca o código de recuperação e permite nova senha; entrega do e-mail e retorno nativo ainda não homologados. |
 | `/patient/:id` | Parcial | Ficha lê dados locais; ações não integradas levam a estado indisponível. Alertas automáticos permanecem em revisão clínica. |
 | `/patient/:id/body-map` | Parcial | Visualização local da ferida; sem prova de sincronização entre aparelhos. |
 | `/patient/:id/timeline` | Parcial | Linha do tempo deriva de registros locais. |
 | `/care/new` | Parcial | Cria rascunho local; conclusão, assinatura e WIfI ficam indisponíveis. |
 | `/care/:id` | Parcial | Resumo lê visita local; autoria e assinatura confiáveis pendentes. |
 | `/pending` | Parcial | Pendências derivadas dos registros locais. |
-| `/sync` | Parcial | Mostra fila local e informa quando não há configuração cloud; contrato/RLS ainda não homologados. |
+| `/sync` | Parcial | Usa RPC de gravação/leitura e fila local; isolamento entre duas identidades passou em transação SQL, mas conflitos e dispositivos ainda precisam de homologação. |
 | `/patient/:id/care-plan` | Indisponível | Plano ainda não é persistido no prontuário. |
 | `/patient/:id/prescription/new` | Indisponível | Assinatura e salvamento da prescrição ainda não integrados. |
 | `/patient/:id/prescription/:prescId` | Indisponível | Edição de prescrição ainda não integrada. |

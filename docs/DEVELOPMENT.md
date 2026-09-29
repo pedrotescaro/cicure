@@ -11,9 +11,9 @@ Copy-Item .env.example .env.local
 # Edite .env.local com os valores do projeto de desenvolvimento.
 ```
 
-`EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY` ficam dentro do bundle e nunca podem conter `service_role`, senha ou outro segredo. Guarde credenciais privadas somente no gerenciador seguro do serviço. Use projetos e chaves distintos para desenvolvimento, homologação e produção; configure o ambiente de build correspondente antes de distribuir. Sem variáveis, o app permanece local. A configuração cloud por si só ainda não comprova autenticação, RLS ou sincronização segura; veja as issues #4–#9.
+`EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` ficam dentro do bundle e nunca podem conter `service_role`, senha ou outro segredo. A antiga variável `EXPO_PUBLIC_SUPABASE_ANON_KEY` ainda é aceita como alternativa durante a migração. Guarde credenciais privadas somente no gerenciador seguro do serviço. Use projetos e chaves distintos para desenvolvimento, homologação e produção; configure o ambiente de build correspondente antes de distribuir. Sem variáveis, o app mostra a configuração pendente e não abre registros clínicos. A configuração cloud por si só não comprova todos os fluxos de autenticação e sincronização; veja as issues #4–#9.
 
-A versão web serve para demonstração da interface com dados sintéticos e não para atendimento clínico. Não coloque dados reais em ambiente de demonstração.
+A versão web serve para verificar a interface e os fluxos de desenvolvimento, não para atendimento clínico. Não coloque dados reais em ambiente de demonstração.
 
 ## Checks locais e CI
 
@@ -28,7 +28,7 @@ npm run export:web
 
 `npm test` executa os testes de persistência, configuração cloud e algoritmos clínicos; qualquer falha retorna código diferente de zero. O CI repete esses comandos em cada PR para `main` e em pushes a `main`. A exportação web verifica o bundle, mas não publica a aplicação. Os avisos existentes do lint sobre fluxos antigos de animação e inicialização continuam visíveis; erros das demais regras reprovam o CI.
 
-Um banco Supabase descartável e testes de schema/RLS serão adicionados quando os contratos da issue #4 estiverem reconciliados. Até lá, a CI não valida acesso remoto, políticas, dispositivo nativo nem exatidão clínica.
+`supabase/tests/owner_isolation.sql` verifica proprietário, outra conta e papel anônimo em uma transação com `ROLLBACK`. Execute-o em banco descartável antes de cada mudança de RLS. O CI ainda não inicia banco Supabase e não valida acesso remoto, dispositivo nativo nem exatidão clínica.
 
 ## GitHub Flow solo
 

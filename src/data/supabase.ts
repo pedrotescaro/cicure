@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
-const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim();
+const key = (process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY)?.trim();
 
 function validCloudUrl(value: string | undefined): value is string {
   if (!value) return false;
@@ -14,7 +14,7 @@ function validCloudUrl(value: string | undefined): value is string {
   }
 }
 
-export const cloudConfigured = validCloudUrl(url) && Boolean(key && key !== 'your-anon-key');
+export const cloudConfigured = validCloudUrl(url) && Boolean(key && !key.startsWith('your-'));
 const storage = { 
   getItem: async (k: string) => Platform.OS === 'web' ? (typeof localStorage !== 'undefined' ? localStorage.getItem(k) : null) : SecureStore.getItemAsync(k), 
   setItem: async (k: string, value: string) => { 
@@ -37,6 +37,7 @@ export const supabase = cloudConfigured && url && key ? createClient(url, key, {
     storage, 
     persistSession: true, 
     autoRefreshToken: true, 
-    detectSessionInUrl: false 
+    detectSessionInUrl: false,
+    flowType: 'pkce'
   } 
 }) : null;
