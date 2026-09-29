@@ -1,25 +1,24 @@
 # Cicure
 
-Aplicativo profissional de avaliação e acompanhamento longitudinal de feridas, construído com Expo SDK 57, Expo Router, Supabase, SQLite e interface pt-BR.
+Aplicativo Expo SDK 57 para avaliação e acompanhamento longitudinal de feridas por profissionais de saúde. **Esta versão é um protótipo com rascunhos locais e não deve receber dados reais de pacientes.** A integração de conta, nuvem, segurança e assinatura ainda está em andamento.
 
 ## Executar
 
 ```powershell
-npm install
+npm ci
 npx expo start
 ```
 
 Comandos de validação, configuração de ambientes e fluxo de PR: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-Para usar a sincronização, copie `.env.example` para `.env.local` e informe `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY`. A migração inicial está em `supabase/migrations/0001_cicura.sql`. Sem essas variáveis, o app abre dados fictícios em modo local e exibe essa condição na ficha do paciente.
+Use Node 22.13 ou superior, compatível com [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/). Para um projeto Supabase de desenvolvimento, configure `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY` em um `.env.local` local, sem credenciais privadas. Sem essas variáveis, o app permanece no armazenamento local e informa que a nuvem está indisponível. Configurar variáveis não comprova autenticação, RLS ou sincronização. A migração inicial está em `supabase/migrations/0001_cicura.sql`.
 
-## Entregue nesta etapa
+## Estado das funcionalidades
 
-- Navegação por abas flutuantes com FAB e wordmark `cicure` em Comfortaa Bold vermelho.
-- Dashboard com agenda, strip semanal, acompanhamento, cronômetro e atendimentos recentes.
-- Busca e filtros de pacientes, estado clínico e destaque para atendimento do dia.
-- Ficha do paciente com identificação, dados clínicos, comorbidades, medicamentos, exames, feridas e histórico.
-- Atendimento em sete etapas com rascunho SQLite/localStorage, mensuração, tecidos, WIfI versionado, produtos, terapias, fotos calibráveis e conduta.
-- Fila de sincronização, RLS, soft delete, controle de versão e bucket privado no Supabase.
+- Cadastro, prontuário, agenda, atendimento e histórico operam parcialmente sobre dados locais.
+- O atendimento salva rascunho; conclusão e assinatura estão indisponíveis.
+- Plano terapêutico, prescrição, consentimentos, documentos, encaminhamentos, auditoria, indicadores, clínicas, estoque e templates exibem o motivo da indisponibilidade.
+- A interpretação WIfI está suspensa até revisão clínica e regulatória.
+- A web é somente demonstração de interface com dados sintéticos.
 
-Os pacientes exibidos inicialmente são fictícios. A matriz WIfI é registrada com versão e respostas; a interpretação apresentada é uma triagem de risco e não substitui a decisão clínica. O relatório PDF, o comparativo avançado e a integração real com o projeto Supabase entram nas próximas etapas.
+Veja [PRODUCT.md](PRODUCT.md) para o MVP pretendido e os limites de ativação, [docs/ROUTE_STATUS.md](docs/ROUTE_STATUS.md) para o estado de cada rota e [as issues](https://github.com/pedrotescaro/cicure/issues) para dependências e critérios de aceite.
