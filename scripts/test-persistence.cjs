@@ -32,7 +32,7 @@ function harness(platform) {
     const mocks = {
       'react-native': { Alert: { alert: (...args) => alerts.push(args) } },
       'expo-crypto': { randomUUID: require('node:crypto').randomUUID },
-      '@tanstack/react-query': { QueryClient: class { async invalidateQueries() {} } },
+      '@tanstack/react-query': { QueryClient: class { async invalidateQueries() {} clear() {} } },
       'expo-sqlite': { openDatabaseAsync: async () => sql },
       'expo-sqlite/kv-store': { getItemSync: localStorage.getItem, setItemSync: localStorage.setItem },
     };
@@ -72,7 +72,8 @@ for (const platform of ['web', 'native']) {
         store.getState().loadPreferences();
         assert.equal(store.getState().themeMode, mode);
         assert.equal(store.getState().onboardingVisible, false);
-        await store.getState().init('another-workspace');
+        store.getState().setAuthUser('user-a');
+        await store.getState().init('user:user-a');
         assert.equal(store.getState().themeMode, mode);
         assert.equal(store.getState().onboardingVisible, false);
       }
@@ -94,7 +95,7 @@ for (const platform of ['web', 'native']) {
     const h = harness(platform);
     try {
       const { store, storage } = h.loadApp();
-      const scope = 'individual';
+      const scope = 'user:user-a';
       const fixtures = [
         ['patients', 'demo-p-0', { name: 'Example' }],
         ['wounds', 'demo-w-0', { patientId: 'demo-p-0' }],
@@ -106,19 +107,25 @@ for (const platform of ['web', 'native']) {
         ['visits', 'real-visit', { patientId: 'real-patient' }],
       ];
       for (const [kind, id, payload] of fixtures) await storage.writeRecord(scope, kind, id, { id, ...payload }, true);
-      await store.getState().init();
+      store.getState().setAuthUser('user-a');
+      await store.getState().init(scope);
       assert.deepEqual(Array.from(store.getState().data.patients, p => p.id), ['real-patient']);
       assert.deepEqual(Array.from(store.getState().data.visits, p => p.id), ['real-visit']);
       assert.equal((await storage.queue(scope)).length, 2);
-      await store.getState().init();
+      await store.getState().init(scope);
       assert.equal((await storage.readRecords(scope)).length, 2);
-      await store.getState().init('fresh');
+      store.getState().clearAuthUser();
+      store.getState().setAuthUser('user-b');
+      const fresh = 'user:user-b';
+      await store.getState().init(fresh);
       assert.equal(store.getState().data.patients.length, 0);
-      assert.equal((await storage.readRecords('fresh')).length, 0);
+      assert.equal((await storage.readRecords(fresh)).length, 0);
       await store.getState().save('patients', { id: 'created', name: 'Real patient' });
       const reopened = h.loadApp().store;
-      await reopened.getState().init('fresh');
+      reopened.getState().setAuthUser('user-b');
+      await reopened.getState().init(fresh);
       assert.equal(reopened.getState().data.patients[0].id, 'created');
+      await assert.rejects(() => reopened.getState().init(scope), /Entre na sua conta/);
     } finally { h.close(); }
   });
 }
@@ -128,21 +135,23 @@ test('sync keeps failed writes queued and rejects returning demo records', async
   const h = harness('web');
   try {
     const { store, storage } = h.loadApp();
-    await store.getState().init();
+    const scope = 'user:user-a';
+    store.getState().setAuthUser('user-a');
+    await store.getState().init(scope);
     await store.getState().save('patients', { id: 'real', name: 'Real patient' });
     h.setCloud({
       rpc: async () => ({ error: new Error('relation does not exist') }),
       from: () => ({ upsert: async () => ({ error: new Error('relation does not exist') }) }),
     });
     await store.getState().sync();
-    assert.equal((await storage.queue('individual')).length, 1);
+    assert.equal((await storage.queue(scope)).length, 1);
     assert.notEqual(store.getState().syncState, 'synced');
-    h.setCloud({ rpc: async name => name === 'save_record' ? { error: null } : { data: [
+    h.setCloud({ rpc: async (name, args) => name === 'save_record' ? { data: { id: args.p_id, version: args.p_version }, error: null } : { data: [
       { kind: 'patients', id: 'demo-p-0', payload: { id: 'demo-p-0' }, version: 1 },
       { kind: 'patients', id: 'remote-real', payload: { id: 'remote-real' }, version: 1 },
     ], error: null } });
     await store.getState().sync();
-    assert.equal((await storage.queue('individual')).length, 0);
+    assert.equal((await storage.queue(scope)).length, 0);
     assert.equal(store.getState().data.patients.length, 2);
     assert.equal(store.getState().data.patients.some(p => p.id === 'demo-p-0'), false);
     assert.equal(store.getState().syncState, 'synced');

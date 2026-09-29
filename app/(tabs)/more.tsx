@@ -10,6 +10,7 @@ import {
   HelpCircle, 
   History,
   Lock, 
+  LogOut,
   Moon, 
   Package, 
   RefreshCw, 
@@ -27,6 +28,7 @@ import { useStore } from '../../src/data/store';
 import { useNetworkStatus } from '../../src/data/network';
 import { cloudConfigured } from '../../src/data/supabase';
 import { OnboardingModal } from '../../src/features/onboarding/ui/OnboardingModal';
+import { authErrorMessage, signOut } from '../../src/features/auth/auth';
 
 export default function More() {
   const bottomInset = useTabContentInset();
@@ -38,10 +40,18 @@ export default function More() {
   const setPresentation = useStore(st => st.setPresentation);
   const workMode = useStore(st => st.workMode);
   const activeOrg = useStore(st => st.activeOrg);
+  const syncState = useStore(st => st.syncState);
   const { isOnline, pending } = useNetworkStatus();
 
   const [onboardingVisible, setOnboardingVisible] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const showLockUnavailable = () => Alert.alert('Bloqueio em preparação', 'Biometria e PIN ainda não protegem o acesso aos dados nesta versão.');
+  const exitAccount = async () => {
+    setSigningOut(true);
+    try { await signOut(); }
+    catch (error) { Alert.alert('Não foi possível sair', authErrorMessage(error)); }
+    finally { setSigningOut(false); }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -80,10 +90,21 @@ export default function More() {
             <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }} numberOfLines={1}>
               {profile?.name || 'Profissional'}
             </Txt>
-            <Txt muted style={{ fontSize: 12 }} numberOfLines={2}>
+            <Txt muted style={{ fontSize: 14 }} numberOfLines={2}>
               {profile ? [profile.specialty, profile.council, profile.registration].filter(Boolean).join(' · ') : 'Perfil profissional não configurado'}
             </Txt>
           </View>
+        </Card>
+
+        <Button title="Editar perfil profissional" variant="outline" onPress={() => router.push('/profile')} />
+
+        <Card style={styles.menuCard}>
+          <MenuRow
+            icon={LogOut}
+            title={signingOut ? 'Saindo da conta...' : 'Sair da conta'}
+            subtitle="Encerrar o acesso neste dispositivo"
+            onPress={() => { if (!signingOut) void exitAccount(); }}
+          />
         </Card>
 
         {/* Seção Workspaces & Equipes (§1) */}
@@ -95,17 +116,17 @@ export default function More() {
                 {workMode === 'individual' ? <User size={16} color="#FFF" /> : <Building2 size={16} color="#FFF" />}
               </View>
               <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }} numberOfLines={1}>
+                <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }} numberOfLines={1}>
                   {workMode === 'individual' ? 'Consultório Individual' : activeOrg.name}
                 </Txt>
-                <Txt muted style={{ fontSize: 11 }} numberOfLines={1}>
+                <Txt muted style={{ fontSize: 13 }} numberOfLines={2}>
                   {workMode === 'individual' 
-                    ? 'Espaço individual local'
+                    ? 'Registros vinculados à sua conta'
                     : `Clínica compartilhada · ${activeOrg.inviteCode ? `Código ${activeOrg.inviteCode}` : 'Equipe multidisciplinar'}`}
                 </Txt>
               </View>
             </View>
-            <Badge>Local</Badge>
+            <Badge>Individual</Badge>
           </View>
           <Button 
             title="Sobre clínicas e equipes"
@@ -237,7 +258,7 @@ export default function More() {
           <MenuRow 
             icon={RefreshCw} 
             title="Central de Sincronização" 
-            subtitle={!cloudConfigured ? 'Nuvem não configurada · registros somente locais' : isOnline ? (pending > 0 ? `Online · ${pending} alteração(ões) pendente(s)` : 'Fila local vazia · nuvem não verificada') : 'Offline · Armazenado no aparelho'}
+            subtitle={!cloudConfigured ? 'Nuvem não configurada · registros somente locais' : !isOnline ? 'Offline · alterações aguardam conexão' : pending > 0 ? `Online · ${pending} alteração(ões) pendente(s)` : syncState === 'synced' ? 'Atualizado na nuvem' : 'Verificar estado da sincronização'}
             onPress={() => router.push('/sync' as never)} 
           />
         </Card>
@@ -272,11 +293,11 @@ function MenuRow({
 }) {
   const { colors: c } = useTheme();
   return (
-    <Pressable onPress={onPress} style={[styles.menuRow, { borderBottomColor: c.border }]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityHint={subtitle} onPress={onPress} style={[styles.menuRow, { borderBottomColor: c.border }]}>
       <Icon size={20} color={c.secondary} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }} numberOfLines={1}>{title}</Txt>
-        <Txt muted style={{ fontSize: 12 }} numberOfLines={2}>{subtitle}</Txt>
+        <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }} numberOfLines={2}>{title}</Txt>
+        <Txt muted style={{ fontSize: 14, lineHeight: 19 }} numberOfLines={2}>{subtitle}</Txt>
       </View>
       {toggleLabel ? (
         <Badge tone="red">{toggleLabel}</Badge>
@@ -291,7 +312,7 @@ const styles = StyleSheet.create({
   content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
   topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   brand: { fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
-  sectionLabel: { fontSize: 11, letterSpacing: 1.4, fontFamily: fonts.semibold },
+  sectionLabel: { fontSize: 12, letterSpacing: 1.2, fontFamily: fonts.semibold },
   profileAvatar: {
     width: 48,
     height: 48,
@@ -308,7 +329,7 @@ const styles = StyleSheet.create({
   },
   menuCard: { gap: 0, padding: 0, overflow: 'hidden' },
   menuRow: {
-    minHeight: 70,
+    minHeight: 82,
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',

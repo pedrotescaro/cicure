@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import { UnavailableFeature } from '../../../src/ui/UnavailableFeature';
+import CarePlanScreen from '../../../src/features/care-plan/ui/CarePlanScreen';
 
 export default function CarePlanRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return <UnavailableFeature title="Plano terapêutico em preparação" description="Esta tela ainda não salva revisões no prontuário. Nenhuma conduta ou meta foi preenchida automaticamente." backTo={id ? `/patient/${id}` : '/patients'} />;
+  return <CarePlanScreen patientId={id} />;
 }
