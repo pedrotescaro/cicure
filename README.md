@@ -9,6 +9,8 @@ npm install
 npx expo start
 ```
 
+Comandos de validação, configuração de ambientes e fluxo de PR: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
 Para usar a sincronização, copie `.env.example` para `.env.local` e informe `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_ANON_KEY`. A migração inicial está em `supabase/migrations/0001_cicura.sql`. Sem essas variáveis, o app abre dados fictícios em modo local e exibe essa condição na ficha do paciente.
 
 ## Entregue nesta etapa

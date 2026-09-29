@@ -203,7 +203,8 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   sync: async () => {
-    if (syncing || !supabase) return;
+    const client = supabase;
+    if (syncing || !client) return;
     syncing = true; 
     const scope = get().scope; 
     set({ syncState: 'syncing', error: null });
@@ -223,7 +224,7 @@ export const useStore = create<Store>((set, get) => ({
             }
 
             // Tenta salvar via RPC oficial do Supabase
-            const { error: rpcError } = await supabase.rpc('save_record', { 
+            const { error: rpcError } = await client.rpc('save_record', {
               p_kind: item.kind, 
               p_id: item.entityId, 
               p_payload: payload, 
@@ -233,7 +234,7 @@ export const useStore = create<Store>((set, get) => ({
 
             // Se RPC falhar (ex.: RLS ou auth), tenta upsert direto na tabela do Supabase
             if (rpcError) {
-              const { error: upsertError } = await supabase
+              const { error: upsertError } = await client
                 .from(item.kind)
                 .upsert({
                   id: item.entityId,
@@ -256,7 +257,7 @@ export const useStore = create<Store>((set, get) => ({
       }
 
       // Only report cloud success after the server confirms the read.
-      const { data: remoteData, error: pullError } = await supabase.rpc('pull_records');
+      const { data: remoteData, error: pullError } = await client.rpc('pull_records');
       if (pullError) throw pullError;
       if (Array.isArray(remoteData)) {
         for (const record of remoteData) {

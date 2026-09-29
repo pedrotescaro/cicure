@@ -64,7 +64,7 @@ export function ConflictResolutionModal({
                 <Txt style={{ fontSize: 13 }}>• Medida: {item.localData.medida}</Txt>
                 <Txt style={{ fontSize: 13 }}>• Tecido: {item.localData.tecido}</Txt>
                 <Txt style={{ fontSize: 13 }}>• Cobertura: {item.localData.cobertura}</Txt>
-                <Txt muted style={{ fontSize: 12, fontStyle: 'italic' }}>"{item.localData.observacao}"</Txt>
+                <Txt muted style={{ fontSize: 12, fontStyle: 'italic' }}>{'"'}{item.localData.observacao}{'"'}</Txt>
               </View>
               <Button 
                 title="Manter Versão Local" 
@@ -84,7 +84,7 @@ export function ConflictResolutionModal({
                 <Txt style={{ fontSize: 13 }}>• Medida: {item.remoteData.medida}</Txt>
                 <Txt style={{ fontSize: 13 }}>• Tecido: {item.remoteData.tecido}</Txt>
                 <Txt style={{ fontSize: 13 }}>• Cobertura: {item.remoteData.cobertura}</Txt>
-                <Txt muted style={{ fontSize: 12, fontStyle: 'italic' }}>"{item.remoteData.observacao}"</Txt>
+                <Txt muted style={{ fontSize: 12, fontStyle: 'italic' }}>{'"'}{item.remoteData.observacao}{'"'}</Txt>
               </View>
               <Button 
                 title="Aceitar Versão do Servidor" 

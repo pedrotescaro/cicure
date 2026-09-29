@@ -18,6 +18,7 @@ import {
 } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
 import { useNetworkStatus } from '../../../data/network';
+import { cloudConfigured } from '../../../data/supabase';
 import { Badge, Button, Card, Empty, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts, useTheme } from '../../../ui/theme';
 import { queue } from '../../../data/storage';
@@ -58,6 +59,10 @@ export default function SyncCenterScreen() {
 
   const handleSyncAll = async () => {
     if (syncing) return;
+    if (!cloudConfigured) {
+      Alert.alert('Nuvem não configurada', 'Configure o projeto Supabase deste ambiente para enviar os registros pendentes.');
+      return;
+    }
     setSyncing(true);
     try {
       await store.sync();
@@ -113,8 +118,8 @@ export default function SyncCenterScreen() {
           <View style={{ gap: 12, marginBottom: 12 }}>
             {/* Status da Conectividade em Tempo Real */}
             <Card style={{ 
-              backgroundColor: isOnline ? '#F0FDF4' : '#F9FAFB', 
-              borderColor: isOnline ? '#BBF7D0' : '#E5E7EB',
+              backgroundColor: isOnline && cloudConfigured ? '#F0FDF4' : '#F9FAFB',
+              borderColor: isOnline && cloudConfigured ? '#BBF7D0' : '#E5E7EB',
               gap: 8 
             }}>
               <View style={s.between}>
@@ -125,17 +130,19 @@ export default function SyncCenterScreen() {
                     <CloudOff size={20} color={c.secondary} />
                   )}
                   <Txt style={{ fontFamily: fonts.semibold, fontSize: 14, color: isOnline ? '#166534' : c.text }}>
-                    {isOnline ? 'Conexão com a Nuvem Ativa' : 'Modo Offline Ativo (SQLite Local)'}
+                    {!cloudConfigured ? 'Nuvem não configurada' : isOnline ? 'Internet disponível' : 'Modo offline (SQLite local)'}
                   </Txt>
                 </View>
-                <Badge tone={isOnline ? 'green' : 'neutral'}>
-                  {isOnline ? 'Online' : 'Offline'}
+                <Badge tone={isOnline && cloudConfigured ? 'green' : 'neutral'}>
+                  {!cloudConfigured ? 'Somente local' : isOnline ? 'Online' : 'Offline'}
                 </Badge>
               </View>
               <Txt muted style={{ fontSize: 12, lineHeight: 18 }}>
-                {isOnline 
-                  ? 'Você está conectado à internet. O aplicativo sincroniza automaticamente seus atendimentos com o banco de dados Supabase na nuvem.'
-                  : 'Você está sem internet ou em visita domiciliar. 100% dos dados continuam sendo gravados no SQLite deste dispositivo. Quando a internet voltar, a sincronização acontecerá de forma automática.'}
+                {!cloudConfigured
+                  ? 'Nenhum projeto Supabase foi configurado neste ambiente. Registros locais não foram enviados à nuvem.'
+                  : isOnline
+                    ? 'A internet está disponível. Confira o estado da fila abaixo; estar online não confirma o envio à nuvem.'
+                    : 'Sem internet. Os registros locais aguardam uma tentativa de sincronização quando a conexão voltar.'}
               </Txt>
             </Card>
 
@@ -167,6 +174,7 @@ export default function SyncCenterScreen() {
               icon={RefreshCw} 
               loading={syncing} 
               onPress={handleSyncAll}
+              disabled={!cloudConfigured}
             />
           </View>
         }

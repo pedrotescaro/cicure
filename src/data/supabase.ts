@@ -1,9 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://uuvypyzboqutecdmzqod.supabase.co';
-const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1dnlweXpib3F1dGVjZG16cW9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MjIzOTEsImV4cCI6MjA5ODQ5ODM5MX0.lJY6K0lNQ58XYYZjPCUSfsjxNtCCHbKOPRP1wUA_FIg';
-export const cloudConfigured = Boolean(url && key);
+const url = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
+const key = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+function validCloudUrl(value: string | undefined): value is string {
+  if (!value) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === 'https:' || (parsed.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(parsed.hostname));
+  } catch {
+    return false;
+  }
+}
+
+export const cloudConfigured = validCloudUrl(url) && Boolean(key && key !== 'your-anon-key');
 const storage = { 
   getItem: async (k: string) => Platform.OS === 'web' ? (typeof localStorage !== 'undefined' ? localStorage.getItem(k) : null) : SecureStore.getItemAsync(k), 
   setItem: async (k: string, value: string) => { 
@@ -21,11 +32,11 @@ const storage = {
     }
   } 
 };
-export const supabase = createClient(url, key, { 
+export const supabase = cloudConfigured && url && key ? createClient(url, key, {
   auth: { 
     storage, 
     persistSession: true, 
     autoRefreshToken: true, 
     detectSessionInUrl: false 
   } 
-});
+}) : null;

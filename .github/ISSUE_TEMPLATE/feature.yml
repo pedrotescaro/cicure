@@ -1,0 +1,31 @@
+name: Funcionalidade
+description: Solicitar uma funcionalidade com critérios verificáveis
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objetivo
+      description: Quem precisa e qual problema será resolvido?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Escopo e dependências
+      description: Inclua contratos, dados, autorização e referências quando aplicável.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      description: Descreva resultados observáveis, inclusive erros e operação offline.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validação
+      description: Informe ambiente, testes necessários e limitações esperadas.
