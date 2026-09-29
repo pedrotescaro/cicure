@@ -64,7 +64,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test scripts/test-persistence.cjs scripts/test-cloud-config.cjs && tsx scripts/run-clinical-tests.ts",
+    "test": "node --test scripts/test-persistence.cjs scripts/test-cloud-config.cjs scripts/test-clinical-defaults.cjs && tsx scripts/run-clinical-tests.ts",
     "expo:check": "expo install --check",
     "export:web": "expo export --platform web"
   },
