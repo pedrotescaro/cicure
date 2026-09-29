@@ -54,15 +54,14 @@ export function logAuditEvent(params: {
 }): AuditEvent {
   const event: AuditEvent = {
     id: uid(),
-    userId: 'current-user',
-    userName: params.userName || 'Caroline Ferreira',
+    userId: 'unidentified',
+    userName: params.userName || 'Não identificado',
     action: params.action,
     actionLabel: params.actionLabel,
     patientName: params.patientName,
     entityKind: params.entityKind,
     entityId: params.entityId,
     metadata: params.metadata,
-    ipAddress: '127.0.0.1',
     createdAt: new Date().toISOString()
   };
 
@@ -74,35 +73,4 @@ export function getAuditEvents(): AuditEvent[] {
   return [...memoryAuditLog];
 }
 
-export const INITIAL_SESSIONS: DeviceSession[] = [
-  {
-    id: 'sess-current',
-    deviceId: 'dev-001',
-    deviceName: Platform.OS === 'ios' ? 'iPhone 15 Pro' : Platform.OS === 'android' ? 'Samsung Galaxy S24' : 'Google Chrome (Web)',
-    platform: Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web',
-    ipAddress: '192.168.1.102 (São Paulo, Brasil)',
-    lastActive: 'Agora',
-    isCurrent: true,
-    revoked: false
-  },
-  {
-    id: 'sess-ipad',
-    deviceId: 'dev-002',
-    deviceName: 'iPad Air 5ª Geração (Clínica)',
-    platform: 'ios',
-    ipAddress: '177.18.42.10 (São Paulo, Brasil)',
-    lastActive: 'Há 3 horas',
-    isCurrent: false,
-    revoked: false
-  },
-  {
-    id: 'sess-notebook',
-    deviceId: 'dev-003',
-    deviceName: 'MacBook Air M2 (Consultório)',
-    platform: 'web',
-    ipAddress: '177.18.42.10 (São Paulo, Brasil)',
-    lastActive: 'Ontem às 18:30',
-    isCurrent: false,
-    revoked: false
-  }
-];
+export const INITIAL_SESSIONS: DeviceSession[] = [];

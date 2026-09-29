@@ -12,7 +12,6 @@ import {
   Copy, 
   Plus, 
   Save, 
-  ShieldAlert, 
   Bookmark, 
   X,
   Trash2
@@ -21,16 +20,12 @@ import { useRouter } from 'expo-router';
 import Slider from '@react-native-community/slider';
 import { Avatar, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, safeBack, s } from './components';
 import { fonts, useTheme } from './theme';
-import { area, decimal, measurementSchema, number, visitErrors } from '../domain/clinical';
+import { area, decimal, measurementSchema, number } from '../domain/clinical';
 import { useStore, uid } from '../data/store';
 import type { Patient, Visit, Wound } from '../domain/types';
 import { newVisit } from '../domain/visit';
 import { duplicateVisit, duplicateSummary } from '../features/duplicate-visit/domain/duplicate-visit.service';
-import { TemplatePickerModal } from '../features/templates/ui/TemplatePickerModal';
-import type { ClinicalTemplate } from '../features/templates/domain/types';
 import SOAPEditor from '../features/soap/ui/SOAPEditor';
-import VitalsForm from '../features/vitals/ui/VitalsForm';
-import VascularAssessmentForm from '../features/vitals/ui/VascularAssessmentForm';
 
 const stepOptions = ['Medidas', 'Leito & Dor', 'Sinais', 'Coberturas', 'Terapias', 'Fotos', 'Conduta'];
 
@@ -44,7 +39,6 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
   const isNarrow = width < 380;
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [templateModalVisible, setTemplateModalVisible] = useState(false);
   const scrollRef = React.useRef<ScrollView>(null);
 
   const scrollToTop = () => {
@@ -161,46 +155,11 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
     );
   };
 
-  const handleApplyTemplate = (tmpl: ClinicalTemplate) => {
-    if (tmpl.type === 'curativo' && tmpl.content) {
-      const nextDressing = {
-        id: uid(),
-        product: tmpl.content.primaryCoverage || tmpl.content.product || 'Cobertura',
-        presentation: tmpl.content.presentation || '',
-        quantity: tmpl.content.quantity || '1 un',
-        layer: tmpl.content.layer || 'Primária',
-        frequency: tmpl.content.changeFrequency || tmpl.content.frequency || 'A cada 48h',
-        start: new Date().toISOString(),
-        note: tmpl.content.note || ''
-      };
-      const next = { ...local, dressings: [nextDressing] };
-      setLocal(next);
-      void persist(next);
-      Alert.alert('Template Aplicado', `Os dados do template "${tmpl.name}" foram inseridos no atendimento.`);
-    } else if (tmpl.type === 'conduta' && tmpl.content) {
-      const next = {
-        ...local,
-        plan: tmpl.content.plan || local.plan,
-        guidance: tmpl.content.guidance || local.guidance
-      };
-      setLocal(next);
-      void persist(next);
-      Alert.alert('Template Aplicado', 'O texto do protocolo foi adicionado aos campos de conduta.');
-    }
-  };
-
   const complete = async () => {
-    const problems = visitErrors(local);
-    if (problems.length) {
-      Alert.alert('Atenção', problems.join('\n'));
-      return;
-    }
-    const next = { ...local, state: 'Concluído' as const, date: new Date().toISOString() };
-    await persist(next);
+    await persist();
     Alert.alert(
-      'Atendimento Concluído',
-      'O registro foi assinado e salvo com sucesso no prontuário.',
-      [{ text: 'Ver Prontuário', onPress: () => safeBack(router, local.patientId ? `/patient/${local.patientId}` : '/care') }]
+      'Rascunho salvo',
+      'A assinatura e a conclusão do atendimento ainda não estão disponíveis. Revise o rascunho local quando a integração estiver pronta.'
     );
   };
 
@@ -348,17 +307,14 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
         )}
 
         {step === 2 && (
-          <VitalsAndScalesStep 
-            local={local} 
-            onChange={next => setLocal(v => ({ ...v, ...next }))} 
-          />
+          <VitalsAndScalesStep />
         )}
 
         {step === 3 && (
           <ProductsStep 
             local={local} 
             onChange={next => setLocal(v => ({ ...v, ...next }))} 
-            onOpenTemplates={() => setTemplateModalVisible(true)} 
+            onOpenTemplates={() => Alert.alert('Templates em preparação', 'Protocolos clínicos ainda não podem ser aplicados nesta versão.')}
           />
         )}
 
@@ -403,7 +359,7 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
           )}
 
           <Button 
-            title={step === stepOptions.length - 1 ? "Concluir Atendimento" : "Próximo"} 
+            title={step === stepOptions.length - 1 ? "Salvar rascunho" : "Próximo"}
             variant={step === stepOptions.length - 1 ? "primary" : "dark"} 
             icon={step === stepOptions.length - 1 ? Check : ChevronRight} 
             loading={saving} 
@@ -421,13 +377,6 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
         </View>
       </ScrollView>
 
-      {/* Modal Seletor de Templates Clínicos */}
-      <TemplatePickerModal 
-        visible={templateModalVisible}
-        type="curativo"
-        onSelect={handleApplyTemplate}
-        onClose={() => setTemplateModalVisible(false)}
-      />
     </View>
   );
 }
@@ -621,6 +570,7 @@ function BedStep({ local, onChange }: { local: Visit; onChange: (value: Partial<
   ];
 
   const currentPainPreset = useMemo(() => {
+    if (local.pain === null) return '';
     if (local.pain === 0) return '0 - Sem dor';
     if (local.pain <= 2) return '2 - Leve';
     if (local.pain <= 4) return '4 - Moderada';
@@ -834,71 +784,14 @@ function BedStep({ local, onChange }: { local: Visit; onChange: (value: Partial<
 // ============================================================
 // ETAPA 2: SINAIS VITAIS E ESCALAS
 // ============================================================
-function VitalsAndScalesStep({ local, onChange }: { local: Visit; onChange: (value: Partial<Visit>) => void }) {
-  const { colors } = useTheme();
-  const [w, setW] = useState(0);
-  const [i, setI] = useState(0);
-  const [fi, setFi] = useState(0);
-
-  const stages = [[0, 0, 0, 1], [0, 1, 1, 2], [1, 1, 2, 3], [2, 2, 2, 3], [3, 3, 3, 4]];
-  const stage = stages[Math.min(4, Math.max(w, i, fi))][Math.min(3, Math.floor((w + i + fi) / 3))];
-
-  const handleSaveWiFi = () => {
-    onChange({
-      assessments: [
-        {
-          code: 'WIfI',
-          version: 'SVS 2019',
-          answers: { wound: w, ischemia: i, footInfection: fi },
-          score: stage,
-          interpretation: `Estágio clínico ${stage}. Risco de amputação avaliado conforme matriz SVS.`,
-          appliedAt: new Date().toISOString(),
-          appliedBy: 'Profissional autenticado'
-        },
-        ...local.assessments.filter(a => a.code !== 'WIfI')
-      ]
-    });
-    Alert.alert('Escala WIfI Salva', `Estágio clínico ${stage} registrado.`);
-  };
-
+function VitalsAndScalesStep() {
   return (
-    <View style={{ gap: 18 }}>
-      {/* Sinais Vitais */}
-      <VitalsForm onChange={() => {}} />
-
-      {/* Avaliação Vascular */}
-      <VascularAssessmentForm onChange={() => {}} />
-
-      {/* Escala WIfI em Card Minimalista Padrão */}
-      <Card style={{ padding: 18, gap: 14 }}>
-        <View style={s.between}>
-          <View style={s.row}>
-            <ShieldAlert size={20} color={colors.red} />
-            <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>WIfI · Estratificação SVS</Txt>
-          </View>
-          <Badge tone="red">Estágio {stage}</Badge>
-        </View>
-
-        <Txt muted style={{ fontSize: 12, lineHeight: 18 }}>
-          Matriz oficial para estratificação e risco de amputação em membros inferiores (Wound, Ischemia, foot Infection).
-        </Txt>
-
-        <ScaleChoice label="Wound (Extensão e Profundidade)" value={w} setValue={setW} />
-        <ScaleChoice label="Ischemia (Comprometimento Arterial)" value={i} setValue={setI} />
-        <ScaleChoice label="foot Infection (Infecção Local ou Sistêmica)" value={fi} setValue={setFi} />
-
-        <Button title="Salvar Escala WIfI" variant="outline" small onPress={handleSaveWiFi} />
-      </Card>
-    </View>
-  );
-}
-
-function ScaleChoice({ label, value, setValue }: { label: string; value: number; setValue: (v: number) => void }) {
-  return (
-    <View style={{ gap: 6 }}>
-      <Txt style={{ fontFamily: fonts.medium, fontSize: 13 }}>{label}</Txt>
-      <Choices options={['0', '1', '2', '3']} value={String(value)} onChange={v => setValue(Number(v))} />
-    </View>
+    <Card style={{ padding: 18, gap: 10 }}>
+      <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>Sinais vitais e escalas em preparação</Txt>
+      <Txt muted style={{ fontSize: 13, lineHeight: 20 }}>
+        Estes campos ainda não são persistidos. A interpretação WIfI está desativada até revisão clínica da matriz, fontes e enquadramento regulatório.
+      </Txt>
+    </Card>
   );
 }
 
@@ -1248,35 +1141,12 @@ function ConductStep({
       {/* Evolução no Modelo SOAP */}
       <SOAPEditor visit={local} patient={patient} wound={wound} />
 
-      {/* Assinatura Digital em Card Padrão Minimalista */}
+      {/* A assinatura depende de identidade profissional e persistência verificável. */}
       <Card style={{ padding: 18, gap: 12 }}>
-        <View style={s.between}>
-          <View style={{ gap: 2 }}>
-            <Label>ASSINATURA DIGITAL</Label>
-            <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>
-              {local.signature.length ? 'Assinatura Registrada' : 'Assinatura Pendente'}
-            </Txt>
-          </View>
-          <Badge tone={local.signature.length ? 'green' : 'amber'}>
-            {local.signature.length ? 'Confirmada' : 'Pendente'}
-          </Badge>
-        </View>
-
+        <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>Assinatura indisponível</Txt>
         <Txt muted style={{ fontSize: 12, lineHeight: 18 }}>
-          {local.signature.length 
-            ? `Assinado por ${local.signedBy || 'Caroline Ferreira (COREN 123456-SP)'}.` 
-            : 'O atendimento será selado e registrado no prontuário eletrônico do paciente.'}
+          A assinatura e a conclusão exigem conta profissional, autoria e histórico imutável. Este atendimento permanece como rascunho local.
         </Txt>
-
-        <Button 
-          title={local.signature.length ? 'Assinatura Confirmada ✓' : 'Assinar Prontuário'} 
-          variant={local.signature.length ? 'outline' : 'dark'} 
-          icon={Check} 
-          onPress={() => onChange({
-            signature: [[{ x: 12, y: 22 }, { x: 34, y: 7 }, { x: 60, y: 25 }]],
-            signedBy: 'Caroline Ferreira (COREN 123456-SP)'
-          })} 
-        />
       </Card>
     </View>
   );

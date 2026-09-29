@@ -62,9 +62,11 @@ export default function AdvancedAgenda() {
   }, [visits, statusFilter, todayStr]);
 
   const handleSetReminder = (v: Visit, patientName: string) => {
+    void v;
+    void patientName;
     Alert.alert(
-      'Lembrete Configurado',
-      `Lembrete local agendado para o atendimento de ${patientName} às ${v.scheduledTime || '09:00'}.`
+      'Lembretes em preparação',
+      'O lembrete nativo ainda não está integrado. Nenhuma notificação foi agendada.'
     );
   };
 
@@ -200,7 +202,7 @@ export default function AdvancedAgenda() {
                     </View>
 
                     <Txt muted style={{ fontSize: 12 }} numberOfLines={1}>
-                      {v.scheduledTime || '09:00'} · {dateLabel(v.date)} · {w.location}
+                      {v.scheduledTime || 'Sem horário'} · {dateLabel(v.date)} · {w.location}
                     </Txt>
                     <Txt muted style={{ fontSize: 11 }} numberOfLines={1}>Etiologia: {w.etiology}</Txt>
                   </View>

@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import DocumentCenterScreen from '../../../src/features/documents/ui/DocumentCenterScreen';
+import { UnavailableFeature } from '../../../src/ui/UnavailableFeature';
 
 export default function DocumentsRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return <DocumentCenterScreen patientId={id || ''} />;
+  return <UnavailableFeature title="Documentos em preparação" description="Anexos ainda não têm transporte privado e persistência integrada ao prontuário. Nenhum documento demonstrativo representa um arquivo real." backTo={id ? `/patient/${id}` : '/patients'} />;
 }

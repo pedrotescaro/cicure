@@ -129,7 +129,7 @@ function TodayCard({ visits }: { visits: Visit[] }) {
           return (
             <Pressable key={visit.id} onPress={() => router.push(`/care/${visit.id}` as never)} style={styles.darkRow}>
               <View style={styles.time}>
-                <Txt style={{ color: '#FFF', fontFamily: fonts.semibold }}>{visit.scheduledTime || '09:00'}</Txt>
+                <Txt style={{ color: '#FFF', fontFamily: fonts.semibold }}>{visit.scheduledTime || 'Sem horário'}</Txt>
                 <View style={styles.timeline} />
               </View>
               <Avatar name={patient.name} color={patient.color} size={40} />

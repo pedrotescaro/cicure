@@ -8,12 +8,7 @@ import { acknowledge, markError, queue, readRecords, removeDemoRecords, writeRec
 import { supabase } from './supabase';
 import type { Data, Entities, EntityKind } from '../domain/types';
 import type { Organization, WorkMode } from '../features/organization/domain/types';
-import { 
-  DEFAULT_ORGS, 
-  INDIVIDUAL_ORG, 
-  createNewOrganization, 
-  joinOrganizationByCode 
-} from '../features/organization/domain/organization.service';
+import { DEFAULT_ORGS, INDIVIDUAL_ORG } from '../features/organization/domain/organization.service';
 
 export const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1, networkMode: 'always' } } });
 export const uid = () => Crypto.randomUUID();
@@ -114,49 +109,30 @@ export const useStore = create<Store>((set, get) => ({
   setPresentation: presentation => set({ presentation }),
 
   setWorkMode: async (mode: WorkMode, orgId?: string) => {
+    if (mode === 'group') throw new Error('Clínicas e equipes ainda não estão disponíveis.');
     const { organizations } = get();
-    let targetOrg: Organization;
-
-    if (mode === 'individual') {
-      targetOrg = organizations.find(o => o.isIndividual) || INDIVIDUAL_ORG;
-    } else {
-      targetOrg = (orgId ? organizations.find(o => o.id === orgId) : undefined) 
-        || organizations.find(o => !o.isIndividual) 
-        || DEFAULT_ORGS[1];
-    }
+    const targetOrg: Organization = organizations.find(o => o.isIndividual) || INDIVIDUAL_ORG;
 
     const nextOrgs = organizations.map(o => ({
       ...o,
       isCurrent: o.id === targetOrg.id
     }));
 
-    const nextScope = mode === 'individual' ? 'individual' : `org_${targetOrg.id}`;
+    const nextScope = 'individual';
     set({ workMode: mode, activeOrg: targetOrg, organizations: nextOrgs });
     await get().init(nextScope);
   },
 
   createGroup: async (name: string, cnpj?: string, phone?: string) => {
-    const newOrg = createNewOrganization(name, cnpj, phone);
-    const nextOrgs = [...get().organizations.map(o => ({ ...o, isCurrent: false })), newOrg];
-    set({ organizations: nextOrgs });
-    await get().setWorkMode('group', newOrg.id);
-    return newOrg;
+    void name;
+    void cnpj;
+    void phone;
+    throw new Error('Clínicas e equipes ainda não estão disponíveis.');
   },
 
   joinGroup: async (inviteCode: string) => {
-    const result = joinOrganizationByCode(inviteCode, get().organizations);
-    if (result.error || !result.org) {
-      return { success: false, message: result.error || 'Não foi possível entrar no grupo.' };
-    }
-
-    const nextOrgs = [...get().organizations.map(o => ({ ...o, isCurrent: false })), result.org];
-    set({ organizations: nextOrgs });
-    await get().setWorkMode('group', result.org.id);
-    return { 
-      success: true, 
-      message: `Você ingressou na clínica "${result.org.name}" com sucesso!`,
-      org: result.org 
-    };
+    void inviteCode;
+    return { success: false, message: 'Convites de clínica ainda não estão disponíveis nesta versão.' };
   },
 
   init: async (scope) => {

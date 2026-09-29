@@ -5,25 +5,13 @@ import { ChevronLeft, ShieldCheck, Check, X, ShieldAlert, History } from 'lucide
 import { useStore, uid } from '../../../data/store';
 import { Badge, Button, Card, Empty, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
-import { CONSENT_DEFINITIONS, type ConsentType, type PatientConsent } from '../domain/types';
+import { type ConsentType, type PatientConsent } from '../domain/types';
 
 export default function ConsentCenterScreen({ patientId }: { patientId: string }) {
   const router = useRouter();
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
 
-  const [consents, setConsents] = useState<PatientConsent[]>(() => {
-    return CONSENT_DEFINITIONS.map(def => ({
-      id: `consent-${def.type}`,
-      patientId,
-      type: def.type,
-      title: def.title,
-      description: def.description,
-      status: (def.type === 'atendimento' || def.type === 'registro_fotografico' ? 'ativo' : 'revogado') as 'ativo' | 'revogado',
-      termVersion: 'v2026.1',
-      signedAt: '2026-02-14',
-      professionalName: 'Caroline Ferreira'
-    }));
-  });
+  const [consents, setConsents] = useState<PatientConsent[]>([]);
 
   if (!patient) {
     return (

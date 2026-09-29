@@ -7,7 +7,7 @@ import { Accordion, Badge, Button, Card, Choices, Empty, Field, IconButton, Labe
 import { fonts, useTheme } from '../../../ui/theme';
 import { productNames } from '../../../domain/clinical';
 import { CarePlanGoalCard } from './CarePlanGoalCard';
-import { createCarePlan, createGoal, reviseCarePlan, updateGoalStatus } from '../domain/care-plan.service';
+import { createGoal, reviseCarePlan, updateGoalStatus } from '../domain/care-plan.service';
 import type { CarePlan, CarePlanGoal, GoalStatus } from '../domain/types';
 
 export default function CarePlanScreen({ patientId }: { patientId: string }) {
@@ -19,25 +19,8 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
   const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
   const activeWound = wounds[0];
 
-  // Armazenamento local de planos terapêuticos por ferida/paciente
-  const [plans, setPlans] = useState<CarePlan[]>(() => {
-    // Inicializa com um plano padrão caso não haja
-    if (!activeWound) return [];
-    return [
-      createCarePlan({
-        patientId,
-        woundId: activeWound.id,
-        objectives: 'Promover desbridamento autolítico e controle de exsudato',
-        clinicalGoal: 'Redução de 30% da área em 4 semanas com estímulo à granulação',
-        dressingFrequency: 'A cada 48 horas ou saturação secundária',
-        plannedProducts: ['Hidrofibra com prata', 'Espuma de poliuretano'],
-        complementaryTherapies: ['Fotobiomodulação'],
-        instructions: 'Elevação do membro, higiene diária com SF 0,9%, não molhar curativo durante o banho.',
-        followUpFrequency: 'Semanal',
-        nextReviewDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
-      })
-    ];
-  });
+  // Nenhuma conduta é criada automaticamente a partir de uma ferida.
+  const [plans, setPlans] = useState<CarePlan[]>([]);
 
   const activePlan = plans.find(p => p.status === 'Ativo') || plans[0];
   const historyPlans = plans.filter(p => p.id !== activePlan?.id);
@@ -63,6 +46,14 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
           action="Voltar"
           onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')}
         />
+      </View>
+    );
+  }
+
+  if (!activePlan) {
+    return (
+      <View style={[styles.center, { backgroundColor: colors.bg }]}>
+        <Empty title="Plano não disponível" description="O plano terapêutico ainda não é persistido no prontuário. Nenhuma conduta foi sugerida ou salva." action="Voltar" onPress={() => safeBack(router, `/patient/${patientId}`)} />
       </View>
     );
   }

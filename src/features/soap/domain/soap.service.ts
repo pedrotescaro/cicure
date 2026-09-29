@@ -10,13 +10,12 @@ export function generateSOAPDraft(
 ): SOAPNote {
   // 1. Subjetivo (S)
   const subjectiveLines: string[] = [];
-  if (visit.pain !== undefined && visit.pain > 0) {
+  if (visit.pain !== null && visit.pain > 0) {
     subjectiveLines.push(`Nível de dor relatado: EVA ${visit.pain}/10.`);
-  } else {
+  } else if (visit.pain === 0) {
     subjectiveLines.push('Paciente refere ausência de dor local relevante (EVA 0/10).');
-  }
-  if (visit.guidance) {
-    subjectiveLines.push(`Queixas/relatos contextuais: refere cumprimento das orientações anteriores.`);
+  } else {
+    subjectiveLines.push('Dor não informada.');
   }
   const subjective = subjectiveLines.join(' ');
 
@@ -26,7 +25,7 @@ export function generateSOAPDraft(
   
   if (decimal(visit.length) > 0 && decimal(visit.width) > 0) {
     const calcArea = area(visit);
-    objectiveLines.push(`Dimensões: ${visit.length} cm (comp) × ${visit.width} cm (larg) × ${visit.depth || '0'} cm (prof). Área: ${number(calcArea)} cm².`);
+    objectiveLines.push(`Dimensões: ${visit.length} cm (comp) × ${visit.width} cm (larg), profundidade ${visit.depth || 'não informada'}. Área: ${number(calcArea)} cm².`);
   }
   
   if (visit.tunnels) {
@@ -43,7 +42,7 @@ export function generateSOAPDraft(
   }
 
   // Exsudato e bordas
-  objectiveLines.push(`Exsudato: quantidade ${visit.exudateAmount || 'moderada'}, aspecto ${visit.exudateType || 'seroso'}, odor ${visit.odor || 'ausente'}.`);
+  objectiveLines.push(`Exsudato: quantidade ${visit.exudateAmount || 'não informada'}, aspecto ${visit.exudateType || 'não informado'}, odor ${visit.odor || 'não informado'}.`);
   if (visit.edges && visit.edges.length > 0) {
     objectiveLines.push(`Bordas: ${visit.edges.join(', ')}.`);
   }
@@ -54,7 +53,7 @@ export function generateSOAPDraft(
     objectiveLines.push(`Sinais flogísticos observados: ${visit.infection.join(', ')}.`);
   }
   if (visit.photos && visit.photos.length > 0) {
-    objectiveLines.push(`Fotografias clínicas: ${visit.photos.length} registro(s) anexado(s) com calibração.`);
+    objectiveLines.push(`Fotografias clínicas: ${visit.photos.length} registro(s) anexado(s). Calibração não verificada neste resumo.`);
   }
   const objective = objectiveLines.join(' ');
 
@@ -63,11 +62,8 @@ export function generateSOAPDraft(
   assessmentLines.push(`Ferida com status de "${wound.status}".`);
   if (visit.assessments && visit.assessments.length > 0) {
     visit.assessments.forEach(ass => {
-      assessmentLines.push(`Escala ${ass.code}: score ${ass.score} (${ass.interpretation}).`);
+      assessmentLines.push(`Escala ${ass.code} registrada; interpretação pendente de revisão clínica.`);
     });
-  }
-  if (visit.infection && visit.infection.length >= 2) {
-    assessmentLines.push('Atenção: presença de múltiplos sinais de alerta para colonização crítica/infecção local.');
   }
   const assessment = assessmentLines.join(' ');
 
@@ -75,11 +71,11 @@ export function generateSOAPDraft(
   const planLines: string[] = [];
   if (visit.dressings && visit.dressings.length > 0) {
     const products = visit.dressings.map(d => `${d.product} (${d.layer})`).join(', ');
-    planLines.push(`Curativo realizado: ${products}.`);
+    planLines.push(`Coberturas registradas: ${products}.`);
   }
   if (visit.therapies && visit.therapies.length > 0) {
-    const therapies = visit.therapies.map(t => `${t.type} (${t.duration || 0} min)`).join(', ');
-    planLines.push(`Terapias complementares: ${therapies}.`);
+    const therapies = visit.therapies.map(t => `${t.type} (${t.duration ? `${t.duration} min` : 'duração não informada'})`).join(', ');
+    planLines.push(`Terapias registradas: ${therapies}.`);
   }
   if (visit.plan) {
     planLines.push(`Conduta: ${visit.plan}.`);
@@ -88,7 +84,7 @@ export function generateSOAPDraft(
     planLines.push(`Orientações ao paciente: ${visit.guidance}.`);
   }
   if (visit.returnDate) {
-    planLines.push(`Retorno agendado para: ${visit.returnDate}.`);
+    planLines.push(`Retorno previsto para: ${visit.returnDate}.`);
   }
   const plan = planLines.join(' ');
 

@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View, Platform } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import { 
   ChevronLeft, 
   FileText, 
@@ -17,21 +15,15 @@ import { useStore } from '../../../data/store';
 import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import { productNames } from '../../../domain/clinical';
-import { createPrescription, duplicatePrescription, prescriptionToTemplateContent } from '../domain/prescription.service';
-import { generatePrescriptionHTML } from './PrescriptionPDF';
-import type { Prescription } from '../domain/types';
 
 export default function PrescriptionBuilder({
   patientId,
   woundId,
-  prescriptionId
 }: {
   patientId: string;
   woundId?: string;
-  prescriptionId?: string;
 }) {
   const router = useRouter();
-  const store = useStore();
 
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
   const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
@@ -39,17 +31,16 @@ export default function PrescriptionBuilder({
   const profile = useStore(st => st.data.profiles[0]);
 
   // Estados dos campos
-  const [cleaning, setCleaning] = useState('Irrigação abundante com SF 0,9% morno');
-  const [solution, setSolution] = useState('Soro fisiológico 0,9%');
-  const [primaryCoverage, setPrimaryCoverage] = useState('Hidrofibra com prata');
-  const [secondaryCoverage, setSecondaryCoverage] = useState('Gaze estéril e compressa de algodão');
-  const [fixation, setFixation] = useState('Fita microporosa');
-  const [perilesionalProtection, setPerilesionalProtection] = useState('Película protetora sem ardor');
-  const [changeFrequency, setChangeFrequency] = useState('A cada 48 horas');
-  const [expectedDuration, setExpectedDuration] = useState('14 dias');
-  const [observations, setObservations] = useState('Manter membro elevado. Não molhar curativo durante o banho.');
-  const [isSigned, setIsSigned] = useState(false);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [cleaning, setCleaning] = useState('');
+  const [solution, setSolution] = useState('');
+  const [primaryCoverage, setPrimaryCoverage] = useState('');
+  const [secondaryCoverage, setSecondaryCoverage] = useState('');
+  const [fixation, setFixation] = useState('');
+  const [perilesionalProtection, setPerilesionalProtection] = useState('');
+  const [changeFrequency, setChangeFrequency] = useState('');
+  const [expectedDuration, setExpectedDuration] = useState('');
+  const [observations, setObservations] = useState('');
+  const isSigned = false;
 
   if (!patient || !selectedWound) {
     return (
@@ -64,69 +55,19 @@ export default function PrescriptionBuilder({
     );
   }
 
-  const currentPrescription: Prescription = {
-    id: prescriptionId || 'draft',
-    patientId,
-    woundId: selectedWound.id,
-    cleaning,
-    solution,
-    primaryCoverage,
-    secondaryCoverage,
-    fixation,
-    perilesionalProtection,
-    changeFrequency,
-    expectedDuration,
-    observations,
-    professional: {
-      name: profile?.name || 'Profissional Responsável',
-      council: profile?.council || 'COREN',
-      registration: profile?.registration || '123456-SP'
-    },
-    date: new Date().toISOString(),
-    version: 1,
-    createdAt: new Date().toISOString(),
-    createdBy: profile?.name || 'Profissional'
-  };
-
   const handlePrintPDF = async () => {
-    setGeneratingPdf(true);
-    try {
-      const html = generatePrescriptionHTML(currentPrescription, patient, selectedWound, profile);
-      
-      if (Platform.OS === 'web') {
-        await Print.printAsync({ html });
-      } else {
-        const { uri } = await Print.printToFileAsync({ html });
-        if (await Sharing.isAvailableAsync()) {
-          await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
-        } else {
-          await Print.printAsync({ uri });
-        }
-      }
-    } catch (err) {
-      Alert.alert('Erro ao gerar PDF', 'Não foi possível gerar a prévia de impressão.');
-    } finally {
-      setGeneratingPdf(false);
-    }
+    Alert.alert('Exportação indisponível', 'A prescrição ainda não possui assinatura e persistência verificadas.');
   };
 
   const handleSaveAsTemplate = () => {
     Alert.alert(
       'Salvar como Template',
-      'Esta combinação de cobertura e conduta foi guardada em seus Templates Clínicos para reutilização rápida!'
+      'Templates clínicos ainda não possuem persistência nesta versão.'
     );
   };
 
   const handleSavePrescription = () => {
-    if (!isSigned) {
-      Alert.alert('Assinatura Obrigatória', 'Assine a prescrição com seus dados profissionais antes de concluir.');
-      return;
-    }
-    Alert.alert(
-      'Prescrição Salva',
-      'A prescrição foi salva no prontuário do paciente e está pronta para exportação em PDF ou impressão.',
-      [{ text: 'Concluir', onPress: () => safeBack(router, patientId ? `/patient/${patientId}` : '/patients') }]
-    );
+    Alert.alert('Salvamento indisponível', 'A prescrição ainda não é salva no prontuário. Nenhum documento foi emitido.');
   };
 
   return (
@@ -161,7 +102,6 @@ export default function PrescriptionBuilder({
             variant="dark" 
             icon={FileText} 
             small 
-            loading={generatingPdf} 
             onPress={handlePrintPDF} 
           />
         </View>
@@ -259,7 +199,7 @@ export default function PrescriptionBuilder({
                   {isSigned ? 'Prescrição Assinada Digitalmente' : 'Assinatura Pendente'}
                 </Txt>
                 <Txt muted style={{ fontSize: 12 }}>
-                  {profile?.name || 'Caroline Ferreira'} · {profile?.council || 'COREN'} {profile?.registration || '123456-SP'}
+                  {profile?.name || 'Não informado'} · {profile?.council || 'Não informado'} {profile?.registration || 'Não informado'}
                 </Txt>
               </View>
             </View>
@@ -269,7 +209,7 @@ export default function PrescriptionBuilder({
             title={isSigned ? 'Assinatura Registrada' : 'Assinar Prescrição'} 
             variant={isSigned ? 'outline' : 'primary'} 
             icon={Check} 
-            onPress={() => setIsSigned(true)} 
+            onPress={() => Alert.alert('Assinatura indisponível', 'A assinatura profissional ainda não foi integrada.')}
           />
         </Card>
 

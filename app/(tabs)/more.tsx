@@ -1,6 +1,6 @@
 import { useTabContentInset } from '../../src/ui/navigation/useTabContentInset';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, View, StyleSheet, useWindowDimensions } from 'react-native';
+import { Alert, Pressable, ScrollView, View, StyleSheet, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
   Building2, 
@@ -26,9 +26,7 @@ import { fonts, useTheme } from '../../src/ui/theme';
 import { useStore } from '../../src/data/store';
 import { useNetworkStatus } from '../../src/data/network';
 import { cloudConfigured } from '../../src/data/supabase';
-import { AppLockModal } from '../../src/features/security/ui/AppLockModal';
 import { OnboardingModal } from '../../src/features/onboarding/ui/OnboardingModal';
-import { WorkspaceSelectorModal } from '../../src/features/organization/ui/WorkspaceSelectorModal';
 
 export default function More() {
   const bottomInset = useTabContentInset();
@@ -40,11 +38,10 @@ export default function More() {
   const setPresentation = useStore(st => st.setPresentation);
   const workMode = useStore(st => st.workMode);
   const activeOrg = useStore(st => st.activeOrg);
-  const { isOnline, pending, syncState } = useNetworkStatus();
+  const { isOnline, pending } = useNetworkStatus();
 
-  const [lockModalVisible, setLockModalVisible] = useState(false);
   const [onboardingVisible, setOnboardingVisible] = useState(false);
-  const [workspaceModalVisible, setWorkspaceModalVisible] = useState(false);
+  const showLockUnavailable = () => Alert.alert('Bloqueio em preparação', 'Biometria e PIN ainda não protegem o acesso aos dados nesta versão.');
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -63,7 +60,7 @@ export default function More() {
               icon={ShieldCheck} 
               label="Segurança do app" 
               color={c.red} 
-              onPress={() => setLockModalVisible(true)} 
+              onPress={showLockUnavailable}
             />
           </View>
         </View>
@@ -103,19 +100,19 @@ export default function More() {
                 </Txt>
                 <Txt muted style={{ fontSize: 11 }} numberOfLines={1}>
                   {workMode === 'individual' 
-                    ? 'Prontuários privados e exclusivos' 
+                    ? 'Espaço individual local'
                     : `Clínica compartilhada · ${activeOrg.inviteCode ? `Código ${activeOrg.inviteCode}` : 'Equipe multidisciplinar'}`}
                 </Txt>
               </View>
             </View>
-            <Badge tone="green">Ativo</Badge>
+            <Badge>Local</Badge>
           </View>
           <Button 
-            title="Alternar Workspace" 
+            title="Sobre clínicas e equipes"
             variant="outline" 
             small 
             icon={Building2}
-            onPress={() => setWorkspaceModalVisible(true)} 
+            onPress={() => router.push('/organization' as never)}
           />
         </Card>
 
@@ -123,13 +120,13 @@ export default function More() {
           <MenuRow 
             icon={Building2} 
             title="Gerenciar Clínicas e Workspaces" 
-            subtitle="Configurações, criação de equipes e códigos"
+            subtitle="Em preparação para a etapa de clínicas e equipes"
             onPress={() => router.push('/organization' as never)} 
           />
           <MenuRow 
             icon={SlidersHorizontal} 
             title="Membros e Permissões Granulares" 
-            subtitle="Administrador, profissional e assistente"
+            subtitle="Convites e permissões ainda indisponíveis"
             onPress={() => router.push('/organization/members' as never)} 
           />
         </Card>
@@ -181,7 +178,7 @@ export default function More() {
           <MenuRow 
             icon={EyeOff} 
             title="Modo Apresentação" 
-            subtitle={presentation ? 'Ativado (dados confidenciais ocultos)' : 'Ocultar identificadores de pacientes'} 
+            subtitle={presentation ? 'Identificadores reduzidos nesta tela' : 'Reduzir identificadores nas telas compatíveis'}
             onPress={() => setPresentation(!presentation)}
             toggleLabel={presentation ? 'Desativar' : 'Ativar'}
           />
@@ -199,19 +196,19 @@ export default function More() {
           <MenuRow 
             icon={Fingerprint} 
             title="Bloqueio do Aplicativo (Biometria / PIN)" 
-            subtitle="Testar tela de bloqueio e autenticação local"
-            onPress={() => setLockModalVisible(true)} 
+            subtitle="Biometria e PIN ainda indisponíveis"
+            onPress={showLockUnavailable}
           />
           <MenuRow 
             icon={Lock} 
             title="Sessões Ativas e Dispositivos" 
-            subtitle="Ver aparelhos conectados e encerrar sessões"
+            subtitle="Lista e revogação ainda indisponíveis"
             onPress={() => router.push('/security/sessions' as never)} 
           />
           <MenuRow 
             icon={History} 
             title="Trilha de Auditoria (Admin)" 
-            subtitle="Registros de acessos a prontuários e assinaturas"
+            subtitle="Persistência de auditoria ainda indisponível"
             onPress={() => router.push('/security/audit' as never)} 
           />
         </Card>
@@ -222,39 +219,33 @@ export default function More() {
           <MenuRow 
             icon={BarChart3} 
             title="Indicadores Clínicos" 
-            subtitle="Métricas de cicatrização e etiologias"
+            subtitle="Métricas clínicas ainda não validadas"
             onPress={() => router.push('/indicators' as never)} 
           />
           <MenuRow 
             icon={Package} 
             title="Controle de Estoque & Lotes" 
-            subtitle="Rastreabilidade de coberturas e alertas de vencimento"
+            subtitle="Controle de lotes e consumo ainda indisponível"
             onPress={() => router.push('/inventory' as never)} 
           />
           <MenuRow 
             icon={Sparkles} 
             title="Templates Clínicos" 
-            subtitle="Protocolos de curativos, laser e orientações"
+            subtitle="Protocolos e compartilhamento ainda indisponíveis"
             onPress={() => router.push('/templates' as never)} 
           />
           <MenuRow 
             icon={RefreshCw} 
             title="Central de Sincronização" 
-            subtitle={!cloudConfigured ? 'Nuvem não configurada · registros somente locais' : isOnline ? (pending > 0 ? `Online · ${pending} alteração(ões) pendente(s)` : syncState === 'synced' ? 'Online · Nuvem sincronizada' : 'Salvo no aparelho · Nuvem não confirmada') : 'Offline · Armazenado no SQLite local'}
+            subtitle={!cloudConfigured ? 'Nuvem não configurada · registros somente locais' : isOnline ? (pending > 0 ? `Online · ${pending} alteração(ões) pendente(s)` : 'Fila local vazia · nuvem não verificada') : 'Offline · Armazenado no aparelho'}
             onPress={() => router.push('/sync' as never)} 
           />
         </Card>
 
         <Txt muted style={{ fontSize: 12, textAlign: 'center', marginTop: 8 }}>
-          Cicure · Plataforma Profissional de Acompanhamento de Feridas · v2.0
+          Cicure · Versão em desenvolvimento
         </Txt>
       </ScrollView>
-
-      {/* Modal de Bloqueio Biomédico / PIN */}
-      <AppLockModal 
-        visible={lockModalVisible}
-        onUnlocked={() => setLockModalVisible(false)}
-      />
 
       {/* Modal de Onboarding (§31) */}
       <OnboardingModal 
@@ -262,11 +253,6 @@ export default function More() {
         onFinish={() => setOnboardingVisible(false)}
       />
 
-      {/* Modal de Seleção de Workspace */}
-      <WorkspaceSelectorModal 
-        visible={workspaceModalVisible}
-        onClose={() => setWorkspaceModalVisible(false)}
-      />
     </View>
   );
 }

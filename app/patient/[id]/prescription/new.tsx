@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import PrescriptionBuilder from '../../../../src/features/prescription/ui/PrescriptionBuilder';
+import { UnavailableFeature } from '../../../../src/ui/UnavailableFeature';
 
 export default function NewPrescriptionRoute() {
-  const { id, woundId } = useLocalSearchParams<{ id: string; woundId?: string }>();
-  return <PrescriptionBuilder patientId={id || ''} woundId={woundId} />;
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <UnavailableFeature title="Prescrição em preparação" description="A assinatura e o salvamento no prontuário ainda não estão integrados. Não emita uma prescrição a partir desta versão." backTo={id ? `/patient/${id}` : '/patients'} />;
 }
