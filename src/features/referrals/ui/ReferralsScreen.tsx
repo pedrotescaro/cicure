@@ -20,22 +20,7 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
   const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
 
-  const [referrals, setReferrals] = useState<Referral[]>([
-    {
-      id: 'ref-1',
-      patientId,
-      woundId: wounds[0]?.id,
-      specialty: 'Cirurgia Vascular',
-      destinationService: 'Ambulatório de Cirurgia Vascular - Hospital Geral',
-      reason: 'Avaliação de insuficiência arterial periférica e eco-Doppler arterial de membros inferiores.',
-      observations: 'Pulsos distais não palpáveis no membro inferior esquerdo.',
-      priority: 'Prioritário',
-      status: 'solicitado',
-      date: new Date().toISOString().slice(0, 10),
-      createdAt: new Date().toISOString(),
-      createdBy: 'Caroline Ferreira'
-    }
-  ]);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [specialty, setSpecialty] = useState<string>('Cirurgia Vascular');

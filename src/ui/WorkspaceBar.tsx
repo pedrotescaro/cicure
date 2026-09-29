@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
@@ -11,7 +11,6 @@ import { Txt } from './components';
 import { fonts, useTheme } from './theme';
 import { useStore } from '../data/store';
 import { useNetworkStatus } from '../data/network';
-import { WorkspaceSelectorModal } from '../features/organization/ui/WorkspaceSelectorModal';
 
 export function WorkspaceBar() {
   const router = useRouter();
@@ -19,7 +18,6 @@ export function WorkspaceBar() {
   const { colors: c, isDark } = useTheme();
   const { workMode, activeOrg } = store;
   const { isOnline, pending, syncState } = useNetworkStatus();
-  const [modalVisible, setModalVisible] = useState(false);
 
   const isIndividual = workMode === 'individual';
   const orgName = isIndividual ? 'Individual (Autônomo)' : activeOrg.name;
@@ -29,7 +27,7 @@ export function WorkspaceBar() {
       <View style={styles.container}>
         {/* Workspace Switcher Chip */}
         <Pressable 
-          onPress={() => setModalVisible(true)} 
+          onPress={() => router.push('/organization' as never)}
           style={({ pressed }) => [
             styles.chip, 
             { backgroundColor: isDark ? '#232328' : '#F5F5F5', borderColor: c.border },
@@ -77,10 +75,6 @@ export function WorkspaceBar() {
         </Pressable>
       </View>
 
-      <WorkspaceSelectorModal 
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-      />
     </>
   );
 }

@@ -1,5 +1,5 @@
-import SessionsScreen from '../../src/features/security/ui/SessionsScreen';
+import { UnavailableFeature } from '../../src/ui/UnavailableFeature';
 
 export default function SessionsRoute() {
-  return <SessionsScreen />;
+  return <UnavailableFeature title="Sessões indisponíveis" description="A lista de dispositivos e a revogação de sessões ainda não estão conectadas à autenticação. Nenhuma sessão fictícia é exibida como real." />;
 }

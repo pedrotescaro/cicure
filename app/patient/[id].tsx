@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Pressable, ScrollView, View, StyleSheet } from 'react-native';
 import { 
   ArrowLeft, 
@@ -20,8 +20,6 @@ import { Accordion, Avatar, Badge, Button, Card, Choices, Divider, IconButton, L
 import { fonts, useTheme } from '../../src/ui/theme';
 import { age, dateLabel, number } from '../../src/domain/clinical';
 import { useStore } from '../../src/data/store';
-import { evaluateClinicalAlerts } from '../../src/features/alerts/domain/alert-rules';
-import { AlertBanner } from '../../src/features/alerts/ui/AlertBanner';
 import { HomeVisitModeBanner } from '../../src/features/home-visit/ui/HomeVisitModeBanner';
 
 export default function PatientDetail() {
@@ -34,12 +32,6 @@ export default function PatientDetail() {
   const patient = patients.find(p => p.id === id);
   const patientWounds = wounds.filter(w => w.patientId === id);
   const patientVisits = visits.filter(v => v.patientId === id).sort((a, b) => b.date.localeCompare(a.date));
-
-  // Avaliação de alertas clínicos automáticos baseados nos dados registrados
-  const alerts = useMemo(() => {
-    if (!patient) return [];
-    return evaluateClinicalAlerts(patient, patientWounds, patientVisits);
-  }, [patient, patientWounds, patientVisits]);
 
   if (!patient) {
     return (
@@ -84,8 +76,12 @@ export default function PatientDetail() {
           onStartVisit={() => router.push(`/care/new?patientId=${id}`)} 
         />
 
-        {/* Alertas Clínicos Automáticos */}
-        <AlertBanner alerts={alerts} />
+        <Card style={{ padding: 16, gap: 5 }}>
+          <Txt style={{ fontFamily: fonts.semibold }}>Alertas clínicos em revisão</Txt>
+          <Txt muted style={{ fontSize: 13, lineHeight: 19 }}>
+            As regras automáticas de risco e recomendações terapêuticas estão indisponíveis até validação clínica e regulatória.
+          </Txt>
+        </Card>
 
         {/* BARRA DE FERRAMENTAS CLÍNICAS (Prompt 2 Extensions) */}
         <Card style={styles.quickToolsCard}>

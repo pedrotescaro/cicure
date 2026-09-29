@@ -12,30 +12,7 @@ export default function DocumentCenterScreen({ patientId }: { patientId: string 
   const router = useRouter();
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
 
-  const [documents, setDocuments] = useState<PatientDocument[]>([
-    {
-      id: 'doc-1',
-      patientId,
-      title: 'Eco-Doppler Arterial e Venoso de MMII',
-      type: 'laudo',
-      fileName: 'doppler_arterial_laudo.pdf',
-      fileSize: '1.4 MB',
-      storagePath: 'clinical-documents/doppler.pdf',
-      createdAt: '2026-02-10',
-      createdBy: 'Laboratório Fleury'
-    },
-    {
-      id: 'doc-2',
-      patientId,
-      title: 'Exame de Sangue: Hemoglobina Glicada & Hemograma',
-      type: 'exame',
-      fileName: 'hba1c_hemograma.pdf',
-      fileSize: '420 KB',
-      storagePath: 'clinical-documents/sangue.pdf',
-      createdAt: '2026-03-01',
-      createdBy: 'Laboratório São Marcos'
-    }
-  ]);
+  const [documents, setDocuments] = useState<PatientDocument[]>([]);
 
   const [filter, setFilter] = useState('Todos');
 

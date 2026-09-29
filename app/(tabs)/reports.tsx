@@ -45,7 +45,7 @@ export default function Reports() {
           <Empty 
             icon={FileText} 
             title="Seus relatórios aparecerão aqui" 
-            description="Finalize um atendimento para gerar PDF completo, resumo para o paciente ou encaminhamento técnico com assinatura digital." 
+            description="A geração de PDF e a assinatura ainda não estão integradas. Os formatos abaixo são planejados para uma próxima etapa."
             action="Iniciar atendimento" 
             onPress={() => router.push('/care/new')} 
           />
@@ -53,7 +53,7 @@ export default function Reports() {
 
         {/* Formatos Disponíveis */}
         <View style={{ gap: 12 }}>
-          <SectionTitle title="FORMATOS DISPONÍVEIS" />
+          <SectionTitle title="FORMATOS PLANEJADOS" />
           
           <Card style={styles.card}>
             <View style={styles.formatItem}>

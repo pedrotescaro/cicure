@@ -106,7 +106,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
           <Card style={styles.metrics}>
             <Metric label="ÁREA" value={hasMeasurement ? `${number(currentArea)} cm²` : 'Pendente'} />
             <Metric label="VOLUME" value={visit.depth && hasMeasurement ? `${number(volume(visit))} cm³` : 'Pendente'} />
-            <Metric label="DOR · EVA" value={`${visit.pain}/10`} />
+            <Metric label="DOR · EVA" value={visit.pain === null ? 'Não informada' : `${visit.pain}/10`} />
           </Card>
         </View>
 
