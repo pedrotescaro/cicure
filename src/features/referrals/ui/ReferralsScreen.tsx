@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Alert, FlatList, Modal, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Plus, Share2, ArrowUpRight, Check, X, Clock } from 'lucide-react-native';
+import { ChevronLeft, Plus, Check, X } from 'lucide-react-native';
 import { useStore, uid } from '../../../data/store';
-import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
-import { colors as c, fonts, useTheme } from '../../../ui/theme';
+import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Txt, safeBack, s } from '../../../ui/components';
+import { fonts, useTheme } from '../../../ui/theme';
 import { REFERRAL_SPECIALTIES, type Referral, type ReferralPriority, type ReferralStatus } from '../domain/types';
 
 const STATUS_TONES: Record<ReferralStatus, 'neutral' | 'red' | 'green' | 'amber'> = {
@@ -17,10 +17,10 @@ const STATUS_TONES: Record<ReferralStatus, 'neutral' | 'red' | 'green' | 'amber'
 export default function ReferralsScreen({ patientId }: { patientId: string }) {
   const router = useRouter();
   const { colors: c } = useTheme();
+  const store = useStore();
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
-  const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
-
-  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const wounds = useStore(st => st.data.wounds).filter(w => w.patientId === patientId);
+  const referrals = useStore(st => st.data.referrals).filter(r => r.patientId === patientId);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [specialty, setSpecialty] = useState<string>('Cirurgia Vascular');
@@ -37,7 +37,7 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
     );
   }
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!reason.trim() || !destination.trim()) {
       Alert.alert('Dados Incompletos', 'Informe o serviço/profissional de destino e o motivo do encaminhamento.');
       return;
@@ -54,19 +54,24 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
       status: 'solicitado',
       date: new Date().toISOString().slice(0, 10),
       createdAt: new Date().toISOString(),
-      createdBy: 'Profissional autenticado'
+      createdBy: store.authUserId || ''
     };
 
-    setReferrals(prev => [newRef, ...prev]);
-    setModalVisible(false);
-    setDestination('');
-    setReason('');
-    setObservations('');
-    Alert.alert('Encaminhamento Registrado', 'O encaminhamento foi anexado ao prontuário do paciente.');
+    try {
+      await store.save('referrals', newRef);
+      setModalVisible(false);
+      setDestination('');
+      setReason('');
+      setObservations('');
+      Alert.alert('Registro salvo', 'O encaminhamento foi salvo no prontuário. Nenhum envio ao destino foi realizado.');
+    } catch { Alert.alert('Não foi possível salvar', 'Confira o armazenamento e tente novamente.'); }
   };
 
-  const handleUpdateStatus = (id: string, newStatus: ReferralStatus) => {
-    setReferrals(prev => prev.map(r => r.id === id ? { ...r, status: newStatus } : r));
+  const handleUpdateStatus = async (id: string, newStatus: ReferralStatus) => {
+    const referral = referrals.find(r => r.id === id);
+    if (!referral || referral.status === newStatus) return;
+    try { await store.save('referrals', { ...referral, status: newStatus }); }
+    catch { Alert.alert('Status não salvo', 'Tente novamente.'); }
   };
 
   return (
@@ -121,8 +126,8 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
                     title={st}
                     variant={item.status === st ? 'dark' : 'outline'}
                     small
-                    onPress={() => handleUpdateStatus(item.id, st)}
-                    style={{ minHeight: 32, paddingHorizontal: 10 }}
+                    onPress={() => { void handleUpdateStatus(item.id, st); }}
+                    style={{ minHeight: 48, paddingHorizontal: 12 }}
                   />
                 ))}
               </View>
@@ -142,7 +147,7 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
       {/* Modal Novo Encaminhamento */}
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: c.surface }]}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={[styles.modalContent, { backgroundColor: c.surface }]} contentContainerStyle={{ gap: 14 }}>
             <View style={s.between}>
               <Txt style={{ fontFamily: fonts.brand, fontSize: 20 }}>Novo Encaminhamento</Txt>
               <IconButton icon={X} label="Fechar" onPress={() => setModalVisible(false)} />
@@ -191,9 +196,9 @@ export default function ReferralsScreen({ patientId }: { patientId: string }) {
             <Button 
               title="Registrar Encaminhamento" 
               icon={Check} 
-              onPress={handleCreate} 
+              onPress={() => { void handleCreate(); }}
             />
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
@@ -233,6 +238,5 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     maxHeight: '90%',
     padding: 20,
-    gap: 14,
   },
 });

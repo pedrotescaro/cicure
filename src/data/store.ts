@@ -12,7 +12,7 @@ import { DEFAULT_ORGS, INDIVIDUAL_ORG } from '../features/organization/domain/or
 
 export const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30000, retry: 1, networkMode: 'always' } } });
 export const uid = () => Crypto.randomUUID();
-const empty = (): Data => ({ patients: [], wounds: [], visits: [], reports: [], profiles: [], products: [] });
+const empty = (): Data => ({ patients: [], wounds: [], visits: [], reports: [], profiles: [], products: [], care_plans: [], referrals: [], documents: [] });
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
@@ -201,7 +201,7 @@ export const useStore = create<Store>((set, get) => ({
       const queued = await queue(scope);
       if (get().authUserId !== userId) return;
       if (queued.length > 0) {
-        const order: EntityKind[] = ['profiles', 'patients', 'wounds', 'products', 'visits', 'reports'];
+        const order: EntityKind[] = ['profiles', 'patients', 'wounds', 'products', 'visits', 'care_plans', 'referrals', 'documents', 'reports'];
         queued.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
 
         for (const item of queued) {

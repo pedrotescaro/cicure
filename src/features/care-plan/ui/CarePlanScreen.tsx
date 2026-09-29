@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Plus, Check, Clock, History, Target } from 'lucide-react-native';
+import { ChevronLeft, Plus, Check } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
 import { Accordion, Badge, Button, Card, Choices, Empty, Field, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
 import { fonts, useTheme } from '../../../ui/theme';
 import { productNames } from '../../../domain/clinical';
+import type { Patient, Wound } from '../../../domain/types';
 import { CarePlanGoalCard } from './CarePlanGoalCard';
-import { createGoal, reviseCarePlan, updateGoalStatus } from '../domain/care-plan.service';
-import type { CarePlan, CarePlanGoal, GoalStatus } from '../domain/types';
+import { createCarePlan, createGoal, reviseCarePlan, updateGoalStatus } from '../domain/care-plan.service';
+import type { CarePlan, GoalStatus } from '../domain/types';
 
 export default function CarePlanScreen({ patientId }: { patientId: string }) {
   const router = useRouter();
@@ -16,26 +17,18 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
   const { colors } = useTheme();
 
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
-  const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
+  const wounds = useStore(st => st.data.wounds).filter(w => w.patientId === patientId);
   const activeWound = wounds[0];
 
-  // Nenhuma conduta é criada automaticamente a partir de uma ferida.
-  const [plans, setPlans] = useState<CarePlan[]>([]);
+  const plans = useStore(st => st.data.care_plans).filter(p => p.patientId === patientId && p.woundId === activeWound?.id);
+  const [draftPlan] = useState<CarePlan | null>(() => activeWound && store.authUserId ? createCarePlan({
+    patientId,
+    woundId: activeWound.id,
+    createdBy: store.authUserId,
+  }) : null);
 
-  const activePlan = plans.find(p => p.status === 'Ativo') || plans[0];
-  const historyPlans = plans.filter(p => p.id !== activePlan?.id);
-
-  // Form states do plano ativo
-  const [objectives, setObjectives] = useState(activePlan?.objectives || '');
-  const [clinicalGoal, setClinicalGoal] = useState(activePlan?.clinicalGoal || '');
-  const [dressingFrequency, setDressingFrequency] = useState(activePlan?.dressingFrequency || '');
-  const [plannedProducts, setPlannedProducts] = useState<string[]>(activePlan?.plannedProducts || []);
-  const [instructions, setInstructions] = useState(activePlan?.instructions || '');
-  const [followUpFrequency, setFollowUpFrequency] = useState(activePlan?.followUpFrequency || '');
-  const [nextReviewDate, setNextReviewDate] = useState(activePlan?.nextReviewDate || '');
-
-  // Nova meta state
-  const [newGoalDesc, setNewGoalDesc] = useState('');
+  const activePlan = plans.find(p => p.status === 'Ativo') || plans[0] || draftPlan;
+  const savedPlan = Boolean(activePlan && plans.some(p => p.id === activePlan.id));
 
   if (!patient || !activeWound) {
     return (
@@ -53,58 +46,72 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
   if (!activePlan) {
     return (
       <View style={[styles.center, { backgroundColor: colors.bg }]}>
-        <Empty title="Plano não disponível" description="O plano terapêutico ainda não é persistido no prontuário. Nenhuma conduta foi sugerida ou salva." action="Voltar" onPress={() => safeBack(router, `/patient/${patientId}`)} />
+        <Empty title="Plano indisponível" description="Entre na sua conta e tente novamente." action="Voltar" onPress={() => safeBack(router, `/patient/${patientId}`)} />
       </View>
     );
   }
 
-  const handleAddGoal = () => {
-    if (!newGoalDesc.trim() || !activePlan) return;
-    const targetDate = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
-    const goal = createGoal(activePlan.id, newGoalDesc.trim(), targetDate);
-    
-    setPlans(prev => prev.map(p => {
-      if (p.id === activePlan.id) {
-        return { ...p, goals: [...p.goals, goal] };
-      }
-      return p;
-    }));
-    setNewGoalDesc('');
+  return <CarePlanEditor key={activePlan.id} patientId={patientId} patient={patient} activeWound={activeWound} plans={plans} activePlan={activePlan} savedPlan={savedPlan} />;
+}
+
+function CarePlanEditor({ patientId, patient, activeWound, plans, activePlan, savedPlan }: {
+  patientId: string;
+  patient: Patient;
+  activeWound: Wound;
+  plans: CarePlan[];
+  activePlan: CarePlan;
+  savedPlan: boolean;
+}) {
+  const router = useRouter();
+  const store = useStore();
+  const { colors } = useTheme();
+  const historyPlans = plans.filter(p => p.id !== activePlan.id);
+  const [objectives, setObjectives] = useState(activePlan.objectives);
+  const [clinicalGoal, setClinicalGoal] = useState(activePlan.clinicalGoal);
+  const [dressingFrequency, setDressingFrequency] = useState(activePlan.dressingFrequency);
+  const [plannedProducts, setPlannedProducts] = useState<string[]>(activePlan.plannedProducts);
+  const [instructions, setInstructions] = useState(activePlan.instructions);
+  const [followUpFrequency, setFollowUpFrequency] = useState(activePlan.followUpFrequency);
+  const [nextReviewDate, setNextReviewDate] = useState(activePlan.nextReviewDate);
+  const [newGoalDesc, setNewGoalDesc] = useState('');
+
+  const handleAddGoal = async () => {
+    if (!newGoalDesc.trim()) return;
+    if (!savedPlan) { Alert.alert('Salve o plano primeiro', 'Depois de salvar o plano, você poderá adicionar metas.'); return; }
+    try {
+      const goal = createGoal(activePlan.id, newGoalDesc.trim(), '');
+      await store.save('care_plans', { ...activePlan, goals: [...activePlan.goals, goal], updatedAt: new Date().toISOString() });
+      setNewGoalDesc('');
+    } catch { Alert.alert('Meta não salva', 'Tente novamente.'); }
   };
 
-  const handleUpdateGoalStatus = (goalId: string, newStatus: GoalStatus) => {
-    setPlans(prev => prev.map(p => {
-      if (p.id === activePlan.id) {
-        return {
-          ...p,
-          goals: p.goals.map(g => g.id === goalId ? updateGoalStatus(g, newStatus) : g)
-        };
-      }
-      return p;
-    }));
+  const handleUpdateGoalStatus = async (goalId: string, newStatus: GoalStatus) => {
+    try {
+      await store.save('care_plans', {
+        ...activePlan,
+        goals: activePlan.goals.map(g => g.id === goalId ? updateGoalStatus(g, newStatus) : g),
+        updatedAt: new Date().toISOString(),
+      });
+    } catch { Alert.alert('Meta não atualizada', 'Tente novamente.'); }
   };
 
-  const handleSaveRevision = () => {
-    if (!activePlan) return;
-    const { updatedPrevious, newVersion } = reviseCarePlan(
-      activePlan,
-      {
-        objectives,
-        clinicalGoal,
-        dressingFrequency,
-        plannedProducts,
-        instructions,
-        followUpFrequency,
-        nextReviewDate,
-      },
-      'Profissional autenticado'
-    );
-
-    setPlans(prev => [newVersion, ...prev.map(p => p.id === activePlan.id ? updatedPrevious : p)]);
-    Alert.alert(
-      'Plano Atualizado',
-      `Nova versão v${newVersion.version} criada com sucesso. A versão anterior foi arquivada no histórico imutável.`
-    );
+  const handleSaveRevision = async () => {
+    if (!objectives.trim() && !clinicalGoal.trim()) {
+      Alert.alert('Plano incompleto', 'Descreva ao menos um objetivo ou uma meta clínica antes de salvar.');
+      return;
+    }
+    const updates = { objectives: objectives.trim(), clinicalGoal: clinicalGoal.trim(), dressingFrequency: dressingFrequency.trim(), plannedProducts, instructions: instructions.trim(), followUpFrequency: followUpFrequency.trim(), nextReviewDate: nextReviewDate.trim() };
+    try {
+      if (!savedPlan) {
+        await store.save('care_plans', { ...activePlan, ...updates, updatedAt: new Date().toISOString() });
+        Alert.alert('Plano salvo', 'O plano foi salvo no aparelho e entrou na fila de sincronização.');
+      } else {
+        const { updatedPrevious, newVersion } = reviseCarePlan(activePlan, updates, store.authUserId || '');
+        await store.save('care_plans', updatedPrevious);
+        await store.save('care_plans', newVersion);
+        Alert.alert('Revisão salva', `A versão ${newVersion.version} foi criada e entrou na fila de sincronização.`);
+      }
+    } catch { Alert.alert('Plano não salvo', 'Verifique o armazenamento e tente novamente.'); }
   };
 
   return (
@@ -116,7 +123,7 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
           <Txt style={styles.headerTitle}>Plano Terapêutico</Txt>
           <Txt muted style={{ fontSize: 13 }}>{patient.name} · {activeWound.location}</Txt>
         </View>
-        <Badge tone="green">v{activePlan?.version || 1} Ativo</Badge>
+        <Badge tone={savedPlan && activePlan.status === 'Ativo' ? 'green' : 'neutral'}>{savedPlan ? `v${activePlan.version} ${activePlan.status}` : 'Novo plano'}</Badge>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -132,13 +139,7 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
               <CarePlanGoalCard 
                 key={g.id} 
                 goal={g} 
-                onUpdateStatus={st => handleUpdateGoalStatus(g.id, st)}
-                onUpdateProgress={prog => {
-                  setPlans(prev => prev.map(p => p.id === activePlan.id ? {
-                    ...p,
-                    goals: p.goals.map(item => item.id === g.id ? { ...item, progress: prog } : item)
-                  } : p));
-                }}
+                onUpdateStatus={st => { void handleUpdateGoalStatus(g.id, st); }}
               />
             ))
           ) : (
@@ -160,13 +161,13 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
               icon={Plus} 
               variant="outline" 
               small 
-              onPress={handleAddGoal} 
+              onPress={() => { void handleAddGoal(); }}
             />
           </View>
         </Card>
 
         {/* Parâmetros do Plano */}
-        <Accordion title="Diretrizes e Prescrição Terapêutica" initialOpen={true}>
+        <Accordion title="Diretrizes do plano" initialOpen={true}>
           <Field 
             label="Objetivos do Tratamento" 
             multiline 
@@ -237,9 +238,9 @@ export default function CarePlanScreen({ patientId }: { patientId: string }) {
 
         {/* Botão Salvar Nova Versão */}
         <Button 
-          title="Salvar revisão do plano" 
+          title={savedPlan ? 'Salvar nova versão' : 'Salvar plano'}
           icon={Check} 
-          onPress={handleSaveRevision} 
+          onPress={() => { void handleSaveRevision(); }}
         />
       </ScrollView>
     </View>

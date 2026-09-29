@@ -19,12 +19,12 @@ Inventário do checkout desta PR. **Parcial** significa que a tela usa dados loc
 | `/care/:id` | Parcial | Resumo lê visita local; autoria e assinatura confiáveis pendentes. |
 | `/pending` | Parcial | Pendências derivadas dos registros locais. |
 | `/sync` | Parcial | Usa RPC de gravação/leitura e fila local; isolamento entre duas identidades passou em transação SQL, mas conflitos e dispositivos ainda precisam de homologação. |
-| `/patient/:id/care-plan` | Indisponível | Plano ainda não é persistido no prontuário. |
+| `/patient/:id/care-plan` | Parcial | Plano, metas e versões são salvos localmente e enfileirados para sincronização; falta homologação clínica e nativa. |
 | `/patient/:id/prescription/new` | Indisponível | Assinatura e salvamento da prescrição ainda não integrados. |
 | `/patient/:id/prescription/:prescId` | Indisponível | Edição de prescrição ainda não integrada. |
 | `/patient/:id/consents` | Indisponível | Termos e revogações ainda não têm persistência/auditoria. |
-| `/patient/:id/documents` | Indisponível | Anexos ainda não têm transporte privado e persistência. |
-| `/patient/:id/referrals` | Indisponível | Encaminhamento ainda não é salvo/entregue. |
+| `/patient/:id/documents` | Parcial | Anexa PDF/JPG/PNG ao bucket privado e salva metadados no prontuário; exige conexão, falta homologação em dispositivo. |
+| `/patient/:id/referrals` | Parcial | Encaminhamento é registrado localmente e enfileirado para sincronização; não há envio ao destino. |
 | `/indicators` | Indisponível | Métricas e filtros ainda não validados. |
 | `/security/audit` | Indisponível | Log temporário não é trilha de auditoria confiável. |
 | `/security/sessions` | Indisponível | Sem lista/revogação de sessões reais. |

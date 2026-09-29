@@ -51,10 +51,12 @@ export function reviseCarePlan(
     updatedAt: new Date().toISOString()
   };
 
+  const newVersionId = uid();
+
   const newVersion: CarePlan = {
     ...previousPlan,
     ...updates,
-    id: uid(),
+    id: newVersionId,
     version: previousPlan.version + 1,
     status: 'Ativo',
     previousVersionId: previousPlan.id,
@@ -64,7 +66,7 @@ export function reviseCarePlan(
     // Preserva metas mas cria instâncias versionadas
     goals: (updates.goals || previousPlan.goals).map(g => ({
       ...g,
-      carePlanId: previousPlan.id,
+      carePlanId: newVersionId,
       updatedAt: new Date().toISOString()
     }))
   };

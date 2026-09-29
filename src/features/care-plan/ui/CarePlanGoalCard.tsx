@@ -14,11 +14,9 @@ const STATUS_TONES: Record<GoalStatus, 'neutral' | 'red' | 'green' | 'amber'> = 
 export function CarePlanGoalCard({
   goal,
   onUpdateStatus,
-  onUpdateProgress
 }: {
   goal: CarePlanGoal;
   onUpdateStatus: (newStatus: GoalStatus) => void;
-  onUpdateProgress: (newProgress: number) => void;
 }) {
   const { colors, isDark } = useTheme();
   return (
@@ -35,8 +33,8 @@ export function CarePlanGoalCard({
       {/* Barra de Progresso */}
       <View style={styles.progressContainer}>
         <View style={s.between}>
-          <Txt muted style={{ fontSize: 11 }}>Progresso</Txt>
-          <Txt style={{ fontFamily: fonts.semibold, fontSize: 12 }}>{goal.progress}%</Txt>
+          <Txt muted style={{ fontSize: 14 }}>Progresso</Txt>
+          <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }}>{goal.progress}%</Txt>
         </View>
         <View style={[styles.progressBarBg, { backgroundColor: colors.border }]}>
           <View 
@@ -56,6 +54,9 @@ export function CarePlanGoalCard({
         {(['Ativa', 'Atingida', 'Substituída', 'Cancelada'] as GoalStatus[]).map(st => (
           <Pressable
             key={st}
+            accessibilityRole="button"
+            accessibilityLabel={`Marcar meta como ${st}`}
+            accessibilityState={{ selected: goal.status === st }}
             onPress={() => onUpdateStatus(st)}
             style={[
               styles.statusBtn,
@@ -85,16 +86,17 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 10,
   },
-  description: { fontFamily: fonts.semibold, fontSize: 14, flex: 1 },
+  description: { fontFamily: fonts.semibold, fontSize: 16, flex: 1 },
   progressContainer: { gap: 4 },
   progressBarBg: { height: 8, borderRadius: 4, overflow: 'hidden' },
   progressBarFill: { height: '100%', borderRadius: 4 },
   actionsRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', paddingTop: 4 },
   statusBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
     borderRadius: 8,
     borderWidth: 1,
   },
-  statusBtnText: { fontSize: 11, fontFamily: fonts.medium },
+  statusBtnText: { fontSize: 14, fontFamily: fonts.medium },
 });

@@ -1,3 +1,7 @@
+import type { CarePlan } from '../features/care-plan/domain/types';
+import type { Referral } from '../features/referrals/domain/types';
+import type { PatientDocument } from '../features/documents/domain/types';
+
 export type PatientStatus = 'Ativo' | 'Alta' | 'Arquivado';
 export type WoundStatus = 'Em cicatrização' | 'Estagnada' | 'Piora' | 'Cicatrizada' | 'Ativa';
 export type Patient = { id: string; name: string; birthDate: string; sex: string; cpf: string; sus: string; phone: string; address: string; emergency: string; status: PatientStatus; weight: number; height: number; bloodType: string; allergies: string[]; smoking: string; alcohol: string; activity: string; comorbidities: { name: string; date: string; note: string }[]; medications: { name: string; dose: string; route: string; frequency: string; start: string; indication: string; attention: boolean }[]; exams: { type: string; value: string; date: string; attachment?: string }[]; color: string; createdAt: string; deletedAt?: string };
@@ -11,7 +15,7 @@ export type Visit = { id: string; patientId: string; woundId: string; date: stri
 export type Report = { id: string; visitId: string; patientId: string; type: 'Completo' | 'Para o paciente' | 'Encaminhamento'; createdAt: string; uri?: string; storagePath?: string; snapshot: { patient: Patient; wound: Wound; visit: Visit; profile: Profile; previous?: Visit } };
 export type Profile = { id: string; name: string; council: string; registration: string; specialty: string };
 export type Product = { id: string; name: string; presentation: string };
-export type Entities = { patients: Patient; wounds: Wound; visits: Visit; reports: Report; profiles: Profile; products: Product };
+export type Entities = { patients: Patient; wounds: Wound; visits: Visit; reports: Report; profiles: Profile; products: Product; care_plans: CarePlan; referrals: Referral; documents: PatientDocument };
 export type EntityKind = keyof Entities;
 export type Data = { [K in EntityKind]: Entities[K][] };
 export type QueueItem = { id: string; kind: EntityKind; entityId: string; payload: unknown; version: number; baseVersion: number; attempts: number; error?: string };

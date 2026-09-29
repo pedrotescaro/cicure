@@ -19,7 +19,7 @@ Use Node 22.13 ou superior, compatível com [Expo SDK 57](https://docs.expo.dev/
 - Os registros locais são separados por conta e sincronizados por RPC com políticas RLS no projeto configurado. A proteção do armazenamento no aparelho e os conflitos continuam em revisão.
 - Prontuário, agenda, atendimento e histórico operam parcialmente sobre registros da conta.
 - O atendimento salva rascunho; conclusão e assinatura estão indisponíveis.
-- Plano terapêutico, prescrição, consentimentos, documentos, encaminhamentos, auditoria, indicadores, clínicas, estoque e templates exibem o motivo da indisponibilidade.
+- Planos terapêuticos, encaminhamentos e documentos são registrados na conta. Os documentos usam armazenamento privado com conexão; os encaminhamentos ainda não são enviados ao destino. Prescrição, consentimentos, auditoria, indicadores, clínicas, estoque e templates exibem o motivo da indisponibilidade.
 - A interpretação WIfI está suspensa até revisão clínica e regulatória.
 - O build web pode ser usado para verificar a interface e os fluxos de autenticação em desenvolvimento; isso não substitui a validação em dispositivos.
 
