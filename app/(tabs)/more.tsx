@@ -25,6 +25,7 @@ import { Card, SectionTitle, Txt, s, Badge, Button, IconButton } from '../../src
 import { fonts, useTheme } from '../../src/ui/theme';
 import { useStore } from '../../src/data/store';
 import { useNetworkStatus } from '../../src/data/network';
+import { cloudConfigured } from '../../src/data/supabase';
 import { AppLockModal } from '../../src/features/security/ui/AppLockModal';
 import { OnboardingModal } from '../../src/features/onboarding/ui/OnboardingModal';
 import { WorkspaceSelectorModal } from '../../src/features/organization/ui/WorkspaceSelectorModal';
@@ -239,7 +240,7 @@ export default function More() {
           <MenuRow 
             icon={RefreshCw} 
             title="Central de Sincronização" 
-            subtitle={isOnline ? (pending > 0 ? `Online · ${pending} alteração(ões) pendente(s)` : syncState === 'synced' ? 'Online · Nuvem sincronizada' : 'Salvo no aparelho · Nuvem não confirmada') : 'Offline · Armazenado no SQLite local'}
+            subtitle={!cloudConfigured ? 'Nuvem não configurada · registros somente locais' : isOnline ? (pending > 0 ? `Online · ${pending} alteração(ões) pendente(s)` : syncState === 'synced' ? 'Online · Nuvem sincronizada' : 'Salvo no aparelho · Nuvem não confirmada') : 'Offline · Armazenado no SQLite local'}
             onPress={() => router.push('/sync' as never)} 
           />
         </Card>
