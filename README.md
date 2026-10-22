@@ -13,14 +13,16 @@ Comandos de validação, configuração de ambientes e fluxo de PR: [docs/DEVELO
 
 Use Node 22.13 ou superior, compatível com [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/). Configure `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` em `.env.local`, usando somente a chave publicável. Sem essas variáveis, a tela de entrada explica que o serviço precisa ser configurado e não abre prontuários. O contrato atual e a migração aplicada estão em [supabase/README.md](supabase/README.md).
 
-## Estado das funcionalidades
+## Versão 1.1.0
 
-- Cadastro, login por e-mail, recuperação de senha e login Google estão conectados ao Supabase Auth; links, provedores e experiência nativa ainda exigem homologação ponta a ponta.
-- Os registros locais são separados por conta e sincronizados por RPC com políticas RLS no projeto configurado. A proteção do armazenamento no aparelho e os conflitos continuam em revisão.
-- Prontuário, agenda, atendimento e histórico operam parcialmente sobre registros da conta.
-- O atendimento salva rascunho; conclusão e assinatura estão indisponíveis.
-- Planos terapêuticos, encaminhamentos e documentos são registrados na conta. Os documentos usam armazenamento privado com conexão; os encaminhamentos ainda não são enviados ao destino. Prescrição, consentimentos, auditoria, indicadores, clínicas, estoque e templates exibem o motivo da indisponibilidade.
-- A interpretação WIfI está suspensa até revisão clínica e regulatória.
-- O build web pode ser usado para verificar a interface e os fluxos de autenticação em desenvolvimento; isso não substitui a validação em dispositivos.
+- Navegação em português: Início, Pacientes, Agenda, Relatórios e Menu; ação visível “Novo atendimento”.
+- Pacientes e múltiplas feridas, avaliação guiada, evolução clínica editável, rascunho recuperável, conclusão com autoria e adendos preservados.
+- Fotos privadas com câmera/galeria, referência de escala informada e comparação por ferida; relatórios PDF com prévia e compartilhamento no Android.
+- Agenda e retornos com lembretes nativos, planos de cuidado, prescrições revisadas, consentimentos, documentos, encaminhamentos, modelos e estoque por movimentações.
+- Contas isoladas, fila durável, confirmação do servidor, conflitos com preservação das cópias, histórico local e auditoria do servidor.
+- Clínicas e equipes com convites reais, validade, papéis e revogação verificados no servidor. O espaço compartilhado exige internet para verificar as permissões; o individual pode trabalhar sem conexão.
+- Recuperação explícita dos registros sem conta da versão anterior, preservando originais e pendências.
+
+Consulte [a entrega 1.1.0](docs/RELEASE_1.1.0.md) para instalação, evidências e limites. A interpretação WIfI permanece suspensa. Confirmação de registro e autenticação do profissional não equivalem a assinatura digital certificada. Encaminhamentos são registrados, sem envio automático ao destinatário. OAuth Google e e-mails exigem a configuração dos provedores. A versão web serve para desenvolvimento e não substitui a validação nativa ou clínica.
 
 Veja [PRODUCT.md](PRODUCT.md) para o MVP pretendido e os limites de ativação, [docs/ROUTE_STATUS.md](docs/ROUTE_STATUS.md) para o estado de cada rota e [as issues](https://github.com/pedrotescaro/cicure/issues) para dependências e critérios de aceite.

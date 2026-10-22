@@ -1,394 +1,66 @@
-import { useTabContentInset } from '../../src/ui/navigation/useTabContentInset';
-import { useMemo, useState, useEffect } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { addDays, format, isToday, parseISO } from 'date-fns';
+import { useMemo, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { 
-  AlarmClock, 
-  ChevronRight, 
-  Play, 
-  RotateCcw, 
-  Search, 
-  BarChart3, 
-  Package, 
-  Building2, 
-  Sparkles,
-  Cloud
-} from 'lucide-react-native';
-import Svg, { Path } from 'react-native-svg';
-import { Avatar, Badge, Button, Card, Divider, IconButton, Label, SectionTitle, Txt, s } from '../../src/ui/components';
+import { CalendarDays, ChevronRight, ClipboardList, FileText, Plus, Search, Users } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Avatar, Badge, Button, Card, Empty, IconButton, SectionTitle, Txt, s } from '../../src/ui/components';
 import { fonts, useTheme } from '../../src/ui/theme';
 import { useStore } from '../../src/data/store';
-import { area, dateLabel, number } from '../../src/domain/clinical';
-import type { Visit } from '../../src/domain/types';
-import { useRouter } from 'expo-router';
+import { useTabContentInset } from '../../src/ui/navigation/useTabContentInset';
 import { computePendingItems } from '../../src/features/pending/domain/pending.service';
 import { GlobalSearchModal } from '../../src/features/search/ui/GlobalSearchModal';
-import { PendingNotification } from '../../src/features/pending/ui/PendingNotification';
-
-function Topbar({ onOpenSearch }: { onOpenSearch: () => void }) {
-  const router = useRouter();
-  const { colors: c } = useTheme();
-  return (
-    <View style={styles.topbar}>
-      <Txt style={[styles.brand, { color: c.red }]}>cicure</Txt>
-      <View style={styles.topbarActions}>
-        <IconButton icon={Search} label="Busca Global" onPress={onOpenSearch} style={styles.topbarBtn} />
-        <IconButton icon={Building2} label="Clínica / Workspace" onPress={() => router.push('/organization' as never)} style={styles.topbarBtn} />
-      </View>
-    </View>
-  );
-}
-
-function Greeting() {
-  const profile = useStore(st => st.data.profiles[0]);
-  const presentation = useStore(st => st.presentation);
-  const { colors: c } = useTheme();
-
-  return (
-    <View style={styles.greeting}>
-      <Txt muted style={{ fontSize: 13 }}>
-        {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
-      </Txt>
-      <Txt style={[s.h1, { marginTop: 2 }]}>
-        Olá, <Txt style={{ color: c.red, fontFamily: fonts.brand, fontSize: 30 }}>
-          {presentation ? 'profissional' : profile?.name.split(' ')[0] ?? 'profissional'}
-        </Txt>
-      </Txt>
-      <Txt muted style={{ marginTop: 2 }}>Vamos cuidar da evolução de hoje?</Txt>
-    </View>
-  );
-}
-
-function WeekStrip() {
-  const [selected, setSelected] = useState(new Date());
-  const { colors: c, isDark } = useTheme();
-  const start = addDays(new Date(), -2);
-  const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-
-  return (
-    <View style={styles.week}>
-      {days.map((date, i) => {
-        const active = format(date, 'yyyy-MM-dd') === format(selected, 'yyyy-MM-dd');
-        return (
-          <Pressable key={i} onPress={() => setSelected(date)} style={styles.day}>
-            <Txt muted style={{ fontSize: 10, textTransform: 'uppercase' }}>
-              {format(date, 'EEE', { locale: ptBR }).replace('.', '')}
-            </Txt>
-            <View style={[styles.dayCircle, active && { backgroundColor: isDark ? '#2E2E34' : c.dark }]}>
-              <Txt style={{ fontFamily: fonts.semibold, color: active ? '#FFF' : c.text }}>
-                {format(date, 'd')}
-              </Txt>
-            </View>
-            {isToday(date) && <View style={[styles.todayDot, { backgroundColor: c.red }]} />}
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-function Sparkline() {
-  const { colors: c } = useTheme();
-  return (
-    <Svg width="100%" height={75} viewBox="0 0 238 75">
-      <Path d="M0 62 C30 55,65 66,102 44 S170 40,238 12 L238 75 L0 75 Z" fill={c.redSoft} />
-      <Path d="M0 62 C30 55,65 66,102 44 S170 40,238 12" fill="none" stroke={c.red} strokeWidth="2.2" strokeLinecap="round" />
-    </Svg>
-  );
-}
-
-function TodayCard({ visits }: { visits: Visit[] }) {
-  const router = useRouter();
-  const patients = useStore(st => st.data.patients);
-  const wounds = useStore(st => st.data.wounds);
-  const today = visits.filter(v => v.state === 'Agendado' && isToday(parseISO(v.date)));
-
-  return (
-    <Card dark style={{ padding: 24, gap: 18 }}>
-      <View style={s.between}>
-        <View style={{ gap: 4 }}>
-          <Label style={{ color: '#A8A8A8' }}>HOJE · {format(new Date(), 'dd/MM')}</Label>
-          <Txt style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 20 }}>
-            {today.length} atendimentos
-          </Txt>
-        </View>
-        <View style={styles.darkCounter}>
-          <Txt style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 22 }}>{today.length}</Txt>
-          <Txt style={{ color: '#BDBDBD', fontSize: 10 }}>PENDENTES</Txt>
-        </View>
-      </View>
-
-      {today.length === 0 ? (
-        <Txt style={{ color: '#BABABA' }}>Nenhum atendimento agendado para hoje.</Txt>
-      ) : (
-        today.slice(0, 3).map(visit => {
-          const patient = patients.find(p => p.id === visit.patientId);
-          const wound = wounds.find(w => w.id === visit.woundId);
-          if (!patient || !wound) return null;
-          return (
-            <Pressable key={visit.id} onPress={() => router.push(`/care/${visit.id}` as never)} style={styles.darkRow}>
-              <View style={styles.time}>
-                <Txt style={{ color: '#FFF', fontFamily: fonts.semibold }}>{visit.scheduledTime || 'Sem horário'}</Txt>
-                <View style={styles.timeline} />
-              </View>
-              <Avatar name={patient.name} color={patient.color} size={40} />
-              <View style={{ flex: 1, gap: 2 }}>
-                <Txt style={{ color: '#FFF', fontFamily: fonts.semibold }}>{patient.name}</Txt>
-                <Txt style={{ color: '#A9A9A9', fontSize: 12 }}>{wound.location} · {wound.etiology}</Txt>
-              </View>
-              <ChevronRight size={18} color="#8C8C8C" />
-            </Pressable>
-          );
-        })
-      )}
-    </Card>
-  );
-}
-
-function QuickHub() {
-  const router = useRouter();
-  const { colors: c, isDark } = useTheme();
-  const hubItems = [
-    { label: 'Indicadores', icon: BarChart3, route: '/indicators' },
-    { label: 'Estoque & Lotes', icon: Package, route: '/inventory' },
-    { label: 'Templates', icon: Sparkles, route: '/templates' },
-    { label: 'Sync Offline', icon: Cloud, route: '/sync' },
-  ];
-
-  return (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.hubScroll}
-    >
-      {hubItems.map((item, i) => {
-        const Icon = item.icon;
-        return (
-          <Pressable 
-            key={i} 
-            onPress={() => router.push(item.route as never)} 
-            style={({ pressed }) => [
-              styles.hubChip, 
-              { backgroundColor: isDark ? '#222226' : '#FFFFFF', borderColor: c.border },
-              pressed && { opacity: 0.75 }
-            ]}
-          >
-            <View style={[styles.hubChipIcon, { backgroundColor: c.redSoft }]}>
-              <Icon size={14} color={c.red} />
-            </View>
-            <Txt style={styles.hubChipText}>{item.label}</Txt>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-function FollowUp() {
-  const visits = useStore(st => st.data.visits);
-  const patients = useStore(st => st.data.patients);
-  const wounds = useStore(st => st.data.wounds);
-  const { colors: c } = useTheme();
-  const router = useRouter();
-
-  const completed = visits.filter(v => v.state === 'Concluído');
-  const avg = completed.length ? completed.reduce((sum, v) => sum + area(v), 0) / completed.length : 0;
-
-  return (
-    <Card style={{ padding: 18, gap: 14 }}>
-      <View style={s.between}>
-        <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
-          <Label>ACOMPANHAMENTO LONGITUDINAL</Label>
-          <Txt style={{ fontFamily: fonts.semibold, fontSize: 17, marginTop: 2 }} numberOfLines={1}>
-            Evolução dos Pacientes
-          </Txt>
-        </View>
-        <Pressable 
-          onPress={() => router.push('/indicators' as never)}
-          hitSlop={8}
-          style={[styles.indicatorLink, { backgroundColor: c.redSoft }]}
-        >
-          <Txt style={[styles.indicatorLinkText, { color: c.red }]}>Indicadores</Txt>
-          <ChevronRight size={13} color={c.red} />
-        </Pressable>
-      </View>
-
-      <View style={{ height: 76 }}>
-        <Sparkline />
-      </View>
-
-      <View style={styles.metrics}>
-        <View>
-          <Txt style={styles.metricNumber}>{patients.length}</Txt>
-          <Label>ATIVOS</Label>
-        </View>
-        <View>
-          <Txt style={[styles.metricNumber, { color: c.green }]}>
-            {wounds.filter(w => w.status === 'Em cicatrização').length}
-          </Txt>
-          <Label>CICATRIZANDO</Label>
-        </View>
-        <View>
-          <Txt style={[styles.metricNumber, { color: c.amber }]}>
-            {wounds.filter(w => w.status === 'Estagnada').length}
-          </Txt>
-          <Label>ESTAGNADAS</Label>
-        </View>
-      </View>
-
-      <Txt muted style={{ fontSize: 12 }}>
-        Área média registrada: <Txt style={{ fontFamily: fonts.semibold }}>{number(avg)} cm²</Txt>
-      </Txt>
-    </Card>
-  );
-}
-
-function QuickTimer() {
-  const [seconds, setSeconds] = useState(0);
-  const [running, setRunning] = useState(false);
-  const { colors: c } = useTheme();
-
-  useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => setSeconds(v => v + 1), 1000);
-    return () => clearInterval(id);
-  }, [running]);
-
-  return (
-    <Card style={{ padding: 20, flexDirection: 'row', alignItems: 'center' }}>
-      <View style={{ flex: 1, gap: 4 }}>
-        <Label>CRONÔMETRO RÁPIDO</Label>
-        <Txt style={{ fontFamily: fonts.semibold, fontSize: 17 }}>Tempo de contato</Txt>
-        <Txt muted style={{ fontSize: 12 }}>Para fotobiomodulação ou curativos.</Txt>
-      </View>
-      <View style={{ alignItems: 'flex-end', gap: 6 }}>
-        <Txt style={{ fontFamily: fonts.bold, fontSize: 24, letterSpacing: 1 }}>
-          {`${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`}
-        </Txt>
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          <IconButton label="Zerar" icon={RotateCcw} onPress={() => { setSeconds(0); setRunning(false); }} />
-          <IconButton label={running ? 'Pausar' : 'Iniciar'} icon={running ? AlarmClock : Play} color={c.red} onPress={() => setRunning(v => !v)} />
-        </View>
-      </View>
-    </Card>
-  );
-}
+import { WorkspaceBar } from '../../src/ui/WorkspaceBar';
+import { buildAgendaEntries, localDay } from '../../src/features/agenda/domain/agenda.service';
 
 export default function Home() {
-  const bottomInset = useTabContentInset();
-  const { width } = useWindowDimensions();
-  const { colors: c } = useTheme();
-  const store = useStore();
-  const visits = store.data.visits;
-  const pendingSync = store.pending;
-  const syncState = store.syncState;
-  const init = store.init;
-  const error = store.error;
   const router = useRouter();
-
+  const { colors: c } = useTheme();
+  const bottomInset = useTabContentInset();
+  const store = useStore();
   const [searchVisible, setSearchVisible] = useState(false);
-
-  // Calcula pendências clínicas
-  const pendingItems = useMemo(() => computePendingItems(store.data, pendingSync), [store.data, pendingSync]);
-
-  return (
-    <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView 
-        contentContainerStyle={[
-          styles.content, 
-          { paddingHorizontal: width < 380 ? 16 : 20, paddingBottom: bottomInset }
-        ]}
-        refreshControl={<RefreshControl refreshing={syncState === 'syncing'} onRefresh={() => init()} tintColor={c.red} />}
-        showsVerticalScrollIndicator={false}
-      >
-        <Topbar onOpenSearch={() => setSearchVisible(true)} />
-
-        <Greeting />
-
-        <WeekStrip />
-
-        {/* Notificação & Popup de Pendências */}
-        <PendingNotification items={pendingItems} />
-
-        {/* Hub de Acesso Rápido aos Novos Módulos */}
-        <QuickHub />
-
-        <TodayCard visits={visits} />
-
-        <FollowUp />
-
-        <QuickTimer />
-      </ScrollView>
-
-      {/* Modal de Busca Global (§22) */}
-      <GlobalSearchModal 
-        visible={searchVisible}
-        onClose={() => setSearchVisible(false)}
-      />
-    </View>
-  );
+  const [refreshing, setRefreshing] = useState(false);
+  const pending = useMemo(() => computePendingItems(store.data, store.pending), [store.data, store.pending]);
+  const today = buildAgendaEntries(store.data.visits).filter(entry => entry.date === localDay());
+  const currentTime = format(new Date(), 'HH:mm');
+  const next = today.find(entry => !entry.time || entry.time >= currentTime);
+  const profile = store.data.profiles[0];
+  const openVisit = (id: string) => router.push(`/care/new?visitId=${id}`);
+  const refresh = async () => { setRefreshing(true); try { await store.init(); } finally { setRefreshing(false); } };
+  return <View style={{ flex: 1, backgroundColor: c.bg }}>
+    <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: bottomInset, gap: 22 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={c.red} />}>
+      <View style={s.between}><Txt style={{ fontFamily: fonts.brand, fontSize: 26, color: c.red }}>cicure</Txt><IconButton icon={Search} label="Buscar em pacientes e atendimentos" onPress={() => setSearchVisible(true)} /></View>
+      <WorkspaceBar />
+      <View style={{ gap: 6 }}>
+        <Txt accessibilityRole="header" style={s.h1}>Olá, {store.presentation ? 'profissional' : profile?.name.split(' ')[0] || 'profissional'}</Txt>
+        <Txt muted>{format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}</Txt>
+      </View>
+      {!store.presentation && <Button title="Novo atendimento" icon={Plus} onPress={() => router.push('/care/new')} />}
+      {!!store.error && <Card><Txt accessibilityLiveRegion="polite" style={{ color: c.red }}>{store.error}</Txt><Button title="Carregar registros novamente" variant="outline" onPress={() => void refresh()} loading={refreshing} /></Card>}
+      <View style={{ gap: 12 }}>
+        <SectionTitle title="Agenda de hoje" action="Ver agenda" onPress={() => router.push('/care')} />
+        {today.length === 0 ? <Card><Empty icon={CalendarDays} title="Hoje está livre na agenda" description="Use a Agenda para escolher uma data e marcar o próximo atendimento." action="Abrir agenda" onPress={() => router.push('/care')} /></Card> : today.slice(0, 4).map(entry => {
+          const visit = entry.visit;
+          const patient = store.data.patients.find(item => item.id === visit.patientId);
+          const wound = store.data.wounds.find(item => item.id === visit.woundId);
+          const dark = entry.id === next?.id;
+          return <Pressable key={entry.id} accessibilityRole="button" accessibilityLabel={`Abrir ${entry.kind === 'return' ? 'retorno' : 'atendimento'} das ${entry.time || 'sem horário'}`} onPress={() => entry.kind === 'return' ? router.push(`/care/new?patientId=${visit.patientId}&woundId=${visit.woundId}`) : openVisit(visit.id)}>
+            <Card dark={dark} style={{ gap: 12 }}>
+              <View style={[s.between, { flexWrap: 'wrap' }]}><Txt style={{ color: dark ? '#FFF' : c.text, fontFamily: fonts.semibold, fontSize: 20 }}>{entry.time || 'Horário a definir'}</Txt><Badge dark={dark}>{dark ? 'Próximo atendimento' : entry.kind === 'return' ? 'Retorno' : 'Agendado'}</Badge></View>
+              <View style={s.row}><Avatar name={patient?.name || 'Paciente'} color={patient?.color} anonymous={store.presentation} /><View style={{ flex: 1, gap: 5 }}><Txt style={{ color: dark ? '#FFF' : c.text, fontFamily: fonts.semibold }}>{store.presentation ? 'Paciente em apresentação' : patient?.name || 'Paciente não encontrado'}</Txt><Txt style={{ color: dark ? '#D2D2D2' : c.secondary }}>{store.presentation ? 'Dados clínicos ocultos' : wound?.location || 'Ferida não identificada'}</Txt></View><ChevronRight size={22} color={dark ? '#FFF' : c.secondary} /></View>
+            </Card>
+          </Pressable>;
+        })}
+        {today.length > 4 && <Button title={`Ver os ${today.length} atendimentos de hoje`} variant="outline" onPress={() => router.push('/care')} />}
+      </View>
+      <View style={{ gap: 12 }}>
+        <SectionTitle title="O que precisa de atenção" action="Ver pendências" onPress={() => router.push('/pending')} />
+        {pending.length ? pending.slice(0, 3).map(item => <Pressable key={item.id} accessibilityRole="button" onPress={() => router.push(item.route as never)}><Card style={{ gap: 8 }}><View style={s.between}><Txt style={{ flex: 1, fontFamily: fonts.semibold }}>{store.presentation ? 'Pendência de atendimento' : item.title}</Txt><ChevronRight size={22} color={c.secondary} /></View><Txt muted>{store.presentation ? 'Desative o modo apresentação para consultar o registro.' : item.description}</Txt></Card></Pressable>) : <Txt muted>Nenhuma pendência nos registros deste aparelho.</Txt>}
+      </View>
+      <View style={{ gap: 10 }}><SectionTitle title="Acessos rápidos" />
+        {[{ label: 'Pacientes', detail: 'Buscar ou cadastrar um paciente', route: '/patients', Icon: Users }, { label: 'Agenda', detail: 'Marcar atendimentos e retornos', route: '/care', Icon: CalendarDays }, { label: 'Relatórios', detail: 'Gerar e consultar documentos', route: '/reports', Icon: FileText }, { label: 'Pendências', detail: 'Retomar o que ficou para depois', route: '/pending', Icon: ClipboardList }].map(({ label, detail, route, Icon }) => <Pressable key={route} accessibilityRole="button" onPress={() => router.push(route as never)} style={[s.row, { minHeight: 72, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.border }]}><Icon size={24} color={c.red} /><View style={{ flex: 1, gap: 4 }}><Txt style={{ fontFamily: fonts.semibold }}>{label}</Txt><Txt muted>{detail}</Txt></View><ChevronRight size={20} color={c.secondary} /></Pressable>)}
+      </View>
+    </ScrollView>
+    <GlobalSearchModal visible={searchVisible} onClose={() => setSearchVisible(false)} />
+  </View>;
 }
-
-const styles = StyleSheet.create({
-  content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
-  topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
-  topbarActions: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  topbarBtn: { width: 42, height: 42, borderRadius: 21 },
-  greeting: { gap: 2 },
-  week: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
-  day: { alignItems: 'center', gap: 7, flex: 1 },
-  dayCircle: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  todayDot: { width: 4, height: 4, borderRadius: 2 },
-  darkCounter: { alignItems: 'center', backgroundColor: '#2C2C2C', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
-  darkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  time: { alignItems: 'center', minWidth: 46 },
-  timeline: { width: 1, height: 20, backgroundColor: '#3A3A3A', marginTop: 4 },
-  metrics: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  metricNumber: { fontFamily: fonts.bold, fontSize: 22 },
-  indicatorLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  indicatorLinkText: {
-    fontSize: 12,
-    fontFamily: fonts.semibold,
-  },
-  hubScroll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 2,
-    paddingHorizontal: 2,
-  },
-  hubChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 13,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  hubChipIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hubChipText: {
-    fontSize: 12.5,
-    fontFamily: fonts.medium,
-  },
-});

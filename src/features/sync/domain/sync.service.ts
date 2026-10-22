@@ -1,5 +1,4 @@
 import type { SyncItem, ConflictResolution } from './types';
-import { logAuditEvent } from '../../security/domain/security.service';
 
 /**
  * Retorna o tempo de espera em milissegundos usando exponential backoff:
@@ -19,23 +18,6 @@ export function resolveSyncConflict(
   resolution: ConflictResolution,
   items: SyncItem[]
 ): SyncItem[] {
-  // Registra a resolução no log de auditoria obrigatório
-  logAuditEvent({
-    action: 'conflict_resolve',
-    actionLabel: `Conflito de versão resolvido (${resolution.resolutionType})`,
-    entityKind: 'visits',
-    entityId: resolution.syncItemId,
-    metadata: { resolutionType: resolution.resolutionType }
-  });
-
-  return items.map(item => {
-    if (item.id === resolution.syncItemId) {
-      return {
-        ...item,
-        status: 'sincronizado',
-        errorMessage: undefined
-      };
-    }
-    return item;
-  });
+  void resolution; void items;
+  throw new Error('Compare as versões na tela Envio de dados. A resolução precisa ser persistida e confirmada pelo servidor.');
 }

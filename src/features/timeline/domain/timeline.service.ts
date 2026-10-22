@@ -22,7 +22,7 @@ export function buildTimeline(
       referenceKind: 'wounds',
       referenceId: w.id,
       title: `Nova Ferida: ${w.location}`,
-      summary: `Etiologia: ${w.etiology}. Status inicial: ${w.status}.`,
+      summary: `Causa registrada: ${w.etiology}. Situação atual: ${w.status}.`,
       badgeTone: 'red'
     });
 
@@ -37,7 +37,7 @@ export function buildTimeline(
         referenceKind: 'wounds',
         referenceId: w.id,
         title: `Ferida Cicatrizada: ${w.location}`,
-        summary: 'Epitelização completa alcançada com sucesso.',
+        summary: 'Situação de cicatrizada registrada pelo profissional.',
         badgeTone: 'green'
       });
     }
@@ -112,7 +112,7 @@ export function buildTimeline(
             referenceKind: 'visits',
             referenceId: v.id,
             title: `Escala ${a.code} (v${a.version})`,
-            summary: `Score: ${a.score !== null ? a.score : '-'} · ${a.interpretation}`,
+            summary: `Pontuação: ${a.score !== null ? a.score : 'não informada'} · ${a.interpretation}`,
             badgeTone: 'amber'
           });
         });
@@ -168,8 +168,8 @@ export function buildTimeline(
           category: 'Autenticação',
           referenceKind: 'visits',
           referenceId: v.id,
-          title: 'Prontuário Assinado Digitalmente',
-          summary: `Assinado por ${v.signedBy || 'Profissional responsável'} com carimbo de tempo imutável.`,
+          title: 'Autoria registrada no atendimento',
+          summary: `Registrado por ${v.signedBy || 'Profissional responsável'}. ${v.completedAt ? `Conclusão: ${v.completedAt.slice(0, 10).split('-').reverse().join('/')}.` : 'Data de conclusão não disponível no registro legado.'}`,
           badgeTone: 'green'
         });
       }

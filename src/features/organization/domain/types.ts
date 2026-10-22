@@ -19,6 +19,8 @@ export type OrganizationMember = {
   role: OrganizationRole;
   status: 'invited' | 'active' | 'suspended';
   invitedAt: string;
+  expiresAt?: string;
+  invitationId?: string;
 };
 
 export type WorkMode = 'individual' | 'group';
@@ -45,4 +47,5 @@ export type Organization = {
   membersCount: number;
   patientsCount: number;
   isCurrent: boolean;
+  role?: OrganizationRole;
 };

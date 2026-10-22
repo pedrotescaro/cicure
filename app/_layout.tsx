@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { Comfortaa_700Bold } from '@expo-google-fonts/comfortaa';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ActivityIndicator, AppState, Platform, View } from 'react-native';
 import { queryClient, useStore } from '../src/data/store';
 import { supabase } from '../src/data/supabase';
@@ -15,6 +15,10 @@ import { OnboardingModal } from '../src/features/onboarding/ui/OnboardingModal';
 import { Button, Txt } from '../src/ui/components';
 import { AnimatedSplash } from '../src/ui/brand/AnimatedSplash';
 import AuthScreen from '../src/features/auth/AuthScreen';
+import { readPreference } from '../src/data/preferences';
+import { AppLockModal } from '../src/features/security/ui/AppLockModal';
+import { useMotionPreferences } from '../src/ui/useMotionPreferences';
+import { useNetworkStatus } from '../src/data/network';
 
 // Global scope is intentional: the native splash must be retained before render on mobile.
 void SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -22,6 +26,8 @@ SplashScreen.setOptions({ fade: false, duration: 0 });
 
 let launchSplashFinished = false;
 export default function RootLayout() {
+  const motion = useMotionPreferences();
+  const network = useNetworkStatus();
   const pathname = usePathname();
   const isAuthRoute = pathname.startsWith('/auth/');
   const { colors, isDark } = useTheme();
@@ -37,6 +43,8 @@ export default function RootLayout() {
   const authUserId = useStore(s => s.authUserId);
   const setAuthUser = useStore(s => s.setAuthUser);
   const clearAuthUser = useStore(s => s.clearAuthUser);
+  const workMode = useStore(state => state.workMode);
+  const storageError = useStore(state => state.error);
   const { preferencesReady, preferencesError, loadPreferences, onboardingVisible, markOnboardingSeen, finishOnboarding } = useStore();
   useEffect(() => { loadPreferences(); }, [loadPreferences]);
   useEffect(() => {
@@ -46,6 +54,13 @@ export default function RootLayout() {
   const [appLaidOut, setAppLaidOut] = useState(false);
   const [startupGraceElapsed, setStartupGraceElapsed] = useState(false);
   const [authReady, setAuthReady] = useState(!supabase);
+  const [locked, setLocked] = useState(false);
+  useEffect(() => {
+    const required = () => Platform.OS !== 'web' && Boolean(authUserId) && readPreference(`cicure_lock:${authUserId}`) === 'true';
+    void Promise.resolve().then(() => setLocked(required()));
+    const listener = AppState.addEventListener('change', state => { if (state !== 'active' && required()) setLocked(true); });
+    return () => listener.remove();
+  }, [authUserId]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -69,7 +84,7 @@ export default function RootLayout() {
     const client = supabase;
     if (!client || Platform.OS === 'web') return;
     const refresh = (state: string) => {
-      if (state === 'active') client.auth.startAutoRefresh();
+      if (state === 'active') { client.auth.startAutoRefresh(); void useStore.getState().sync(); }
       else client.auth.stopAutoRefresh();
     };
     refresh(AppState.currentState);
@@ -105,7 +120,8 @@ export default function RootLayout() {
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <View style={{ flex: 1, backgroundColor: colors.bg }}>
           {resourcesReady ? (
-            <View
+            <SafeAreaView
+              edges={['top', 'left', 'right']}
               style={{ flex: 1, backgroundColor: colors.bg }}
               onLayout={() => setAppLaidOut(true)}
               accessibilityElementsHidden={showSplash}
@@ -116,14 +132,14 @@ export default function RootLayout() {
                   <ActivityIndicator color={colors.red} />
                   <Txt style={{ marginTop: 16 }}>Abrindo seus registros...</Txt>
                 </View>
-              ) : <Stack
+              ) : workMode === 'group' && (!network.isOnline || storageError) ? <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 20 }}><Txt style={{ fontSize: 24 }}>Confirme seu acesso à clínica</Txt><Txt>{storageError || 'Conecte-se à internet para abrir registros compartilhados. Os rascunhos da clínica continuam guardados neste aparelho.'}</Txt><Button title="Tentar acessar novamente" onPress={() => void init()} /><Button title="Abrir meus atendimentos individuais" variant="outline" onPress={() => void useStore.getState().setWorkMode('individual')} /></View> : <Stack
                 screenOptions={{
                   headerShown: false,
-                  animation: 'fade',
+                  animation: motion.reduceMotion ? 'none' : 'fade',
                   contentStyle: { backgroundColor: colors.bg },
                 }}
               />}
-            </View>
+            </SafeAreaView>
           ) : !showSplash ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
               <ActivityIndicator color={colors.red} />
@@ -136,6 +152,7 @@ export default function RootLayout() {
             </View>
           )}
           <OnboardingModal visible={Boolean(authUserId) && !isAuthRoute && preferencesReady && ready && !showSplash && onboardingVisible} onShow={markOnboardingSeen} onFinish={finishOnboarding} />
+          <AppLockModal visible={Boolean(authUserId) && locked && !showSplash} onUnlocked={() => setLocked(false)} />
           {showSplash && preferencesReady && <AnimatedSplash ready={resourcesReady && appLaidOut} onFinish={finishSplash} />}
         </View>
       </QueryClientProvider>

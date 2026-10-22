@@ -16,6 +16,9 @@ export type InventoryItem = {
   minStock: number;
   cost?: number;
   lots: InventoryLot[];
+  createdBy?: string;
+  createdAt?: string;
+  deletedAt?: string;
 };
 
 export type InventoryMovement = {
@@ -27,6 +30,8 @@ export type InventoryMovement = {
   visitId?: string;
   patientId?: string;
   lotNumber?: string;
+  expiryDate?: string;
+  referenceId?: string;
   notes?: string;
   createdAt: string;
   createdBy: string;

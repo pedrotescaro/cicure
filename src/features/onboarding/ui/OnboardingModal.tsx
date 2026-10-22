@@ -1,43 +1,43 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { 
-  UserPlus, 
-  HeartPulse, 
-  Camera, 
-  RefreshCw, 
-  FileText, 
-  ChevronRight, 
-  Check, 
-  Sparkles 
+import {
+  UserPlus,
+  HeartPulse,
+  Camera,
+  RefreshCw,
+  FileText,
+  ChevronRight,
+  Check
 } from 'lucide-react-native';
 import { Button, Card, Txt } from '../../../ui/components';
 import { useTheme, type ColorPalette, fonts } from '../../../ui/theme';
+import { useMotionPreferences } from '../../../ui/useMotionPreferences';
 
 const ONBOARDING_STEPS = [
   {
     icon: UserPlus,
-    title: '1. Prontuário do Paciente',
-    description: 'Comece pela aba Pacientes: toque em Novo paciente e registre os dados necessários para o acompanhamento.'
+    title: 'Comece por Pacientes',
+    description: 'Toque em Novo paciente para cadastrar. No prontuário, você pode editar os dados e cadastrar cada ferida separadamente.'
   },
   {
     icon: HeartPulse,
-    title: '2. Múltiplas Lesões e Mapa',
-    description: 'Cadastre feridas simultâneas com localização anatômica precisa, etiologia e histórico individual de evolução.'
+    title: 'Uma ferida, um acompanhamento',
+    description: 'Escolha a ferida no prontuário para ver seu histórico. Ao tocar em Atender esta ferida, a localização acompanha o preenchimento.'
   },
   {
     icon: Camera,
-    title: '3. Fotografia Calibrada',
-    description: 'Adicione fotos ao atendimento para acompanhar a evolução da ferida ao longo das consultas.'
+    title: 'Registre o atendimento',
+    description: 'Use Novo atendimento para preencher as etapas e adicionar fotos. Salve um rascunho para retomar depois. Revise os dados antes de concluir.'
   },
   {
     icon: RefreshCw,
-    title: '4. Funcionamento Offline-First',
-    description: 'Seus registros ficam salvos neste aparelho, mesmo sem internet. Acompanhe os envios à nuvem na Central de Sincronização quando ela estiver configurada.'
+    title: 'Use mesmo sem internet',
+    description: 'Depois de entrar na conta, os registros ficam salvos neste aparelho. Em Menu, toque em Envio de dados para acompanhar os envios quando houver conexão.'
   },
   {
     icon: FileText,
-    title: '5. Laudos, Relatórios e Prescrições',
-    description: 'Consulte os atendimentos registrados e gere relatórios em PDF pela aba Relatórios.'
+    title: 'Agenda e relatórios',
+    description: 'Na Agenda, marque atendimentos e consulte os retornos. Em Relatórios, escolha um atendimento registrado para gerar e compartilhar o documento.'
   }
 ];
 
@@ -51,8 +51,8 @@ export function OnboardingModal({
   onShow?: () => void;
 }) {
   const { colors: c } = useTheme();
+  const { reduceMotion } = useMotionPreferences();
   const styles = makeStyles(c);
-  useEffect(() => { if (visible) setStep(0); }, [visible]);
   const [step, setStep] = useState(0);
 
   const current = ONBOARDING_STEPS[step];
@@ -67,11 +67,12 @@ export function OnboardingModal({
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent={false} onShow={onShow} onRequestClose={onFinish}>
+    <Modal visible={visible} animationType={reduceMotion ? 'none' : 'fade'} transparent={false} onShow={() => { setStep(0); onShow?.(); }} onRequestClose={onFinish}>
       <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={styles.container}>
         <View style={styles.content}>
           <Txt style={styles.brand}>cicure</Txt>
-          <Txt style={styles.subtitle}>Boas-vindas à sua plataforma clínica</Txt>
+          <Txt style={styles.subtitle}>Como usar o Cicure</Txt>
+          <Txt muted accessibilityLiveRegion="polite">Passo {step + 1} de {ONBOARDING_STEPS.length}</Txt>
 
           {/* Card da Etapa */}
           <Card style={styles.stepCard}>
@@ -85,23 +86,25 @@ export function OnboardingModal({
           {/* Indicadores de Progresso */}
           <View style={styles.dotsRow}>
             {ONBOARDING_STEPS.map((_, i) => (
-              <View 
-                key={i} 
+              <View
+                key={i}
                 style={[
-                  styles.dot, 
+                  styles.dot,
                   i === step ? styles.dotActive : styles.dotInactive
-                ]} 
+                ]}
               />
             ))}
           </View>
 
           {/* Botão de Avanço */}
-          <Button 
-            title={step === ONBOARDING_STEPS.length - 1 ? 'Começar a Usar o Cicure' : 'Avançar'} 
+          <Button
+            title={step === ONBOARDING_STEPS.length - 1 ? 'Começar a usar o Cicure' : 'Próximo passo'}
             icon={step === ONBOARDING_STEPS.length - 1 ? Check : ChevronRight}
             onPress={handleNext}
             style={{ width: '100%', minHeight: 52 }}
           />
+          {step > 0 && <Button title="Passo anterior" variant="outline" onPress={() => setStep(value => value - 1)} style={{ width: '100%' }} />}
+          {step < ONBOARDING_STEPS.length - 1 && <Button title="Ver depois" variant="ghost" onPress={onFinish} />}
         </View>
       </ScrollView>
     </Modal>
@@ -140,7 +143,7 @@ const makeStyles = (c: ColorPalette) => StyleSheet.create({
     justifyContent: 'center',
   },
   stepTitle: { fontFamily: fonts.semibold, fontSize: 18, textAlign: 'center' },
-  stepDesc: { fontSize: 14, lineHeight: 20, textAlign: 'center', color: c.secondary },
+  stepDesc: { fontSize: 16, lineHeight: 24, textAlign: 'center', color: c.secondary },
   dotsRow: { flexDirection: 'row', gap: 6, marginVertical: 8 },
   dot: { height: 6, borderRadius: 3 },
   dotActive: { width: 24, backgroundColor: c.red },

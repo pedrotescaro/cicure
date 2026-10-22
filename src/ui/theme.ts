@@ -1,5 +1,5 @@
 import { useColorScheme } from 'react-native';
-import { useStore, type ThemeMode } from '../data/store';
+import { useStore } from '../data/store';
 
 export type ColorPalette = {
   bg: string;
@@ -29,7 +29,7 @@ export const lightColors: ColorPalette = {
   redSoft: '#FDECEC',
   text: '#141414',
   secondary: '#626262',
-  tertiary: '#8A8A8A',
+  tertiary: '#707070',
   border: '#E6E6E6',
   green: '#2E7D5B',
   greenSoft: '#E8F5EF',
@@ -47,7 +47,7 @@ export const darkColors: ColorPalette = {
   redSoft: '#2E1517',
   text: '#F5F5F7',
   secondary: '#A1A1A8',
-  tertiary: '#73737C',
+  tertiary: '#A1A1A8',
   border: '#2C2C30',
   green: '#38A169',
   greenSoft: '#142A1D',

@@ -1,12 +1,14 @@
+import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, ChevronRight, FileText, Image as ImageIcon, Ruler, Stethoscope } from 'lucide-react-native';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Image, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Avatar, Badge, Button, Card, Divider, IconButton, Label, SectionTitle, Txt, safeBack, s } from './components';
+import { Avatar, Badge, Button, Card, Divider, Field, IconButton, Label, SectionTitle, Txt, safeBack, s } from './components';
 import { fonts, useTheme } from './theme';
 import { area, dateLabel, number, volume } from '../domain/clinical';
-import { useStore } from '../data/store';
+import { useStore, uid } from '../data/store';
+import { appendVisitAmendment, visitAuthor } from '../domain/visit.lifecycle';
 
 export function VisitSummary({ visitId }: { visitId?: string }) {
   const router = useRouter();
@@ -14,7 +16,12 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
   const { width } = useWindowDimensions();
   const isNarrow = width < 380;
   const { visits, patients, wounds } = useStore(state => state.data);
+  const [amendment, setAmendment] = useState('');
+  const [savingAmendment, setSavingAmendment] = useState(false);
+  const [amendmentMessage, setAmendmentMessage] = useState('');
+  const presentation = useStore(state => state.presentation);
   const visit = visits.find(item => item.id === visitId);
+  if (presentation) return <View style={[styles.empty, { backgroundColor: colors.bg }]}><Txt style={s.h2}>Prontuário protegido</Txt><Txt muted>Saia do modo apresentação para abrir os dados do atendimento.</Txt><Button title="Voltar" onPress={() => safeBack(router, '/care')} /></View>;
   if (!visit) {
     return (
       <View style={[styles.empty, { backgroundColor: colors.bg }]}>
@@ -45,8 +52,8 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
   const description = visit.state === 'Agendado' ? 'Este atendimento ainda não foi iniciado. Confira o contexto clínico antes de começar o registro.' : visit.plan || 'O atendimento foi registrado, mas ainda não há conduta descrita.';
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScrollView 
-        contentContainerStyle={[styles.content, { padding: isNarrow ? 16 : 24, paddingBottom: 160 }]} 
+      <ScrollView
+        contentContainerStyle={[styles.content, { padding: isNarrow ? 16 : 24, paddingBottom: 160 }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={s.between}>
@@ -59,7 +66,7 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
               </Txt>
             </View>
           </View>
-          <IconButton icon={FileText} label="Abrir relatório" color={colors.red} onPress={() => router.push('/reports')} />
+          <IconButton icon={FileText} label="Gerar relatório deste atendimento" color={colors.red} onPress={() => router.push('/reports?visitId=' + visit.id)} />
         </View>
 
         <Card dark style={styles.hero}>
@@ -82,11 +89,11 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
           </View>
         </Card>
 
-        <Card 
+        <Card
           style={[
             styles.statusCard,
-            isDark 
-              ? { backgroundColor: 'rgba(255, 77, 77, 0.12)', borderColor: 'rgba(255, 77, 77, 0.25)' } 
+            isDark
+              ? { backgroundColor: 'rgba(255, 77, 77, 0.12)', borderColor: 'rgba(255, 77, 77, 0.25)' }
               : { backgroundColor: colors.redSoft, borderColor: '#F3D2D2' }
           ]}
         >
@@ -111,11 +118,11 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
         </View>
 
         {Boolean(previous && hasMeasurement) && (
-          <Card 
+          <Card
             style={[
               styles.evolution,
-              isDark 
-                ? { backgroundColor: 'rgba(255, 77, 77, 0.08)', borderColor: 'rgba(255, 77, 77, 0.25)' } 
+              isDark
+                ? { backgroundColor: 'rgba(255, 77, 77, 0.08)', borderColor: 'rgba(255, 77, 77, 0.25)' }
                 : { backgroundColor: '#FFF8F8', borderColor: '#F3D2D2' }
             ]}
           >
@@ -156,6 +163,70 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
           )}
         </Card>
 
+        {visit.completedBy && <Card style={{ gap: 10 }}>
+          <SectionTitle title="AUTORIA E CONCLUSÃO" />
+          <Txt>{visit.completedBy.name} · {visit.completedBy.council} {visit.completedBy.registration}</Txt>
+          <Txt muted>Concluído em {dateLabel(visit.completedAt ?? visit.date, 'dd/MM/yyyy HH:mm')}.</Txt>
+          <Txt muted style={{ lineHeight: 23 }}>O registro original é preservado. A conclusão identifica o profissional autenticado; não representa assinatura digital certificada.</Txt>
+        </Card>}
+
+        {visit.vitals && Object.values(visit.vitals).some(Boolean) && <Card style={{ gap: 10 }}>
+          <SectionTitle title="SINAIS VITAIS REGISTRADOS" />
+          <Txt>Pressão arterial: {visit.vitals.systolic || '—'} / {visit.vitals.diastolic || '—'} mmHg</Txt>
+          <Txt>Frequência cardíaca: {visit.vitals.heartRate || 'Não medida'}{visit.vitals.heartRate ? ' batimentos/min' : ''}</Txt>
+          <Txt>Temperatura: {visit.vitals.temperature || 'Não medida'}{visit.vitals.temperature ? ' °C' : ''}</Txt>
+          <Txt>Saturação: {visit.vitals.oxygen || 'Não medida'}{visit.vitals.oxygen ? '%' : ''}</Txt>
+          <Txt>Glicemia: {visit.vitals.glucose || 'Não medida'}{visit.vitals.glucose ? ' mg/dL' : ''}</Txt>
+        </Card>}
+
+        {visit.soap && <Card style={{ gap: 12 }}>
+          <View style={s.between}><SectionTitle title="EVOLUÇÃO CLÍNICA" /><Badge tone={visit.soap.status === 'Confirmado' ? 'green' : 'amber'}>{visit.soap.status}</Badge></View>
+          <Txt style={{ fontFamily: fonts.semibold }}>Relato do paciente</Txt><Txt>{visit.soap.subjective}</Txt>
+          <Txt style={{ fontFamily: fonts.semibold }}>Exame e medidas</Txt><Txt>{visit.soap.objective}</Txt>
+          <Txt style={{ fontFamily: fonts.semibold }}>Avaliação profissional</Txt><Txt>{visit.soap.assessment}</Txt>
+          <Txt style={{ fontFamily: fonts.semibold }}>Plano de cuidado</Txt><Txt>{visit.soap.plan}</Txt>
+          {visit.soap.confirmedAt && <Txt muted>Revisão confirmada por {visit.soap.confirmedBy} em {dateLabel(visit.soap.confirmedAt, 'dd/MM/yyyy HH:mm')}.</Txt>}
+        </Card>}
+
+        {Boolean(visit.returnDate) && <Card style={{ gap: 10 }}>
+          <SectionTitle title="RETORNO PREVISTO" />
+          <Txt>{dateLabel(visit.returnDate)} às {visit.returnTime || '09:00'}</Txt>
+          <Button title="Abrir agenda" variant="outline" onPress={() => router.push('/care')} />
+        </Card>}
+
+        {visit.photos.map((photo, index) => <Card key={photo.id} style={{ gap: 10 }}>
+          <Txt style={{ fontFamily: fonts.semibold }}>Foto {index + 1} · {photo.type}</Txt>
+          <Image source={{ uri: photo.uri }} accessibilityLabel={'Fotografia da ferida em ' + dateLabel(photo.date)} resizeMode="contain" style={{ width: '100%', height: 260, borderRadius: 12 }} />
+          <Txt muted>{dateLabel(photo.date, 'dd/MM/yyyy HH:mm')} · {photo.rulerConfirmed ? 'Referência: ' + number(photo.referenceCm ?? 0) + ' cm' : 'Sem referência de escala'}</Txt>
+        </Card>)}
+
+        {visit.state === 'Concluído' && <View style={{ gap: 14 }}>
+          <SectionTitle title="ADENDOS E CORREÇÕES" />
+          {(visit.amendments ?? []).map(item => <Card key={item.id} style={{ gap: 10 }}>
+            <Txt>{item.text}</Txt>
+            <Txt muted>{item.author.name} · {item.author.council} {item.author.registration}</Txt>
+            <Txt muted>{dateLabel(item.createdAt, 'dd/MM/yyyy HH:mm')}</Txt>
+          </Card>)}
+          <Txt muted>Acrescente informações ou correções. O atendimento e os adendos anteriores serão preservados.</Txt>
+          <Field label="Novo adendo" value={amendment} onChangeText={setAmendment} multiline placeholder="Descreva a informação acrescentada ou a correção e seu motivo." />
+          <Button title="Salvar adendo" loading={savingAmendment} disabled={!amendment.trim()} onPress={() => {
+            setSavingAmendment(true); setAmendmentMessage('');
+            void (async () => {
+              try {
+                const current = useStore.getState();
+                const latest = current.data.visits.find(item => item.id === visit.id);
+                if (!latest) throw new Error('O atendimento não está mais disponível. Abra o prontuário novamente.');
+                const profile = current.data.profiles.find(item => item.id === current.authUserId) ?? current.data.profiles[0];
+                const next = appendVisitAmendment(latest, amendment, visitAuthor(current.authUserId, profile), uid());
+                await current.save('visits', next);
+                setAmendment(''); setAmendmentMessage('Adendo salvo neste aparelho. O registro original foi preservado.');
+              } catch (error) { setAmendmentMessage(error instanceof Error ? error.message : 'Não foi possível salvar o adendo. Tente novamente.'); }
+              finally { setSavingAmendment(false); }
+            })();
+          }} />
+          {Boolean(amendmentMessage) && <Txt accessibilityLiveRegion="polite">{amendmentMessage}</Txt>}
+        </View>}
+
         <Card style={{ gap: 13 }}>
           <View style={s.between}>
             <SectionTitle title="REGISTROS DO ATENDIMENTO" />
@@ -191,15 +262,16 @@ export function VisitSummary({ visitId }: { visitId?: string }) {
         </Card>
 
         <View style={styles.actions}>
-          <Button 
-            title={visit.state === 'Concluído' ? 'Editar atendimento' : 'Iniciar atendimento'} 
-            icon={ChevronRight} 
-            onPress={() => router.push(`/care/new?visitId=${visit.id}`)} 
-          />
-          <Button 
-            title="Ver prontuário do paciente" 
-            variant="outline" 
-            onPress={() => router.push(`/patient/${patient.id}`)} 
+          {visit.state !== 'Concluído' && <Button
+            title={visit.state === 'Rascunho' ? 'Continuar atendimento' : 'Iniciar atendimento'}
+            icon={ChevronRight}
+            onPress={() => router.push(`/care/new?visitId=${visit.id}`)}
+          />}
+          {visit.state === 'Concluído' && <Button title="Gerar relatório deste atendimento" icon={FileText} onPress={() => router.push('/reports?visitId=' + visit.id)} />}
+          <Button
+            title="Ver prontuário do paciente"
+            variant="outline"
+            onPress={() => router.push(`/patient/${patient.id}`)}
           />
         </View>
       </ScrollView>

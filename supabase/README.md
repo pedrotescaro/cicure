@@ -1,5 +1,15 @@
 # Supabase do Cicure
 
+## Contrato 1.1.0
+
+As migrações `android_workflows`, `account_sessions`, `organization_membership_access` e `invitation_deny_policy` estão versionadas junto da entrega. A primeira mantém a RPC de gravação, amplia os tipos persistidos, aplica validações/imutabilidade por trigger e registra revisões e atividades com autoria do servidor. A última migração declara a negação de leitura direta dos convites; os tokens são emitidos e consumidos por funções autorizadas.
+
+`pull_records(p_organization_id, p_after_id, p_limit)` consulta páginas por ID (200 registros por padrão). O espaço individual filtra a conta; o compartilhado exige associação ativa e papéis. As funções de equipe verificam convites de uso único, expiração e e-mail confirmado. O app não transfere automaticamente registros individuais para clínicas.
+
+`list_activity_events(p_organization_id)`, `list_record_revisions(p_record_id)` e `list_own_sessions()` retornam apenas dados autorizados. Os eventos e versões do servidor não aceitam alterações do cliente. A função interna de sessões usa privilégios elevados somente para consultar sessões do próprio `auth.uid()`, sem expor credenciais. A revogação de sessões é feita pelo Supabase Auth; access tokens já emitidos continuam válidos até expirar.
+
+Testes transacionais em `tests/android_workflows.sql` e `tests/organization_access.sql` exercitam múltiplas identidades e fazem `ROLLBACK`. `scripts/test-live-sync.cjs` é um teste HTTP manual que exige duas contas sintéticas locais em `.artifacts/android-qa/`; nunca execute com credenciais ou registros reais.
+
 O cliente usa `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Copie `.env.example` para `.env.local` e preencha apenas a URL e a chave publicável. Nunca coloque `service_role`, segredo OAuth ou senha em variáveis `EXPO_PUBLIC_*` ou no Git.
 
 `migrations/20260929185350_initial_authenticated_records.sql` é a primeira migração aplicada ao projeto atual. Os arquivos em `docs/legacy-migrations/` são protótipos arquivados e não devem ser reproduzidos neste projeto. Antes de aplicar novas migrações, compare o histórico remoto com `supabase/migrations/`.

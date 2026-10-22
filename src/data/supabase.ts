@@ -15,29 +15,42 @@ function validCloudUrl(value: string | undefined): value is string {
 }
 
 export const cloudConfigured = validCloudUrl(url) && Boolean(key && !key.startsWith('your-'));
-const storage = { 
-  getItem: async (k: string) => Platform.OS === 'web' ? (typeof localStorage !== 'undefined' ? localStorage.getItem(k) : null) : SecureStore.getItemAsync(k), 
-  setItem: async (k: string, value: string) => { 
+const storage = {
+  getItem: async (k: string) => Platform.OS === 'web' ? (typeof localStorage !== 'undefined' ? localStorage.getItem(k) : null) : SecureStore.getItemAsync(k),
+  setItem: async (k: string, value: string) => {
     if (Platform.OS === 'web') {
       if (typeof localStorage !== 'undefined') localStorage.setItem(k, value);
     } else {
       await SecureStore.setItemAsync(k, value);
     }
-  }, 
-  removeItem: async (k: string) => { 
+  },
+  removeItem: async (k: string) => {
     if (Platform.OS === 'web') {
       if (typeof localStorage !== 'undefined') localStorage.removeItem(k);
     } else {
       await SecureStore.deleteItemAsync(k);
     }
-  } 
+  }
 };
 export const supabase = cloudConfigured && url && key ? createClient(url, key, {
-  auth: { 
-    storage, 
-    persistSession: true, 
-    autoRefreshToken: true, 
+  auth: {
+    storage,
+    persistSession: true,
+    autoRefreshToken: true,
     detectSessionInUrl: false,
     flowType: 'pkce'
-  } 
+  }
 }) : null;
+
+/** A request keeps the initiating account's token even if another account signs in mid-flight. */
+export async function createAccountClient(scope: string) {
+  const expectedUserId = /^user:([a-zA-Z0-9-]+)(?::org:[a-zA-Z0-9-]+)?$/.exec(scope)?.[1];
+  if (!supabase || !url || !key || !expectedUserId) throw new Error('Entre na sua conta para conectar os registros.');
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session || data.session.user.id !== expectedUserId) throw new Error('Sua conta mudou. Abra os registros novamente antes de enviar.');
+  const token = data.session.access_token;
+  return createClient(url, key, {
+    accessToken: async () => token,
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}

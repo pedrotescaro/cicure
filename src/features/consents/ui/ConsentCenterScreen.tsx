@@ -1,172 +1,63 @@
-import React, { useState } from 'react';
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ChevronLeft, ShieldCheck, Check, X, ShieldAlert, History } from 'lucide-react-native';
-import { useStore, uid } from '../../../data/store';
-import { Badge, Button, Card, Empty, IconButton, Label, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
-import { type ConsentType, type PatientConsent } from '../domain/types';
+import { useState } from 'react';
+import { View } from 'react-native';
+import { uid, useStore } from '../../../data/store';
+import { Accordion, Badge, Button, Card, Empty, Field, Txt } from '../../../ui/components';
+import { SupportMessage, SupportPage, supportStyles as s } from '../../support/ui/SupportPage';
+import { activeConsent, recordConsent, revokeConsent } from '../domain/consent.service';
+import { CONSENT_DEFINITIONS, type ConsentType, type PatientConsent } from '../domain/types';
 
 export default function ConsentCenterScreen({ patientId }: { patientId: string }) {
-  const router = useRouter();
-  const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
-
-  const [consents, setConsents] = useState<PatientConsent[]>([]);
-
-  if (!patient) {
-    return (
-      <View style={styles.center}>
-        <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => safeBack(router, '/patients')} />
-      </View>
-    );
-  }
-
-  const handleToggleConsent = (item: PatientConsent) => {
-    if (item.status === 'ativo') {
-      Alert.alert(
-        'Revogar Consentimento',
-        `Deseja revogar a autorização para "${item.title}"?\n\nO histórico da revogação será preservado no prontuário de acordo com a LGPD.`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Confirmar Revogação',
-            style: 'destructive',
-            onPress: () => {
-              setConsents(prev => prev.map(c => c.id === item.id ? {
-                ...c,
-                status: 'revogado',
-                revokedAt: new Date().toISOString().slice(0, 10),
-                revocationReason: 'Revogação voluntária solicitada pelo paciente.'
-              } : c));
-              Alert.alert('Consentimento Revogado', 'A alteração foi registrada na trilha de auditoria.');
-            }
-          }
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Coletar Consentimento',
-        `Confirmar autorização formal para "${item.title}" sob a versão do termo ${item.termVersion}?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Autorizar com Assinatura',
-            onPress: () => {
-              setConsents(prev => prev.map(c => c.id === item.id ? {
-                ...c,
-                status: 'ativo',
-                signedAt: new Date().toISOString().slice(0, 10),
-                revokedAt: undefined,
-                revocationReason: undefined
-              } : c));
-              Alert.alert('Consentimento Ativado', 'A autorização granular está em vigor.');
-            }
-          }
-        ]
-      );
-    }
+  const store = useStore();
+  const patient = store.data.patients.find(p => p.id === patientId && !p.deletedAt);
+  const profile = store.data.profiles[0];
+  const consents = store.data.consents.filter(c => c.patientId === patientId).sort((a, b) => b.signedAt.localeCompare(a.signedAt));
+  const [collecting, setCollecting] = useState<ConsentType | null>(null);
+  const [revoking, setRevoking] = useState<PatientConsent | null>(null);
+  const [acceptedBy, setAcceptedBy] = useState('');
+  const [evidence, setEvidence] = useState('');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const collect = async () => {
+    if (!collecting) return;
+    setError(''); setNotice(''); setBusy(true);
+    try {
+      if (activeConsent(consents, collecting)) throw new Error('Já existe autorização ativa para esta finalidade.');
+      await store.save('consents', recordConsent({ id: uid(), patientId, type: collecting, professionalName: profile?.name || '', createdBy: store.authUserId || '', acceptedBy, evidence }));
+      setCollecting(null); setAcceptedBy(''); setEvidence(''); setNotice('Autorização registrada no prontuário, com a identificação do profissional.');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Autorização não salva. Tente novamente.'); }
+    finally { setBusy(false); }
   };
-
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Termos de Consentimento</Txt>
-          <Txt muted style={{ fontSize: 13 }}>{patient.name} · Autorizações Granulares LGPD</Txt>
-        </View>
-      </View>
-
-      <FlatList
-        data={consents}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.content}
-        ListHeaderComponent={
-          <Card style={{ backgroundColor: '#FAFAFA', gap: 6, marginBottom: 12 }}>
-            <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }}>Consentimento Não Cumulativo</Txt>
-            <Txt muted style={{ fontSize: 12, lineHeight: 18 }}>
-              Cada finalidade é tratada de forma estritamente independente. A autorização para atendimento não concede autorização automática para compartilhamento, ensino ou pesquisa.
-            </Txt>
-          </Card>
-        }
-        renderItem={({ item }) => {
-          const isActive = item.status === 'ativo';
-
-          return (
-            <Card style={[styles.consentCard, isActive ? styles.cardActive : styles.cardRevoked]}>
-              <View style={s.between}>
-                <View style={s.row}>
-                  {isActive ? (
-                    <ShieldCheck size={22} color={c.green} />
-                  ) : (
-                    <ShieldAlert size={22} color={c.secondary} />
-                  )}
-                  <Txt style={[styles.consentTitle, { flex: 1 }]}>{item.title}</Txt>
-                </View>
-                <Badge tone={isActive ? 'green' : 'neutral'}>
-                  {isActive ? 'AUTORIZADO' : 'NÃO AUTORIZADO'}
-                </Badge>
-              </View>
-
-              <Txt muted style={{ fontSize: 13, lineHeight: 18 }}>{item.description}</Txt>
-
-              <View style={styles.cardFooter}>
-                <View style={{ gap: 2 }}>
-                  <Txt muted style={{ fontSize: 11 }}>Termo: {item.termVersion} · Responsável: {item.professionalName}</Txt>
-                  {isActive ? (
-                    <Txt style={{ fontSize: 11, color: c.green, fontFamily: fonts.medium }}>
-                      Assinado e em vigor desde {item.signedAt}
-                    </Txt>
-                  ) : item.revokedAt ? (
-                    <Txt style={{ fontSize: 11, color: c.red }}>
-                      Revogado em {item.revokedAt} ({item.revocationReason})
-                    </Txt>
-                  ) : (
-                    <Txt muted style={{ fontSize: 11 }}>Pendente de manifestação do paciente</Txt>
-                  )}
-                </View>
-
-                <Button 
-                  title={isActive ? 'Revogar' : 'Autorizar'} 
-                  variant={isActive ? 'outline' : 'primary'} 
-                  small 
-                  onPress={() => handleToggleConsent(item)} 
-                />
-              </View>
-            </Card>
-          );
-        }}
-      />
-    </View>
-  );
+  const revoke = async () => {
+    if (!revoking) return;
+    setError(''); setNotice(''); setBusy(true);
+    try { await store.save('consents', revokeConsent(revoking, reason, store.authUserId || '')); setRevoking(null); setReason(''); setNotice('Revogação salva. O registro da autorização anterior permanece no histórico.'); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Revogação não salva. Tente novamente.'); }
+    finally { setBusy(false); }
+  };
+  return <SupportPage title="Autorizações do paciente" subtitle={patient ? `${patient.name} · cada finalidade tem uma autorização própria.` : undefined} backTo={`/patient/${patientId}`}>
+    {!patient ? <Empty title="Paciente não encontrado" description="Volte ao prontuário para escolher um paciente." /> : <>
+      <Txt style={s.body}>Registre aqui uma autorização formal que você já obteve, explicando a finalidade ao paciente. O aplicativo guarda o registro e a revogação; a assinatura digital certificada não está disponível.</Txt>
+      <SupportMessage error>{error}</SupportMessage><SupportMessage>{notice}</SupportMessage>
+      {CONSENT_DEFINITIONS.map(definition => {
+        const active = activeConsent(consents, definition.type);
+        return <Card key={definition.type} style={{ borderRadius: 16 }}><Txt style={s.heading}>{definition.title}</Txt><Txt muted style={s.body}>{definition.description}</Txt><Badge tone={active ? 'green' : 'neutral'}>{active ? 'Autorização registrada' : 'Sem autorização ativa'}</Badge>
+          {active && <Txt muted>Registrada em {new Date(active.signedAt).toLocaleDateString('pt-BR')} por {active.professionalName}. Autorizou: {active.acceptedBy || 'Não informado no registro anterior'}.</Txt>}
+          {collecting === definition.type ? <View style={s.section}>
+            <Field label="Nome de quem autorizou *" value={acceptedBy} onChangeText={setAcceptedBy} placeholder="Paciente ou representante legal" />
+            <Field label="Como foi obtida a autorização? *" value={evidence} onChangeText={setEvidence} multiline placeholder="Descreva a manifestação e a referência do termo formal arquivado." />
+            <Button title="Confirmar autorização obtida" loading={busy} onPress={() => void collect()} /><Button title="Cancelar registro" variant="ghost" onPress={() => setCollecting(null)} />
+          </View> : revoking?.id === active?.id && revoking ? <View style={s.section}>
+            <Field label="Motivo da revogação *" value={reason} onChangeText={setReason} multiline placeholder="Registre a solicitação do paciente ou representante." />
+            <Button title="Confirmar revogação" loading={busy} onPress={() => void revoke()} /><Button title="Cancelar revogação" variant="ghost" onPress={() => setRevoking(null)} />
+          </View> : <Button title={active ? 'Revogar autorização' : 'Registrar autorização obtida'} variant="outline" onPress={() => { setError(''); setNotice(''); if (active) { setRevoking(active); setCollecting(null); } else { setCollecting(definition.type); setRevoking(null); setAcceptedBy(''); setEvidence(''); } }} />}
+        </Card>;
+      })}
+      <Accordion title={`Histórico de autorizações (${consents.length})`}>
+        {!consents.length && <Txt muted>Nenhuma autorização registrada para este paciente.</Txt>}
+        {consents.map(consent => <View key={consent.id} style={s.section}><Txt style={s.heading}>{consent.title}</Txt><Txt>{consent.status === 'ativo' ? 'Ativa' : 'Revogada'} · {new Date(consent.signedAt).toLocaleString('pt-BR')}</Txt><Txt muted>Responsável pelo registro: {consent.professionalName}</Txt><Txt muted>Autorizou: {consent.acceptedBy || 'Não informado'} · {consent.evidence || 'Sem referência do termo'}</Txt>{consent.revokedAt && <Txt>Revogada em {new Date(consent.revokedAt).toLocaleString('pt-BR')}. Motivo: {consent.revocationReason}</Txt>}</View>)}
+      </Accordion>
+    </>}
+  </SupportPage>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: c.bg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: c.border,
-  },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
-  content: { padding: 16, gap: 12, paddingBottom: 100 },
-  consentCard: { gap: 10, marginBottom: 8 },
-  cardActive: { borderColor: '#C8E6C9' },
-  cardRevoked: { borderColor: c.border },
-  consentTitle: { fontFamily: fonts.semibold, fontSize: 15 },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    borderTopWidth: 1,
-    borderTopColor: c.border,
-    paddingTop: 10,
-  }
-});

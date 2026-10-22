@@ -1,6 +1,12 @@
 import type { CarePlan } from '../features/care-plan/domain/types';
 import type { Referral } from '../features/referrals/domain/types';
 import type { PatientDocument } from '../features/documents/domain/types';
+import type { SOAPNote } from '../features/soap/domain/types';
+import type { InventoryItem, InventoryMovement } from '../features/inventory/domain/types';
+import type { ClinicalTemplate } from '../features/templates/domain/types';
+import type { PatientConsent } from '../features/consents/domain/types';
+import type { Prescription } from '../features/prescription/domain/types';
+
 
 export type PatientStatus = 'Ativo' | 'Alta' | 'Arquivado';
 export type WoundStatus = 'Em cicatrização' | 'Estagnada' | 'Piora' | 'Cicatrizada' | 'Ativa';
@@ -11,11 +17,11 @@ export type Photo = { id: string; uri: string; storagePath?: string; date: strin
 export type Assessment = { code: string; version: string; answers: Record<string, number | string>; score: number | null; interpretation: string; appliedAt: string; appliedBy: string };
 export type Dressing = { id: string; product: string; presentation: string; quantity: string; layer: string; frequency: string; start: string; note: string };
 export type Therapy = { id: string; type: string; parameters: Record<string, string>; duration: number; note: string; professional: string; date: string };
-export type Visit = { id: string; patientId: string; woundId: string; date: string; scheduledTime: string; state: 'Agendado' | 'Rascunho' | 'Concluído'; step: number; length: string; width: string; depth: string; tunnels: string; edges: string[]; perilesional: string[]; tissue: Record<string, number>; exudateAmount: string; exudateType: string; odor: string; infection: string[]; pain: number | null; assessments: Assessment[]; dressings: Dressing[]; therapies: Therapy[]; photos: Photo[]; plan: string; guidance: string; returnDate: string; signature: Point[][]; signedBy: string; deletedAt?: string };
+export type Visit = { id: string; patientId: string; woundId: string; date: string; scheduledTime: string; state: 'Agendado' | 'Rascunho' | 'Concluído'; step: number; length: string; width: string; depth: string; tunnels: string; edges: string[]; perilesional: string[]; tissue: Record<string, number>; exudateAmount: string; exudateType: string; odor: string; infection: string[]; pain: number | null; assessments: Assessment[]; dressings: Dressing[]; therapies: Therapy[]; photos: Photo[]; plan: string; guidance: string; returnDate: string; returnTime?: string; signature: Point[][]; signedBy: string; soap?: SOAPNote; vitals?: { systolic: string; diastolic: string; heartRate: string; temperature: string; oxygen: string; glucose: string }; updatedAt?: string; authorUserId?: string; completedAt?: string; completedBy?: { userId: string; name: string; council: string; registration: string }; amendments?: { id: string; text: string; createdAt: string; author: { userId: string; name: string; council: string; registration: string } }[]; reminderId?: string; reminderStatus?: 'scheduled' | 'denied' | 'error' | 'unsupported' | 'none'; deletedAt?: string };
 export type Report = { id: string; visitId: string; patientId: string; type: 'Completo' | 'Para o paciente' | 'Encaminhamento'; createdAt: string; uri?: string; storagePath?: string; snapshot: { patient: Patient; wound: Wound; visit: Visit; profile: Profile; previous?: Visit } };
 export type Profile = { id: string; name: string; council: string; registration: string; specialty: string };
 export type Product = { id: string; name: string; presentation: string };
-export type Entities = { patients: Patient; wounds: Wound; visits: Visit; reports: Report; profiles: Profile; products: Product; care_plans: CarePlan; referrals: Referral; documents: PatientDocument };
+export type Entities = { patients: Patient; wounds: Wound; visits: Visit; reports: Report; profiles: Profile; products: Product; care_plans: CarePlan; referrals: Referral; documents: PatientDocument; inventory_items: InventoryItem; inventory_movements: InventoryMovement; clinical_templates: ClinicalTemplate; consents: PatientConsent; prescriptions: Prescription };
 export type EntityKind = keyof Entities;
 export type Data = { [K in EntityKind]: Entities[K][] };
 export type QueueItem = { id: string; kind: EntityKind; entityId: string; payload: unknown; version: number; baseVersion: number; attempts: number; error?: string };

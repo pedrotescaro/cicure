@@ -12,9 +12,9 @@ Este é o **escopo alvo**, não uma declaração de que as capacidades já estej
 
 ## Estado atual e política de ativação
 
-O app mantém rascunhos e cadastros em armazenamento local, mas ainda não vincula esse armazenamento a uma conta autenticada. A autenticação, o isolamento entre usuários, o schema/RLS, o transporte privado de mídia e a sincronização confiável dependem das issues #4–#9. Não use dados de pacientes reais nesta versão. A instalação limpa não deve criar registros clínicos, consentimentos, sessões ou organizações fictícias.
+A versão 1.1.0 vincula os registros à conta autenticada, com SQLite no Android, fila persistente, RPCs e autorização no Supabase. O atendimento salva evolução e sinais vitais, recupera rascunhos e permite conclusão com autoria e adendos preservados. A confirmação do registro não equivale a assinatura digital certificada. A instalação limpa não cria dados clínicos ou equipes fictícios.
 
-Plano terapêutico, prescrição, consentimentos, documentos, encaminhamentos, auditoria de sessões, clínicas/equipes, estoque e templates mostram indisponibilidade até terem persistência, autorização e validação correspondentes. Suas bases de código e schema permanecem para implementação posterior. O fluxo de atendimento permite rascunho local; a conclusão/assinatura está desativada até #13. A interpretação WIfI e campos de sinais vitais sem persistência estão desativados até #14 e revisão clínica.
+Planos de cuidado, prescrições revisadas, consentimentos, documentos privados, encaminhamentos, histórico, sessões reais, clínicas/equipes, estoque e modelos possuem interface e persistência. O acesso a uma clínica exige conexão e verificação atual da associação; o espaço individual pode continuar sem internet. Consulte o inventário e a evidência da entrega para os limites dos testes. A interpretação WIfI continua suspensa. Não há homologação clínica/regulatória ou piloto assistencial comprovados; utilize dados sintéticos na validação.
 
 ## Decisão clínica e regulatória pendente
 
@@ -22,4 +22,8 @@ A finalidade pretendida acima precisa ser aprovada por Pedro e revisada com prof
 
 ## Marca e plataforma
 
-Wordmark `cicure` em Comfortaa Bold e vermelho `#D62828`, sem símbolo acompanhante. React Native, Expo SDK 57, Expo Router, SQLite e Supabase planejado para Auth/Postgres/Storage/RLS. A interface é pt-BR e segue [DESIGN.md](DESIGN.md).
+Wordmark `cicure` em Comfortaa Bold e vermelho `#D62828`, sem símbolo acompanhante. React Native, Expo SDK 57, Expo Router, SQLite e Supabase Auth/Postgres/Storage/RLS. A interface é pt-BR e segue [DESIGN.md](DESIGN.md).
+
+## Platform
+
+Android. A web é uma prévia de desenvolvimento; a distribuição iOS continua sem homologação de dispositivo ou assinatura.

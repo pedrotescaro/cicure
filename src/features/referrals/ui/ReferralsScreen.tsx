@@ -1,242 +1,55 @@
-import React, { useState } from 'react';
-import { Alert, FlatList, Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ChevronLeft, Plus, Check, X } from 'lucide-react-native';
-import { useStore, uid } from '../../../data/store';
-import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Txt, safeBack, s } from '../../../ui/components';
-import { fonts, useTheme } from '../../../ui/theme';
-import { REFERRAL_SPECIALTIES, type Referral, type ReferralPriority, type ReferralStatus } from '../domain/types';
+import { useState } from 'react';
+import { View } from 'react-native';
+import { uid, useStore } from '../../../data/store';
+import { Badge, Button, Card, Choices, Empty, Field, Txt } from '../../../ui/components';
+import { SupportMessage, SupportPage, supportStyles as s } from '../../support/ui/SupportPage';
+import { REFERRAL_SPECIALTIES, type ReferralPriority, type ReferralStatus } from '../domain/types';
 
-const STATUS_TONES: Record<ReferralStatus, 'neutral' | 'red' | 'green' | 'amber'> = {
-  solicitado: 'amber',
-  agendado: 'neutral',
-  realizado: 'green',
-  cancelado: 'red'
-};
-
+const labels: Record<ReferralStatus, string> = { solicitado: 'Solicitado', agendado: 'Agendado', realizado: 'Realizado', cancelado: 'Cancelado' };
 export default function ReferralsScreen({ patientId }: { patientId: string }) {
-  const router = useRouter();
-  const { colors: c } = useTheme();
   const store = useStore();
-  const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
-  const wounds = useStore(st => st.data.wounds).filter(w => w.patientId === patientId);
-  const referrals = useStore(st => st.data.referrals).filter(r => r.patientId === patientId);
-
-  const [modalVisible, setModalVisible] = useState(false);
-  const [specialty, setSpecialty] = useState<string>('Cirurgia Vascular');
+  const patient = store.data.patients.find(p => p.id === patientId && !p.deletedAt);
+  const wounds = store.data.wounds.filter(w => w.patientId === patientId && !w.deletedAt);
+  const referrals = store.data.referrals.filter(r => r.patientId === patientId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const [open, setOpen] = useState(false);
+  const [specialty, setSpecialty] = useState('');
+  const [woundId, setWoundId] = useState('');
   const [destination, setDestination] = useState('');
   const [reason, setReason] = useState('');
   const [observations, setObservations] = useState('');
-  const [priority, setPriority] = useState<ReferralPriority>('Prioritário');
-
-  if (!patient) {
-    return (
-      <View style={[styles.center, { backgroundColor: c.bg }]}>
-        <Empty title="Paciente não encontrado" description="Volte para a lista." action="Voltar" onPress={() => safeBack(router, '/patients')} />
-      </View>
-    );
-  }
-
-  const handleCreate = async () => {
-    if (!reason.trim() || !destination.trim()) {
-      Alert.alert('Dados Incompletos', 'Informe o serviço/profissional de destino e o motivo do encaminhamento.');
-      return;
-    }
-    const newRef: Referral = {
-      id: uid(),
-      patientId,
-      woundId: wounds[0]?.id,
-      specialty,
-      destinationService: destination.trim(),
-      reason: reason.trim(),
-      observations: observations.trim(),
-      priority,
-      status: 'solicitado',
-      date: new Date().toISOString().slice(0, 10),
-      createdAt: new Date().toISOString(),
-      createdBy: store.authUserId || ''
-    };
-
-    try {
-      await store.save('referrals', newRef);
-      setModalVisible(false);
-      setDestination('');
-      setReason('');
-      setObservations('');
-      Alert.alert('Registro salvo', 'O encaminhamento foi salvo no prontuário. Nenhum envio ao destino foi realizado.');
-    } catch { Alert.alert('Não foi possível salvar', 'Confira o armazenamento e tente novamente.'); }
+  const [priority, setPriority] = useState<ReferralPriority | ''>('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const save = async () => {
+    setError(''); setNotice('');
+    if (!destination.trim() || !reason.trim() || !specialty || !priority) { setError('Informe especialidade, destino, motivo e prioridade definidos por você.'); return; }
+    setBusy(true);
+    try { await store.save('referrals', { id: uid(), patientId, woundId: woundId || undefined, specialty, destinationService: destination.trim(), reason: reason.trim(), observations: observations.trim(), priority, status: 'solicitado', date: new Date().toISOString().slice(0, 10), createdAt: new Date().toISOString(), createdBy: store.authUserId || '' });
+      setOpen(false); setDestination(''); setReason(''); setObservations(''); setSpecialty(''); setPriority(''); setNotice('Encaminhamento registrado no prontuário. Combine o agendamento com o serviço de destino.');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Encaminhamento não salvo. Tente novamente.'); }
+    finally { setBusy(false); }
   };
-
-  const handleUpdateStatus = async (id: string, newStatus: ReferralStatus) => {
-    const referral = referrals.find(r => r.id === id);
-    if (!referral || referral.status === newStatus) return;
-    try { await store.save('referrals', { ...referral, status: newStatus }); }
-    catch { Alert.alert('Status não salvo', 'Tente novamente.'); }
+  const updateStatus = async (id: string, status: ReferralStatus) => {
+    const referral = referrals.find(r => r.id === id); if (!referral || referral.status === status) return;
+    try { await store.save('referrals', { ...referral, status }); setNotice(`Situação atualizada para ${labels[status].toLowerCase()}.`); }
+    catch { setError('Não foi possível atualizar a situação. Tente novamente.'); }
   };
-
-  return (
-    <View style={[styles.container, { backgroundColor: c.bg }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Encaminhamentos</Txt>
-          <Txt muted style={{ fontSize: 13 }}>{patient.name} · Rede de Cuidado Interprofissional</Txt>
-        </View>
-        <IconButton 
-          icon={Plus} 
-          label="Novo" 
-          onPress={() => setModalVisible(true)} 
-        />
-      </View>
-
-      <FlatList
-        data={referrals}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.content}
-        renderItem={({ item }) => (
-          <Card style={styles.refCard}>
-            <View style={s.between}>
-              <Badge tone={STATUS_TONES[item.status]}>{item.status.toUpperCase()}</Badge>
-              <Badge tone={item.priority === 'Urgente' ? 'red' : item.priority === 'Prioritário' ? 'amber' : 'neutral'}>
-                {item.priority}
-              </Badge>
-            </View>
-
-            <View style={{ gap: 2 }}>
-              <Txt style={styles.specialtyTitle}>{item.specialty}</Txt>
-              <Txt muted style={{ fontSize: 13 }}>Destino: {item.destinationService}</Txt>
-            </View>
-
-            <View style={[styles.boxReason, { backgroundColor: c.surfaceSubtle, borderColor: c.border }]}>
-              <Txt style={{ fontFamily: fonts.medium, fontSize: 13 }}>Motivo Clínico:</Txt>
-              <Txt style={{ fontSize: 13, lineHeight: 18 }}>{item.reason}</Txt>
-              {item.observations ? (
-                <Txt muted style={{ fontSize: 12, marginTop: 4 }}>Obs: {item.observations}</Txt>
-              ) : null}
-            </View>
-
-            {/* Controle de Status */}
-            <View style={[styles.actionsBar, { borderTopColor: c.border }]}>
-              <Txt muted style={{ fontSize: 11 }}>Alterar status:</Txt>
-              <View style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
-                {(['solicitado', 'agendado', 'realizado', 'cancelado'] as ReferralStatus[]).map(st => (
-                  <Button 
-                    key={st}
-                    title={st}
-                    variant={item.status === st ? 'dark' : 'outline'}
-                    small
-                    onPress={() => { void handleUpdateStatus(item.id, st); }}
-                    style={{ minHeight: 48, paddingHorizontal: 12 }}
-                  />
-                ))}
-              </View>
-            </View>
-          </Card>
-        )}
-        ListEmptyComponent={
-          <Empty 
-            title="Nenhum encaminhamento registrado" 
-            description="Encaminhe o paciente para angiologia, infectologia, nutrição ou outras especialidades."
-            action="Criar Encaminhamento"
-            onPress={() => setModalVisible(true)}
-          />
-        }
-      />
-
-      {/* Modal Novo Encaminhamento */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <ScrollView keyboardShouldPersistTaps="handled" style={[styles.modalContent, { backgroundColor: c.surface }]} contentContainerStyle={{ gap: 14 }}>
-            <View style={s.between}>
-              <Txt style={{ fontFamily: fonts.brand, fontSize: 20 }}>Novo Encaminhamento</Txt>
-              <IconButton icon={X} label="Fechar" onPress={() => setModalVisible(false)} />
-            </View>
-
-            <View style={{ gap: 6 }}>
-              <Label>Especialidade de Destino</Label>
-              <Choices 
-                options={REFERRAL_SPECIALTIES as unknown as string[]} 
-                value={specialty} 
-                onChange={v => setSpecialty(v)} 
-              />
-            </View>
-
-            <Field 
-              label="Serviço / Profissional / Hospital" 
-              placeholder="Ex.: Ambulatório de Angiologia HCFMUSP" 
-              value={destination} 
-              onChangeText={setDestination} 
-            />
-
-            <Field 
-              label="Motivo do Encaminhamento" 
-              multiline 
-              placeholder="Justificativa clínica, hipótese diagnóstica e exames solicitados..." 
-              value={reason} 
-              onChangeText={setReason} 
-            />
-
-            <Field 
-              label="Observações Adicionais" 
-              value={observations} 
-              onChangeText={setObservations} 
-              placeholder="Ex.: Paciente com dificuldade de locomoção" 
-            />
-
-            <View style={{ gap: 6 }}>
-              <Label>Prioridade Clínica</Label>
-              <Choices 
-                options={['Rotina', 'Prioritário', 'Urgente']} 
-                value={priority} 
-                onChange={v => setPriority(v as ReferralPriority)} 
-              />
-            </View>
-
-            <Button 
-              title="Registrar Encaminhamento" 
-              icon={Check} 
-              onPress={() => { void handleCreate(); }}
-            />
-          </ScrollView>
-        </View>
-      </Modal>
-    </View>
-  );
+  return <SupportPage title="Encaminhamentos" subtitle={patient?.name} backTo={`/patient/${patientId}`}>
+    {!patient ? <Empty title="Paciente não encontrado" description="Volte ao prontuário para escolher um paciente." /> : <>
+      <Txt style={s.body}>Registre a avaliação de outro serviço ou profissional que você solicitou. Acompanhe aqui se o atendimento foi agendado ou realizado.</Txt>
+      <Button title={open ? 'Fechar novo encaminhamento' : 'Registrar encaminhamento'} variant="outline" onPress={() => setOpen(!open)} /><SupportMessage error>{error}</SupportMessage><SupportMessage>{notice}</SupportMessage>
+      {open && <View style={s.section}>
+        <Txt style={s.heading}>Novo encaminhamento</Txt><Txt>Especialidade de destino *</Txt><Choices options={[...REFERRAL_SPECIALTIES]} value={specialty} onChange={setSpecialty} />
+        <Field label="Serviço, profissional ou hospital *" value={destination} onChangeText={setDestination} />
+        <Field label="Motivo do encaminhamento *" value={reason} onChangeText={setReason} multiline />
+        <Field label="Observações adicionais" value={observations} onChangeText={setObservations} multiline />
+        <Txt>Prioridade definida pelo profissional *</Txt><Choices options={['Rotina', 'Prioritário', 'Urgente']} value={priority} onChange={setPriority} />
+        {!!wounds.length && <><Txt>Relacionar a uma ferida (opcional)</Txt><Button title="Sem ferida específica" variant={!woundId ? 'dark' : 'outline'} onPress={() => setWoundId('')} />{wounds.map(wound => <Button key={wound.id} title={wound.location} variant={woundId === wound.id ? 'dark' : 'outline'} onPress={() => setWoundId(wound.id)} />)}</>}
+        <Button title="Salvar encaminhamento" loading={busy} onPress={() => void save()} />
+      </View>}
+      {!referrals.length && !open && <Empty title="Nenhum encaminhamento salvo" description="Quando você solicitar avaliação por outro serviço, registre os detalhes e acompanhe a situação por aqui." />}
+      {referrals.map(referral => <Card key={referral.id} style={{ borderRadius: 16 }}><Badge tone={referral.status === 'realizado' ? 'green' : referral.status === 'cancelado' ? 'red' : 'neutral'}>{labels[referral.status]} · {referral.priority}</Badge><Txt style={s.heading}>{referral.specialty}</Txt><Txt>Destino: {referral.destinationService}</Txt><Txt style={s.body}>{referral.reason}</Txt>{!!referral.observations && <Txt muted>{referral.observations}</Txt>}<Txt muted>Registrado em {new Date(referral.createdAt).toLocaleDateString('pt-BR')}</Txt><Txt>Atualizar situação</Txt><Choices options={Object.values(labels)} value={labels[referral.status]} onChange={value => { const status = (Object.keys(labels) as ReferralStatus[]).find(key => labels[key] === value)!; void updateStatus(referral.id, status); }} /></Card>)}
+    </>}
+  </SupportPage>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
-  content: { padding: 16, gap: 12, paddingBottom: 100 },
-  refCard: { gap: 12, marginBottom: 8 },
-  specialtyTitle: { fontFamily: fonts.semibold, fontSize: 16 },
-  boxReason: {
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 4,
-  },
-  actionsBar: { gap: 6, borderTopWidth: 1, paddingTop: 8 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '90%',
-    padding: 20,
-  },
-});

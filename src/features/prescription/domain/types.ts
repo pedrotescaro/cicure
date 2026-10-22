@@ -24,4 +24,7 @@ export type Prescription = {
   version: number;
   createdAt: string;
   createdBy: string;
+  status?: 'draft' | 'reviewed' | 'archived';
+  reviewedAt?: string;
+  previousId?: string;
 };

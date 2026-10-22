@@ -42,7 +42,7 @@ function harness(platform) {
       const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } }).outputText;
       const localRequire = name => {
         if (mocks[name]) return mocks[name];
-        if (name === './supabase') return { get supabase() { return cloud; } };
+        if (name === './supabase') return { get supabase() { return cloud; }, createAccountClient: async () => cloud };
         if (name.endsWith('organization.service')) return { INDIVIDUAL_ORG: { id: 'individual', isIndividual: true }, DEFAULT_ORGS: [] };
         if (!name.startsWith('.')) return require(name);
         let next = path.resolve(path.dirname(file), name);

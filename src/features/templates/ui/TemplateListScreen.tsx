@@ -1,267 +1,66 @@
-import React, { useState } from 'react';
-import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { 
-  ChevronLeft, 
-  Plus, 
-  Bookmark, 
-  Copy, 
-  Trash2, 
-  Sparkles, 
-  X, 
-  Check 
-} from 'lucide-react-native';
-import { Badge, Button, Card, Choices, Empty, Field, IconButton, Label, Pills, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
-import { colors as c, fonts, useTheme } from '../../../ui/theme';
-import { DEFAULT_TEMPLATES, createTemplate, duplicateTemplate } from '../domain/template.service';
-import type { ClinicalTemplate, TemplateType } from '../domain/types';
+import { useState } from 'react';
+import { Alert, View } from 'react-native';
+import { useStore } from '../../../data/store';
+import { Badge, Button, Card, Choices, Empty, Field, Txt } from '../../../ui/components';
+import { SupportMessage, SupportPage, supportStyles as s } from '../../support/ui/SupportPage';
+import { createTemplate, duplicateTemplate } from '../domain/template.service';
+import { TEMPLATE_TYPE_LABELS, type ClinicalTemplate, type TemplateType } from '../domain/types';
 
-const TYPE_PILLS = [
-  'Todos',
-  'Curativos',
-  'Fotobiomodulação',
-  'Orientações',
-  'Condutas',
-  'Prescrições'
-];
-
-const PILL_TYPE_MAP: Record<string, TemplateType | 'todos'> = {
-  'Todos': 'todos',
-  'Curativos': 'curativo',
-  'Fotobiomodulação': 'fotobiomodulacao',
-  'Orientações': 'orientacoes',
-  'Condutas': 'conduta',
-  'Prescrições': 'prescricao'
-};
-
+const types: TemplateType[] = ['orientacoes', 'conduta', 'curativo', 'prescricao'];
 export default function TemplateListScreen() {
-  const router = useRouter();
-  const { colors: c } = useTheme();
-  const [templates, setTemplates] = useState<ClinicalTemplate[]>(DEFAULT_TEMPLATES);
-  const [selectedPill, setSelectedPill] = useState('Todos');
-  const [scopeFilter, setScopeFilter] = useState<'todos' | 'personal' | 'organization'>('todos');
-  const [modalVisible, setModalVisible] = useState(false);
-
-  // Form states do novo template
-  const [newName, setNewName] = useState('');
-  const [newType, setNewType] = useState<TemplateType>('curativo');
-  const [newDesc, setNewDesc] = useState('');
-  const [newContentText, setNewContentText] = useState('');
-  const [newScope, setNewScope] = useState<'personal' | 'organization'>('personal');
-
-  const filtered = templates.filter(t => {
-    const typeFilter = PILL_TYPE_MAP[selectedPill] || 'todos';
-    if (typeFilter !== 'todos' && t.type !== typeFilter) return false;
-    if (scopeFilter !== 'todos' && t.scope !== scopeFilter) return false;
-    return true;
-  });
-
-  const handleCreate = () => {
-    if (!newName.trim()) {
-      Alert.alert('Atenção', 'Informe o nome do template.');
-      return;
-    }
-    const created = createTemplate({
-      name: newName.trim(),
-      type: newType,
-      description: newDesc.trim(),
-      content: { text: newContentText.trim() },
-      scope: newScope,
-      createdBy: 'Você'
-    });
-
-    setTemplates(prev => [created, ...prev]);
-    setModalVisible(false);
-    setNewName('');
-    setNewDesc('');
-    setNewContentText('');
-    Alert.alert('Sucesso', 'Template clínico criado com sucesso!');
+  const store = useStore();
+  const [editing, setEditing] = useState<ClinicalTemplate | 'new' | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [type, setType] = useState<TemplateType>('orientacoes');
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState('');
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const templates = store.data.clinical_templates.filter(t => !t.deletedAt && t.scope === 'personal');
+  const openEditor = (template: ClinicalTemplate | 'new') => {
+    setEditing(template); setError(''); setNotice('');
+    setName(template === 'new' ? '' : template.name); setDescription(template === 'new' ? '' : template.description);
+    setType(template === 'new' ? 'orientacoes' : template.type);
+    setText(template === 'new' ? '' : String(template.content.text || template.content.guidance || template.content.plan || template.content.observations || ''));
   };
-
-  const handleDuplicate = (tpl: ClinicalTemplate) => {
-    const dup = duplicateTemplate(tpl);
-    setTemplates(prev => [dup, ...prev]);
-    Alert.alert('Duplicado', `Cópia de "${tpl.name}" foi adicionada aos seus templates.`);
+  const save = async () => {
+    setError(''); setNotice(''); setBusy(true);
+    try {
+      const content = { text: text.trim(), ...(type === 'orientacoes' ? { guidance: text.trim() } : type === 'conduta' ? { plan: text.trim() } : { observations: text.trim() }) };
+      const created = createTemplate({ name, type, description, content, createdBy: store.authUserId || '' });
+      await store.save('clinical_templates', editing && editing !== 'new' ? { ...editing, name: created.name, type, description: created.description, content, updatedAt: created.updatedAt } : created);
+      setEditing(null); setNotice('Modelo salvo. Ao aplicar, revise o conteúdo para cada paciente.');
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Modelo não salvo. Tente novamente.'); }
+    finally { setBusy(false); }
   };
-
-  const handleDelete = (id: string) => {
-    Alert.alert(
-      'Excluir Template',
-      'Tem certeza de que deseja remover este modelo clínico?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Excluir', 
-          style: 'destructive', 
-          onPress: () => {
-            setTemplates(prev => prev.filter(t => t.id !== id));
-          } 
-        }
-      ]
-    );
+  const duplicate = async (template: ClinicalTemplate) => {
+    try { await store.save('clinical_templates', duplicateTemplate(template, store.authUserId || '')); setNotice('Cópia salva na sua lista.'); }
+    catch { setError('Não foi possível duplicar o modelo. Tente novamente.'); }
   };
-
-  return (
-    <View style={[styles.container, { backgroundColor: c.bg }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Biblioteca de Modelos</Txt>
-          <Txt muted style={{ fontSize: 13 }}>Protocolos padronizados de curativos e condutas</Txt>
-        </View>
-        <IconButton icon={Plus} label="Novo" onPress={() => setModalVisible(true)} />
-      </View>
-
-      {/* Filtros em Pills */}
-      <View style={[styles.filterBar, { borderBottomColor: c.border }]}>
-        <Pills 
-          options={TYPE_PILLS} 
-          value={selectedPill} 
-          onChange={setSelectedPill} 
-        />
-      </View>
-
-      {/* Lista */}
-      <FlatList
-        data={filtered}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <Card style={styles.templateCard}>
-            <View style={s.between}>
-              <Badge tone="green">{item.type.toUpperCase()}</Badge>
-              <View style={s.row}>
-                <IconButton 
-                  icon={Copy} 
-                  label="Duplicar" 
-                  onPress={() => handleDuplicate(item)} 
-                  style={{ width: 36, height: 36 }}
-                />
-                <IconButton 
-                  icon={Trash2} 
-                  label="Excluir" 
-                  color={c.red} 
-                  onPress={() => handleDelete(item.id)} 
-                  style={{ width: 36, height: 36 }}
-                />
-              </View>
-            </View>
-
-            <Txt style={styles.cardName}>{item.name}</Txt>
-            <Txt muted style={{ fontSize: 13, lineHeight: 18 }}>{item.description}</Txt>
-
-            <View style={[styles.cardFooter, { borderTopColor: c.border }]}>
-              <Txt muted style={{ fontSize: 11 }}>Autor: {item.createdBy}</Txt>
-              <Txt muted style={{ fontSize: 11 }}>Atualizado em {item.updatedAt.slice(0, 10)}</Txt>
-            </View>
-          </Card>
-        )}
-        ListEmptyComponent={
-          <Empty 
-            title="Nenhum template encontrado" 
-            description="Crie modelos de curativos, orientações e condutas para poupar tempo no atendimento."
-            action="Criar Template"
-            onPress={() => setModalVisible(true)}
-          />
-        }
-      />
-
-      {/* Modal Criar Template */}
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: c.surface }]}>
-            <View style={s.between}>
-              <Txt style={{ fontFamily: fonts.brand, fontSize: 20 }}>Novo Template Clínico</Txt>
-              <IconButton icon={X} label="Fechar" onPress={() => setModalVisible(false)} />
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 14 }}>
-              <Field 
-                label="Nome do Template" 
-                placeholder="Ex.: Curativo Padrão Úlcera Venosa Exsudativa" 
-                value={newName} 
-                onChangeText={setNewName} 
-              />
-
-              <View style={{ gap: 6 }}>
-                <Label>Tipo de Template</Label>
-                <Choices 
-                  options={['curativo', 'fotobiomodulacao', 'orientacoes', 'conduta', 'prescricao']} 
-                  value={newType} 
-                  onChange={v => setNewType(v as TemplateType)} 
-                />
-              </View>
-
-              <Field 
-                label="Descrição / Indicação Clínica" 
-                placeholder="Ex.: Para pacientes com alto exsudato serossanguinolento..." 
-                value={newDesc} 
-                onChangeText={setNewDesc} 
-              />
-
-              <Field 
-                label="Conteúdo / Conduta / Orientações" 
-                multiline 
-                placeholder="Descreva a sequência de produtos, orientações e parâmetros..." 
-                value={newContentText} 
-                onChangeText={setNewContentText} 
-              />
-
-              <View style={{ gap: 6 }}>
-                <Label>Visibilidade / Compartilhamento</Label>
-                <Choices 
-                  options={['Uso pessoal', 'Compartilhar com a clínica']} 
-                  value={newScope === 'personal' ? 'Uso pessoal' : 'Compartilhar com a clínica'} 
-                  onChange={v => setNewScope(v === 'Uso pessoal' ? 'personal' : 'organization')} 
-                />
-              </View>
-
-              <Button 
-                title="Salvar Template" 
-                icon={Check} 
-                onPress={handleCreate} 
-              />
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    </View>
-  );
+  const remove = (template: ClinicalTemplate) => Alert.alert('Excluir modelo?', 'O modelo deixará de aparecer para novos atendimentos. Registros já salvos serão preservados.', [
+    { text: 'Cancelar', style: 'cancel' }, { text: 'Excluir modelo', style: 'destructive', onPress: () => { void store.save('clinical_templates', { ...template, deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).catch(() => setError('Modelo não excluído. Tente novamente.')); } },
+  ]);
+  return <SupportPage title="Modelos de atendimento" subtitle="Guarde textos que você costuma usar. Todo conteúdo é escrito e revisado por você.">
+    <Button title={editing ? 'Fechar edição' : 'Criar modelo'} variant="outline" onPress={() => editing ? setEditing(null) : openEditor('new')} />
+    <SupportMessage error>{error}</SupportMessage><SupportMessage>{notice}</SupportMessage>
+    {!!editing && <View style={s.section}>
+      <Txt style={s.heading}>{editing === 'new' ? 'Novo modelo pessoal' : 'Editar modelo'}</Txt>
+      <Field label="Nome do modelo *" value={name} onChangeText={setName} placeholder="Ex.: Orientações após a consulta" />
+      <Txt>Onde você pretende usar?</Txt><Choices options={types.map(t => TEMPLATE_TYPE_LABELS[t])} value={TEMPLATE_TYPE_LABELS[type]} onChange={v => setType(types.find(t => TEMPLATE_TYPE_LABELS[t] === v)!)} />
+      <Field label="Descrição" value={description} onChangeText={setDescription} />
+      <Field label="Texto do modelo *" value={text} onChangeText={setText} multiline />
+      <Button title="Salvar modelo" loading={busy} onPress={() => void save()} />
+    </View>}
+    <Field label="Buscar nos seus modelos" value={search} onChangeText={setSearch} placeholder="Digite o nome do modelo" />
+    {templates.filter(t => t.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR'))).map(template => <Card key={template.id} style={{ borderRadius: 16 }}>
+      <Badge>{TEMPLATE_TYPE_LABELS[template.type]}</Badge><Txt style={s.heading}>{template.name}</Txt>{!!template.description && <Txt muted>{template.description}</Txt>}
+      <Txt style={s.body}>{String(template.content.text || template.content.guidance || template.content.plan || template.content.observations || 'Modelo estruturado salvo na prescrição.')}</Txt>
+      <Txt muted>Atualizado em {new Date(template.updatedAt).toLocaleDateString('pt-BR')}</Txt>
+      <Button title={`Editar ${template.name}`} variant="outline" onPress={() => openEditor(template)} /><Button title="Criar uma cópia" variant="ghost" onPress={() => void duplicate(template)} /><Button title="Excluir modelo" variant="ghost" onPress={() => remove(template)} />
+    </Card>)}
+    {!templates.length && !editing && <Empty title="Seus textos, sempre à mão" description="Crie seu primeiro modelo. Você poderá aplicá-lo e revisar durante o atendimento." action="Criar primeiro modelo" onPress={() => openEditor('new')} />}
+    {!!templates.length && !templates.some(t => t.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR'))) && <Txt muted>Nenhum modelo com esse nome. Tente outra busca.</Txt>}
+  </SupportPage>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
-  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
-  listContent: { padding: 16, gap: 14, paddingBottom: 100 },
-  templateCard: { gap: 10 },
-  cardName: { fontFamily: fonts.semibold, fontSize: 16 },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    paddingTop: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: '90%',
-    padding: 20,
-    gap: 16,
-  },
-});

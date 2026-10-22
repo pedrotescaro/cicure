@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as Network from 'expo-network';
 import { useStore } from './store';
@@ -82,8 +82,9 @@ export function useNetworkStatus() {
 
     // Polling periodico leve para Mobile
     const interval = setInterval(async () => {
+      const previous = currentState.isOnline;
       const next = await checkNetworkStatus();
-      if (next.isOnline !== currentState.isOnline) {
+      if (next.isOnline !== previous) {
         notifyNetworkChange(next);
       }
     }, 8000);

@@ -3,7 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import type { LayoutRectangle } from 'react-native';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { BlurView } from 'expo-blur';
-import { ClipboardList, FileText, House, Menu, Stethoscope } from 'lucide-react-native';
+import { CalendarDays, ClipboardList, FileText, House, Menu } from 'lucide-react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnUI } from 'react-native-worklets';
 import { fonts, useTheme } from '../theme';
@@ -13,9 +13,9 @@ import { useMotionPreferences } from '../useMotionPreferences';
 const tabItems = {
   index: { label: 'Início', Icon: House },
   patients: { label: 'Pacientes', Icon: ClipboardList },
-  care: { label: 'Atendimento', Icon: Stethoscope },
+  care: { label: 'Agenda', Icon: CalendarDays },
   reports: { label: 'Relatórios', Icon: FileText },
-  more: { label: 'Mais', Icon: Menu },
+  more: { label: 'Menu', Icon: Menu },
 } as const;
 
 type Props = BottomTabBarProps & { blurTarget: RefObject<View | null> };
@@ -24,7 +24,8 @@ type MeasuredItem = LayoutRectangle & { barWidth: number };
 export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarget }: Props) {
   const { isDark } = useTheme();
   const glassColors = getGlassColors(isDark);
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, fontScale } = useWindowDimensions();
+  const barHeight = metrics.height + Math.max(0, fontScale - 1) * 52;
   const { reduceMotion, reduceTransparency } = useMotionPreferences();
   const [layouts, setLayouts] = useState<Record<string, MeasuredItem>>({});
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
@@ -46,28 +47,28 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
     const center = x + itemWidth / 2;
     const targetLeft = center - lensWidth / 2;
     const targetRight = center + lensWidth / 2;
-    const movingRight = center >= (left.value + right.value) / 2;
+    const movingRight = center >= (left.get() + right.get()) / 2;
     cancelAnimation(left);
     cancelAnimation(right);
     cancelAnimation(inflation);
-    restingWidth.value = lensWidth;
-    if (immediate || visible.value === 0) {
-      left.value = targetLeft;
-      right.value = targetRight;
-      inflation.value = 0;
+    restingWidth.set(lensWidth);
+    if (immediate || visible.get() === 0) {
+      left.set(targetLeft);
+      right.set(targetRight);
+      inflation.set(0);
     } else {
-      left.value = movingRight
+      left.set(movingRight
         ? withDelay(liquidMotion.trailingDelay, withSpring(targetLeft, liquidMotion.trailing))
-        : withSpring(targetLeft, liquidMotion.leading);
-      right.value = movingRight
+        : withSpring(targetLeft, liquidMotion.leading));
+      right.set(movingRight
         ? withSpring(targetRight, liquidMotion.leading)
-        : withDelay(liquidMotion.trailingDelay, withSpring(targetRight, liquidMotion.trailing));
-      inflation.value = withSequence(
+        : withDelay(liquidMotion.trailingDelay, withSpring(targetRight, liquidMotion.trailing)));
+      inflation.set(withSequence(
         withTiming(1, { duration: liquidMotion.inflateDuration }),
         withSpring(0, liquidMotion.inflationSpring),
-      );
+      ));
     }
-    visible.value = 1;
+    visible.set(1);
   }, [left, right, restingWidth, visible, inflation]);
 
   useEffect(() => {
@@ -79,17 +80,17 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
   }, [moveLens, selectedLayout, reduceMotion, barWidth]);
 
   const lensStyle = useAnimatedStyle(() => {
-    const base = restingWidth.value;
-    const width = Math.max(base * 0.94, Math.min(Math.abs(right.value - left.value) + inflation.value * base * 0.16, base * liquidMotion.maxStretch));
+    const base = restingWidth.get();
+    const width = Math.max(base * 0.94, Math.min(Math.abs(right.get() - left.get()) + inflation.get() * base * 0.16, base * liquidMotion.maxStretch));
     const stretch = Math.max(0, Math.min(1, (width / base - 1) / (liquidMotion.maxStretch - 1)));
-    const height = metrics.lensHeight + inflation.value * liquidMotion.inflation - stretch * liquidMotion.squash;
+    const height = metrics.lensHeight + inflation.get() * liquidMotion.inflation - stretch * liquidMotion.squash;
     return {
       width,
       height,
       borderRadius: height / 2,
-      opacity: visible.value * (1 - stretch * 0.22),
+      opacity: visible.get() * (1 - stretch * 0.22),
       transform: [
-        { translateX: (left.value + right.value) / 2 - width / 2 },
+        { translateX: (left.get() + right.get()) / 2 - width / 2 },
         { translateY: metrics.lensCenterY - height / 2 },
       ],
     };
@@ -102,6 +103,7 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
         styles.position,
         {
           width: barWidth,
+          height: barHeight,
           left: barLeft,
           bottom: tabBarBottom(insets.bottom),
           shadowColor: glassColors.shadow,
@@ -176,6 +178,7 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
               onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
               style={({ pressed }) => [
                 styles.tab,
+                { height: barHeight - 2 },
                 pressed && { backgroundColor: glassColors.lens },
                 focusedKey === route.key && { borderColor: glassColors.active },
               ]}
@@ -184,14 +187,10 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
                 <Icon size={22} color={active ? glassColors.active : glassColors.inactive} strokeWidth={active ? 2.3 : 1.8} />
               </View>
               <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.8}
-                maxFontSizeMultiplier={1.25}
                 style={[
                   styles.label,
                   { color: active ? glassColors.active : glassColors.inactive },
-                  screenWidth < 380 && { fontSize: 10, lineHeight: 14 },
+                  screenWidth < 380 && { fontSize: 11 },
                   active && styles.activeLabel,
                 ]}
               >
@@ -254,6 +253,6 @@ const styles = StyleSheet.create({
     borderRadius: 26,
   },
   icon: { height: 28, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: fonts.medium, fontSize: 11, lineHeight: 16, marginTop: 5 },
+  label: { fontFamily: fonts.medium, fontSize: 12, marginTop: 4, textAlign: 'center' },
   activeLabel: { fontFamily: fonts.semibold },
 });

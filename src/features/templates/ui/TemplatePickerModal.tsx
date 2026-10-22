@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Bookmark, Check, Sparkles, X } from 'lucide-react-native';
-import { Badge, Card, Empty, Field, IconButton, Label, Txt, s } from '../../../ui/components';
+import { Sparkles, X } from 'lucide-react-native';
+import { Badge, Empty, Field, IconButton, Txt, s } from '../../../ui/components';
 import { fonts, useTheme } from '../../../ui/theme';
-import { DEFAULT_TEMPLATES } from '../domain/template.service';
+import { useStore } from '../../../data/store';
 import type { ClinicalTemplate, TemplateType } from '../domain/types';
 
 export function TemplatePickerModal({
@@ -20,7 +20,9 @@ export function TemplatePickerModal({
   const { colors } = useTheme();
   const [search, setSearch] = useState('');
 
-  const filtered = DEFAULT_TEMPLATES.filter(t => {
+  const templates = useStore(s => s.data.clinical_templates);
+  const filtered = templates.filter(t => {
+    if (t.deletedAt) return false;
     if (type && t.type !== type) return false;
     if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -33,20 +35,20 @@ export function TemplatePickerModal({
           {/* Header */}
           <View style={s.between}>
             <View style={{ gap: 2 }}>
-              <Txt style={styles.title}>Selecionar Template</Txt>
+              <Txt style={styles.title}>Escolher modelo</Txt>
               <Txt muted style={{ fontSize: 12 }}>
-                Valores preenchidos permanecem 100% editáveis por você
+                Revise o texto para este paciente antes de salvar.
               </Txt>
             </View>
             <IconButton icon={X} label="Fechar" onPress={onClose} />
           </View>
 
           {/* Busca */}
-          <Field 
-            label="" 
-            placeholder="Buscar por nome do protocolo..." 
-            value={search} 
-            onChangeText={setSearch} 
+          <Field
+            label="Buscar modelo"
+            placeholder="Buscar modelo pelo nome..."
+            value={search}
+            onChangeText={setSearch}
           />
 
           {/* Lista */}
@@ -59,7 +61,7 @@ export function TemplatePickerModal({
                   onClose();
                 }}
                 style={({ pressed }) => [
-                  styles.templateCard, 
+                  styles.templateCard,
                   { backgroundColor: colors.surface, borderColor: colors.border },
                   pressed && { opacity: 0.85 }
                 ]}
@@ -84,9 +86,9 @@ export function TemplatePickerModal({
             ))}
 
             {filtered.length === 0 && (
-              <Empty 
-                title="Nenhum template encontrado" 
-                description="Tente outro termo ou crie novos templates na Central de Templates." 
+              <Empty
+                title="Nenhum modelo encontrado"
+                description="Tente outro nome ou crie um modelo em Mais → Modelos de atendimento."
               />
             )}
           </ScrollView>

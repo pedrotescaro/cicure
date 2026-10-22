@@ -1,11 +1,11 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Home, Wifi, WifiOff, CheckCircle2 } from 'lucide-react-native';
+import { Home, CheckCircle2 } from 'lucide-react-native';
 import { Badge, Button, Card, Txt, s } from '../../../ui/components';
-import { colors as c, fonts, useTheme } from '../../../ui/theme';
+import { fonts, useTheme } from '../../../ui/theme';
 
 export function HomeVisitModeBanner({
-  isOfflineReady = true,
+  isOfflineReady = false,
   onStartVisit
 }: {
   isOfflineReady?: boolean;
@@ -13,10 +13,10 @@ export function HomeVisitModeBanner({
 }) {
   const { colors, isDark } = useTheme();
   return (
-    <Card 
+    <Card
       style={[
         styles.bannerCard,
-        isDark 
+        isDark
           ? { backgroundColor: 'rgba(22, 101, 52, 0.15)', borderColor: 'rgba(34, 197, 94, 0.3)' }
           : { backgroundColor: '#F0F9F5', borderColor: '#C8E6D9' }
       ]}
@@ -31,22 +31,22 @@ export function HomeVisitModeBanner({
             <View style={s.row}>
               <CheckCircle2 size={13} color={colors.green} />
               <Txt style={{ fontSize: 12, color: colors.green, fontFamily: fonts.medium }}>
-                Prontuário 100% sincronizado no aparelho (Offline-Ready)
+                {isOfflineReady ? 'Registros disponíveis neste aparelho' : 'Confira os registros antes da visita'}
               </Txt>
             </View>
           </View>
         </View>
-        <Badge tone="green">Offline OK</Badge>
+        <Badge tone={isOfflineReady ? 'green' : 'neutral'}>{isOfflineReady ? 'Salvo no aparelho' : 'Conferir dados'}</Badge>
       </View>
 
       <Txt muted style={{ fontSize: 12, lineHeight: 17 }}>
-        Interface adaptada com botões táteis ampliados para uso com luvas e atendimento domiciliar sem necessidade de internet.
+        Após entrar na conta, você pode salvar atendimentos neste aparelho mesmo sem internet. Confira as pendências de envio ao terminar a visita.
       </Txt>
 
       {onStartVisit && (
-        <Button 
-          title="Iniciar Atendimento Domiciliar Rápido" 
-          variant="primary" 
+        <Button
+          title="Iniciar Atendimento Domiciliar Rápido"
+          variant="primary"
           onPress={onStartVisit}
           style={{ minHeight: 52 }}
         />

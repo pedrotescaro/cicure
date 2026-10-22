@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import Svg, { Circle, G, Path, Rect, Text as SvgText } from 'react-native-svg';
-import { ChevronLeft, Layers, MapPin } from 'lucide-react-native';
-import { Badge, Card, IconButton, Pills, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
+import { ChevronLeft } from 'lucide-react-native';
+import { Badge, Button, Card, IconButton, Pills, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
+import { dateLabel } from '../../../domain/clinical';
 import type { Wound, WoundStatus } from '../../../domain/types';
 
 const STATUS_COLORS: Record<WoundStatus, string> = {
@@ -25,33 +26,35 @@ export default function BodyMapView({
   onSelectWound?: (wound: Wound) => void;
 }) {
   const router = useRouter();
+  const { colors: palette } = useTheme();
   const [side, setSide] = useState<'Frente' | 'Costas'>('Frente');
   const [selectedWound, setSelectedWound] = useState<Wound | null>(wounds[0] || null);
 
   const displayedWounds = wounds.filter(w => (w.pin?.side || 'Frente') === side);
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={{ flex: 1, backgroundColor: palette.bg }} contentContainerStyle={[styles.container, { backgroundColor: palette.bg, flexGrow: 1 }]}>
       {/* Header */}
       <View style={styles.header}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, wounds[0]?.patientId ? `/patient/${wounds[0].patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Mapa Corporal</Txt>
-          <Txt muted style={{ fontSize: 13 }}>{patientName} · {wounds.length} lesões mapeadas</Txt>
+          <Txt style={styles.headerTitle}>Mapa corporal</Txt>
+          <Txt muted>{patientName} · {wounds.length} feridas</Txt>
         </View>
       </View>
 
       {/* Seletor Frente / Costas */}
       <View style={styles.selectorBar}>
-        <Pills 
-          options={['Frente', 'Costas']} 
-          value={side} 
-          onChange={v => setSide(v as any)} 
+        <Pills
+          options={['Frente', 'Costas']}
+          value={side}
+          onChange={v => { const next = v as 'Frente' | 'Costas'; setSide(next); setSelectedWound(wounds.find(wound => wound.pin.side === next) ?? null); }}
         />
       </View>
 
       {/* Canvas SVG do Corpo Humano com Pinos Interativos */}
-      <View style={styles.svgContainer}>
+      <Txt muted>Os marcadores indicam regiões aproximadas. Para selecionar uma ferida, toque no mapa ou na lista abaixo.</Txt>
+      <View style={[styles.svgContainer, { backgroundColor: palette.surfaceSubtle, borderColor: palette.border }]}>
         <Svg width="100%" height={340} viewBox="0 0 240 360">
           {/* Silhueta Anatômica Estilizada */}
           <G fill="#F0F0F0" stroke={c.border} strokeWidth="2">
@@ -73,15 +76,15 @@ export default function BodyMapView({
 
           {/* Marcadores das Feridas: F01, F02, F03 */}
           {displayedWounds.map((w, index) => {
-            const shortId = `F0${index + 1}`;
+            const shortId = `F${wounds.findIndex(item => item.id === w.id) + 1}`;
             const pinColor = STATUS_COLORS[w.status] || c.red;
             const posX = w.pin?.x ? (w.pin.x * 240) / 200 : 88 + (index * 24);
             const posY = w.pin?.y ? (w.pin.y * 360) / 360 : 190 + (index * 45);
             const isSelected = selectedWound?.id === w.id;
 
             return (
-              <G 
-                key={w.id} 
+              <G
+                key={w.id}
                 onPress={() => {
                   setSelectedWound(w);
                   if (onSelectWound) onSelectWound(w);
@@ -92,12 +95,12 @@ export default function BodyMapView({
                   <Circle cx={posX} cy={posY} r="20" fill={pinColor} opacity={0.25} />
                 )}
                 <Circle cx={posX} cy={posY} r="14" fill={pinColor} stroke="#FFF" strokeWidth="2" />
-                <SvgText 
-                  x={posX} 
-                  y={posY + 4} 
-                  fill="#FFF" 
-                  fontSize="9" 
-                  fontWeight="bold" 
+                <SvgText
+                  x={posX}
+                  y={posY + 4}
+                  fill="#FFF"
+                  fontSize="9"
+                  fontWeight="bold"
                   textAnchor="middle"
                 >
                   {shortId}
@@ -108,41 +111,41 @@ export default function BodyMapView({
         </Svg>
       </View>
 
+      <View style={{ gap: 8, marginTop: 16 }}>
+        <SectionTitle title={`Feridas na ${side.toLocaleLowerCase('pt-BR')}`} />
+        {displayedWounds.map(wound => <Pressable key={wound.id} accessibilityRole="button" accessibilityState={{ selected: wound.id === selectedWound?.id }} onPress={() => { setSelectedWound(wound); onSelectWound?.(wound); }} style={{ padding: 16, minHeight: 56, borderRadius: 12, borderWidth: 1, borderColor: wound.id === selectedWound?.id ? palette.red : palette.border, backgroundColor: wound.id === selectedWound?.id ? palette.redSoft : palette.surface }}><Txt>Ferida {wounds.findIndex(item => item.id === wound.id) + 1}: {wound.location}</Txt><Txt muted>{wound.status}</Txt></Pressable>)}
+        {!displayedWounds.length && <Txt muted>Nenhuma ferida cadastrada neste lado do corpo.</Txt>}
+      </View>
+
       {/* Card da Ferida Selecionada */}
       {selectedWound ? (
         <Card style={styles.selectedCard}>
-          <View style={s.between}>
-            <View style={{ gap: 2 }}>
+          <View style={[s.between, { flexWrap: 'wrap' }]}>
+            <View style={{ gap: 2, flexShrink: 1 }}>
               <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>
                 {selectedWound.location}
               </Txt>
-              <Txt muted style={{ fontSize: 12 }}>Etiologia: {selectedWound.etiology}</Txt>
+              <Txt muted>Causa registrada: {selectedWound.etiology}</Txt>
             </View>
             <Badge tone={selectedWound.status === 'Cicatrizada' ? 'green' : 'red'}>
               {selectedWound.status}
             </Badge>
           </View>
 
-          <Txt muted style={{ fontSize: 13 }}>
-            Tratamentos anteriores: {selectedWound.previousTreatments || 'Limpeza e coberturas frequentes'}
+          <Txt muted>
+            Tratamentos anteriores: {selectedWound.previousTreatments || 'Não informados'}
           </Txt>
 
-          <View style={styles.cardActions}>
-            <Txt muted style={{ fontSize: 11 }}>Início: {selectedWound.startDate}</Txt>
-            <Pressable 
-              onPress={() => router.push(`/care/new?woundId=${selectedWound.id}` as never)}
-              style={styles.careBtn}
-            >
-              <Txt style={{ color: '#FFF', fontFamily: fonts.semibold, fontSize: 12 }}>
-                Iniciar Atendimento
-              </Txt>
-            </Pressable>
+          <View style={[styles.cardActions, { flexDirection: 'column', gap: 12, alignItems: 'stretch', borderTopColor: palette.border }]}>
+            <Txt muted>Início: {dateLabel(selectedWound.startDate)}</Txt>
+            <Button title="Atender esta ferida" onPress={() => router.push(`/care/new?patientId=${selectedWound.patientId}&woundId=${selectedWound.id}`)} />
+            <Button title="Ver histórico desta ferida" variant="outline" onPress={() => router.push(`/patient/${selectedWound.patientId}/timeline?woundId=${selectedWound.id}`)} />
           </View>
         </Card>
       ) : null}
 
       {/* Legenda de Cores */}
-      <View style={styles.legendRow}>
+      <View style={[styles.legendRow, { flexWrap: 'wrap', gap: 16 }]}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: STATUS_COLORS['Ativa'] }]} />
           <Txt style={styles.legendText}>Ativa / Piora</Txt>
@@ -160,12 +163,12 @@ export default function BodyMapView({
           <Txt style={styles.legendText}>Cicatrizada</Txt>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: c.bg, padding: 16 },
+  container: { backgroundColor: c.bg, padding: 16, paddingBottom: 60 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -208,5 +211,5 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: 11, color: c.secondary, fontFamily: fonts.medium },
+  legendText: { fontSize: 14, fontFamily: fonts.medium },
 });

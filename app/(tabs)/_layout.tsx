@@ -4,13 +4,14 @@ import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
 import { Plus } from 'lucide-react-native';
-import { useTheme } from '../../src/ui/theme';
+import { fonts, useTheme } from '../../src/ui/theme';
+import { Txt } from '../../src/ui/components';
 import { useStore } from '../../src/data/store';
 import { LiquidTabBar } from '../../src/ui/navigation/LiquidTabBar';
 import { navigationMetrics as metrics, tabBarBottom } from '../../src/ui/motion';
 
 export default function TabsLayout() {
-  const { width } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors, isDark } = useTheme();
@@ -55,13 +56,14 @@ export default function TabsLayout() {
             styles.fab,
             {
               right: barRight + 16,
-              bottom: tabBarBottom(insets.bottom) + metrics.height + metrics.fabGap,
+              bottom: tabBarBottom(insets.bottom) + metrics.height + metrics.fabGap + Math.max(0, fontScale - 1) * 52,
               backgroundColor: pressed ? colors.redPressed : colors.red,
               shadowColor: isDark ? '#000000' : colors.dark,
             },
           ]}
         >
           <Plus size={24} color="#FFFFFF" strokeWidth={2.4} />
+          <Txt style={{ color: '#FFFFFF', fontFamily: fonts.semibold, fontSize: 16, flexShrink: 1, textAlign: 'center' }}>Novo atendimento</Txt>
         </Pressable>
       )}
     </>
@@ -79,9 +81,13 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     zIndex: 7,
-    width: metrics.fabSize,
-    height: metrics.fabSize,
-    borderRadius: metrics.fabSize / 2,
+    minHeight: metrics.fabSize,
+    maxWidth: '90%',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 18,
+    flexDirection: 'row',
+    gap: 8,
     alignItems: 'center',
     justifyContent: 'center',
     shadowOpacity: 0.25,

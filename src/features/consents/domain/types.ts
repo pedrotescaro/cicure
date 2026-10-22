@@ -1,10 +1,10 @@
 import type { Point } from '../../../domain/types';
 
-export type ConsentType = 
-  | 'atendimento' 
-  | 'registro_fotografico' 
-  | 'compartilhamento_profissionais' 
-  | 'ensino_anonimizado' 
+export type ConsentType =
+  | 'atendimento'
+  | 'registro_fotografico'
+  | 'compartilhamento_profissionais'
+  | 'ensino_anonimizado'
   | 'pesquisa_anonimizada';
 
 export type ConsentStatus = 'ativo' | 'revogado';
@@ -22,6 +22,10 @@ export type PatientConsent = {
   revocationReason?: string;
   professionalName: string;
   signatureData?: Point[][];
+  acceptedBy?: string;
+  evidence?: string;
+  createdBy?: string;
+  revokedBy?: string;
 };
 
 export const CONSENT_DEFINITIONS: { type: ConsentType; title: string; description: string }[] = [

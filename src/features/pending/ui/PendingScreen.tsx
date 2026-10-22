@@ -3,9 +3,9 @@ import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, AlertCircle, Clock, FileCheck, FileText, CloudUpload, ArrowRight } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
-import { Badge, Card, Empty, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
-import { colors as c, fonts } from '../../../ui/theme';
-import { computePendingItems, type PendingItem } from '../domain/pending.service';
+import { Badge, Empty, IconButton, Pills, Txt, safeBack, s } from '../../../ui/components';
+import { colors as c, fonts, useTheme } from '../../../ui/theme';
+import { computePendingItems } from '../domain/pending.service';
 
 const CATEGORY_ICONS: Record<string, any> = {
   rascunho: Clock,
@@ -17,6 +17,8 @@ const CATEGORY_ICONS: Record<string, any> = {
 
 export default function PendingScreen() {
   const router = useRouter();
+  const { colors: palette } = useTheme();
+  const presentation = useStore(state => state.presentation);
   const data = useStore(st => st.data);
   const pendingSync = useStore(st => st.pending);
   const [filter, setFilter] = useState('Todas');
@@ -27,18 +29,19 @@ export default function PendingScreen() {
     if (filter === 'Rascunhos' && item.category !== 'rascunho') return false;
     if (filter === 'Assinaturas' && item.category !== 'assinatura') return false;
     if (filter === 'Retornos' && item.category !== 'retorno') return false;
-    if (filter === 'Sincronização' && item.category !== 'sync') return false;
+    if (filter === 'Envio de dados' && item.category !== 'sync') return false;
+    if (filter === 'Relatórios' && item.category !== 'relatorio') return false;
     return true;
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: palette.bg }]}>
       {/* Header */}
       <View style={styles.header}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Central de Pendências</Txt>
-          <Txt muted style={{ fontSize: 13 }}>{allItems.length} tarefa(s) clínica(s) aguardando ação</Txt>
+          <Txt style={styles.headerTitle}>Pendências</Txt>
+          <Txt muted>{allItems.length} registros precisam de atenção</Txt>
         </View>
         <Badge tone={allItems.length > 0 ? 'red' : 'green'}>
           {allItems.length}
@@ -47,10 +50,10 @@ export default function PendingScreen() {
 
       {/* Pills */}
       <View style={styles.filterBar}>
-        <Pills 
-          options={['Todas', 'Rascunhos', 'Assinaturas', 'Retornos', 'Sincronização']} 
-          value={filter} 
-          onChange={setFilter} 
+        <Pills
+          options={['Todas', 'Rascunhos', 'Assinaturas', 'Retornos', 'Relatórios', 'Envio de dados']}
+          value={filter}
+          onChange={setFilter}
         />
       </View>
 
@@ -61,9 +64,10 @@ export default function PendingScreen() {
         renderItem={({ item }) => {
           const Icon = CATEGORY_ICONS[item.category] || AlertCircle;
           return (
-            <Pressable 
+            <Pressable
+              accessibilityRole="button"
               onPress={() => router.push(item.route as never)}
-              style={({ pressed }) => [styles.pendingCard, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [styles.pendingCard, { backgroundColor: palette.surface, borderColor: palette.border }, pressed && { opacity: 0.85 }]}
             >
               <View style={s.row}>
                 <View style={[
@@ -72,15 +76,15 @@ export default function PendingScreen() {
                   item.severity === 'media' && { backgroundColor: c.amberSoft },
                   item.severity === 'baixa' && { backgroundColor: '#F0F0F0' },
                 ]}>
-                  <Icon 
-                    size={20} 
-                    color={item.severity === 'alta' ? c.red : item.severity === 'media' ? c.amber : c.secondary} 
+                  <Icon
+                    size={20}
+                    color={item.severity === 'alta' ? c.red : item.severity === 'media' ? c.amber : c.secondary}
                   />
                 </View>
 
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Txt style={styles.itemTitle}>{item.title}</Txt>
-                  <Txt muted style={{ fontSize: 13, lineHeight: 18 }}>{item.description}</Txt>
+                  <Txt style={styles.itemTitle}>{presentation ? 'Pendência de atendimento' : item.title}</Txt>
+                  <Txt muted>{presentation ? 'Desative o modo apresentação no Menu para consultar os detalhes.' : item.description}</Txt>
                 </View>
 
                 <ArrowRight size={18} color={c.tertiary} />
@@ -89,9 +93,9 @@ export default function PendingScreen() {
           );
         }}
         ListEmptyComponent={
-          <Empty 
-            title="Nenhuma pendência!" 
-            description="Todos os atendimentos estão assinados, os relatórios emitidos e os retornos em dia." 
+          <Empty
+            title="Nenhuma pendência neste filtro"
+            description="Não há pendências nos registros carregados neste aparelho. Escolha outro filtro para conferir as demais categorias."
           />
         }
       />
@@ -121,7 +125,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
   },
-  itemTitle: { fontFamily: fonts.semibold, fontSize: 15 },
+  itemTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   iconCircle: {
     width: 42,
     height: 42,

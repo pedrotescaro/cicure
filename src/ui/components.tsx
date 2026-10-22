@@ -13,7 +13,7 @@ import {
   type TextStyle,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { ChevronDown, ChevronRight, CircleHelp, Plus, X, type LucideIcon } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, CircleHelp, Plus, type LucideIcon } from 'lucide-react-native';
 import { fonts, useTheme } from './theme';
 
 export function Txt({
@@ -95,6 +95,7 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
+      accessibilityState={{ disabled: Boolean(disabled || loading), busy: Boolean(loading) }}
       disabled={disabled || loading}
       onPress={() => {
         if (Platform.OS !== 'web') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -117,7 +118,7 @@ export function Button({
       ) : Icon ? (
         <Icon size={18} color={color} strokeWidth={1.7} />
       ) : null}
-      <Txt style={{ color, fontSize: small ? 13 : 14, fontFamily: fonts.semibold }}>{title}</Txt>
+      <Txt style={{ color, fontSize: 16, fontFamily: fonts.semibold, flexShrink: 1, textAlign: 'center' }}>{title}</Txt>
     </Pressable>
   );
 }
@@ -188,7 +189,7 @@ export function Badge({
         style,
       ]}
     >
-      <Text style={{ fontSize: 11, fontFamily: fonts.semibold, color: dark ? '#F9FAFB' : fg }}>
+      <Text style={{ fontSize: 14, fontFamily: fonts.semibold, color: dark ? '#F9FAFB' : fg }}>
         {children}
       </Text>
     </View>
@@ -244,14 +245,15 @@ export function Field({
   const [focused, setFocused] = useState(false);
 
   return (
-    <View style={[{ gap: 7, flexGrow: 1, flexBasis: 140, minWidth: 0 }, containerStyle]}>
+    <View style={[{ gap: 7, minWidth: 0, flexShrink: 1 }, containerStyle]}>
       {Boolean(label) && (
         <View style={labelContainerStyle}>
-          <Txt style={[{ fontSize: 13, fontFamily: fonts.medium }, labelStyle]}>{label}</Txt>
+          <Txt style={[{ fontSize: 16, fontFamily: fonts.medium }, labelStyle]}>{label}</Txt>
         </View>
       )}
       <TextInput
         accessibilityLabel={label}
+        accessibilityHint={error}
         placeholderTextColor={c.tertiary}
         {...props}
         onFocus={e => {
@@ -273,7 +275,7 @@ export function Field({
           style,
         ]}
       />
-      {Boolean(error) ? <Txt style={{ color: c.red, fontSize: 12 }}>{error}</Txt> : null}
+      {Boolean(error) ? <Txt accessibilityLiveRegion="polite" style={{ color: c.red, fontSize: 16 }}>{error}</Txt> : null}
     </View>
   );
 }
@@ -314,7 +316,7 @@ export function Pills({
               style={{
                 color: isSelected ? '#FFF' : c.secondary,
                 fontFamily: fonts.medium,
-                fontSize: 12.5,
+                fontSize: 16,
               }}
             >
               {option}
@@ -364,7 +366,7 @@ export function Choices({
               )
             }
           >
-            <Text style={{ fontSize: 13, color: selected ? c.red : c.secondary, fontFamily: fonts.medium }}>
+            <Text style={{ fontSize: 16, color: selected ? c.red : c.secondary, fontFamily: fonts.medium }}>
               {option}
             </Text>
           </Pressable>
@@ -391,9 +393,9 @@ export function SectionTitle({
         <Pressable
           onPress={onPress}
           accessibilityRole="button"
-          style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 5 }}
+          style={{ minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1 }}
         >
-          <Text style={{ fontSize: 12, color: c.secondary, fontFamily: fonts.medium }}>{action}</Text>
+          <Text style={{ fontSize: 16, color: c.red, fontFamily: fonts.medium, flexShrink: 1 }}>{action}</Text>
           <ChevronRight size={14} color={c.secondary} />
         </Pressable>
       ) : null}
@@ -452,7 +454,7 @@ export function Accordion({
       >
         <View style={{ gap: 5, flex: 1 }}>
           <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>{title}</Txt>
-          {Boolean(subtitle) ? <Txt muted style={{ fontSize: 12 }}>{subtitle}</Txt> : null}
+          {Boolean(subtitle) ? <Txt muted style={{ fontSize: 16 }}>{subtitle}</Txt> : null}
         </View>
         {open ? <ChevronDown size={18} color={c.secondary} /> : <ChevronRight size={18} color={c.secondary} />}
       </Pressable>
@@ -481,7 +483,7 @@ export function Skeleton() {
 
 export const s = StyleSheet.create({
   text: { fontFamily: fonts.regular, fontSize: 16 },
-  label: { fontSize: 11, letterSpacing: 1.4, fontFamily: fonts.semibold },
+  label: { fontSize: 16, fontFamily: fonts.semibold, flexShrink: 1 },
   card: { padding: 20, borderRadius: 24, borderWidth: 1, gap: 16 },
   button: {
     minHeight: 48,
@@ -490,6 +492,7 @@ export const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 9,
+    paddingVertical: 12,
   },
   iconButton: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   input: {
@@ -499,19 +502,19 @@ export const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontFamily: fonts.regular,
-    fontSize: 15,
+    fontSize: 16,
     ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : {}),
   },
   badge: { alignSelf: 'flex-start', borderRadius: 7, paddingHorizontal: 8, paddingVertical: 5 },
-  pillContainer: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    padding: 4, 
-    borderRadius: 24, 
-    borderWidth: 1, 
-    gap: 4 
+  pillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 4
   },
-  pill: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 20 },
+  pill: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 20 },
   choice: { borderWidth: 1, paddingHorizontal: 14, minHeight: 48, justifyContent: 'center', borderRadius: 12 },
   between: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },

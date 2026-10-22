@@ -1,11 +1,11 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { 
-  Building2, 
-  ChevronDown, 
-  RefreshCw, 
-  User 
+import {
+  Building2,
+  ChevronDown,
+  RefreshCw,
+  User
 } from 'lucide-react-native';
 import { Txt } from './components';
 import { fonts, useTheme } from './theme';
@@ -20,16 +20,18 @@ export function WorkspaceBar() {
   const { isOnline, pending, syncState } = useNetworkStatus();
 
   const isIndividual = workMode === 'individual';
-  const orgName = isIndividual ? 'Individual (Autônomo)' : activeOrg.name;
+  const orgName = isIndividual ? 'Atendimento individual' : activeOrg.name;
 
   return (
     <>
       <View style={styles.container}>
         {/* Workspace Switcher Chip */}
-        <Pressable 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Clínica ou equipe: ${orgName}`}
           onPress={() => router.push('/organization' as never)}
           style={({ pressed }) => [
-            styles.chip, 
+            styles.chip,
             { backgroundColor: isDark ? '#232328' : '#F5F5F5', borderColor: c.border },
             pressed && { opacity: 0.8 }
           ]}
@@ -48,16 +50,18 @@ export function WorkspaceBar() {
         </Pressable>
 
         {/* Connectivity Status Pill */}
-        <Pressable 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Consultar envio de dados"
           onPress={() => router.push('/sync' as never)}
           style={({ pressed }) => [
-            styles.statusPill, 
-            { 
-              backgroundColor: isOnline 
-                ? (isDark ? '#142A1D' : '#EEF9F1') 
+            styles.statusPill,
+            {
+              backgroundColor: isOnline
+                ? (isDark ? '#142A1D' : '#EEF9F1')
                 : (isDark ? '#232328' : '#F7F7F7'),
-              borderColor: isOnline 
-                ? (isDark ? '#1B472E' : '#D4EED8') 
+              borderColor: isOnline
+                ? (isDark ? '#1B472E' : '#D4EED8')
                 : c.border,
             },
             pressed && { opacity: 0.8 }
@@ -65,9 +69,9 @@ export function WorkspaceBar() {
         >
           <View style={[styles.dot, { backgroundColor: isOnline ? c.green : '#9E9E9E' }]} />
           <Txt style={styles.statusText}>
-            {isOnline 
-              ? (pending > 0 ? `${pending} pendente(s)` : 'Online') 
-              : 'Offline (SQLite)'}
+            {isOnline
+              ? (syncState === 'syncing' ? 'Enviando dados' : pending > 0 ? `${pending} envios pendentes` : syncState === 'synced' ? 'Dados enviados' : 'Salvo neste aparelho')
+              : 'Sem internet'}
           </Txt>
           {isOnline && syncState === 'syncing' ? (
             <RefreshCw size={11} color={c.green} />
@@ -82,14 +86,14 @@ export function WorkspaceBar() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: 8,
     paddingVertical: 4,
     marginBottom: 10,
   },
   chip: {
-    flex: 1,
+    flexGrow: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -97,11 +101,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1,
-    maxWidth: '65%',
+    minHeight: 48,
   },
   chipText: {
     fontFamily: fonts.medium,
-    fontSize: 12,
+    fontSize: 14,
     flexShrink: 1,
   },
   iconCircle: {
@@ -119,6 +123,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 20,
     borderWidth: 1,
+    minHeight: 48,
   },
   dot: {
     width: 7,
@@ -127,6 +132,6 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontFamily: fonts.medium,
-    fontSize: 11,
+    fontSize: 14,
   }
 });

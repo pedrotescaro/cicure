@@ -1,136 +1,61 @@
-import { useTabContentInset } from '../../src/ui/navigation/useTabContentInset';
-import React from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
-import { FileText, FileCheck, UserCheck, Send } from 'lucide-react-native';
-import { Card, Empty, IconButton, SectionTitle, Txt, s } from '../../src/ui/components';
+import { useState } from 'react';
+import { Alert, ScrollView, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { FileText, Plus } from 'lucide-react-native';
+import { uid, useStore } from '../../src/data/store';
+import type { Report } from '../../src/domain/types';
+import { Button, Card, Empty, Field, Pills, Txt, s } from '../../src/ui/components';
 import { fonts, useTheme } from '../../src/ui/theme';
+import { useTabContentInset } from '../../src/ui/navigation/useTabContentInset';
+import { reportDate } from '../../src/features/reports/domain/report';
+import { createReportPdf, previewReport, shareReport } from '../../src/features/reports/domain/pdf';
 
 export default function Reports() {
-  const bottomInset = useTabContentInset();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const params = useLocalSearchParams<{ visitId?: string }>();
+  const store = useStore();
   const { colors: c } = useTheme();
-
-  return (
-    <View style={[styles.container, { backgroundColor: c.bg }]}>
-      <ScrollView 
-        contentContainerStyle={[
-          styles.content, 
-          { paddingHorizontal: width < 380 ? 16 : 20, paddingBottom: bottomInset }
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Topbar Padronizada */}
-        <View style={styles.topbar}>
-          <Txt style={[styles.brand, { color: c.red }]}>cicure</Txt>
-          <View style={s.row}>
-            <IconButton 
-              icon={FileText} 
-              label="Novo relatório" 
-              color={c.red} 
-              onPress={() => router.push('/care/new')} 
-            />
-          </View>
-        </View>
-
-        {/* Título Padronizado */}
-        <View style={{ gap: 2 }}>
-          <Txt muted style={styles.sectionLabel}>DOCUMENTAÇÃO CLÍNICA</Txt>
-          <Txt style={s.h1}>Relatórios</Txt>
-        </View>
-
-        {/* Card de Estado Vazio */}
-        <Card style={styles.card}>
-          <Empty 
-            icon={FileText} 
-            title="Seus relatórios aparecerão aqui" 
-            description="A geração de PDF e a assinatura ainda não estão integradas. Os formatos abaixo são planejados para uma próxima etapa."
-            action="Iniciar atendimento" 
-            onPress={() => router.push('/care/new')} 
-          />
-        </Card>
-
-        {/* Formatos Disponíveis */}
-        <View style={{ gap: 12 }}>
-          <SectionTitle title="FORMATOS PLANEJADOS" />
-          
-          <Card style={styles.card}>
-            <View style={styles.formatItem}>
-              <View style={[styles.iconCircle, { backgroundColor: c.redSoft }]}>
-                <FileCheck size={20} color={c.red} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Txt style={styles.formatTitle}>Relatório Clínico Completo</Txt>
-                <Txt muted style={styles.formatDesc}>
-                  Inclui identificação, mensuração digital, escalas aplicadas, produtos, terapias, fotos evolutivas e assinatura.
-                </Txt>
-              </View>
-            </View>
-
-            <View style={[styles.divider, { backgroundColor: c.border }]} />
-
-            <View style={styles.formatItem}>
-              <View style={[styles.iconCircle, { backgroundColor: c.redSoft }]}>
-                <UserCheck size={20} color={c.red} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Txt style={styles.formatTitle}>Resumo para o Paciente / Familiar</Txt>
-                <Txt muted style={styles.formatDesc}>
-                  Linguagem acessível, orientações de autocuidado sem jargões e pronto para compartilhamento via WhatsApp ou PDF.
-                </Txt>
-              </View>
-            </View>
-
-            <View style={[styles.divider, { backgroundColor: c.border }]} />
-
-            <View style={styles.formatItem}>
-              <View style={[styles.iconCircle, { backgroundColor: c.redSoft }]}>
-                <Send size={20} color={c.red} />
-              </View>
-              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                <Txt style={styles.formatTitle}>Encaminhamento Técnico Multidisciplinar</Txt>
-                <Txt muted style={styles.formatDesc}>
-                  Síntese clínica estruturada para continuidade de cuidado com médico cirurgião, angiologista ou nutricionista.
-                </Txt>
-              </View>
-            </View>
-          </Card>
-        </View>
-      </ScrollView>
-    </View>
-  );
+  const bottomInset = useTabContentInset();
+  const [creating, setCreating] = useState(Boolean(params.visitId));
+  const [search, setSearch] = useState('');
+  const [visitId, setVisitId] = useState(params.visitId || '');
+  const [type, setType] = useState<Report['type']>('Completo');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [selected, setSelected] = useState<Report | null>(null);
+  const visits = store.data.visits.filter(visit => visit.state === 'Concluído' && !visit.deletedAt && store.data.patients.some(patient => patient.id === visit.patientId && !patient.deletedAt && patient.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')))).sort((a, b) => b.date.localeCompare(a.date));
+  const run = async (action: () => Promise<void>) => { setError(''); setBusy(true); try { await action(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível concluir. Tente novamente.'); } finally { setBusy(false); } };
+  const generate = () => run(async () => {
+    if (store.presentation) throw new Error('Saia do modo apresentação para gerar documentos identificados.');
+    const visit = store.data.visits.find(row => row.id === visitId && row.state === 'Concluído');
+    const patient = store.data.patients.find(row => row.id === visit?.patientId);
+    const wound = store.data.wounds.find(row => row.id === visit?.woundId);
+    const profile = store.data.profiles.find(row => row.id === store.authUserId);
+    if (!visit || !patient || !wound) throw new Error('Escolha um atendimento concluído.');
+    if (!profile?.name || !profile.council || !profile.registration) throw new Error('Complete seu perfil profissional no Menu antes de gerar o relatório.');
+    let report: Report = JSON.parse(JSON.stringify({ id: uid(), visitId: visit.id, patientId: patient.id, type, createdAt: new Date().toISOString(), snapshot: { patient, wound, visit, profile } }));
+    report = { ...report, uri: await createReportPdf(report, store.scope) };
+    if (useStore.getState().scope !== store.scope || useStore.getState().presentation) throw new Error('A conta ou clínica mudou. Abra os relatórios novamente.');
+    await store.save('reports', report);
+    setSelected(report); setCreating(false);
+    store.toast('PDF gerado e salvo neste aparelho.');
+  });
+  const regenerate = (report: Report) => run(async () => { const uri = await createReportPdf(report, store.scope); if (useStore.getState().scope !== store.scope || useStore.getState().presentation) throw new Error('A conta ou clínica mudou. Abra os relatórios novamente.'); const next = { ...report, uri }; await store.save('reports', next); setSelected(next); });
+  return <View style={{ flex: 1, backgroundColor: c.bg }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingBottom: bottomInset, gap: 20 }}>
+    <View style={{ gap: 10 }}><Txt style={{ fontFamily: fonts.brand, color: c.red, fontSize: 26 }}>cicure</Txt><Txt style={s.h1} accessibilityRole="header">Relatórios</Txt><Txt muted>Gere um PDF a partir de um atendimento concluído e confira antes de compartilhar.</Txt></View>
+    <Button title="Novo relatório" icon={Plus} onPress={() => { setCreating(value => !value); setSelected(null); }} disabled={store.presentation} />
+    {!!error && <Txt accessibilityRole="alert" style={{ color: c.red }}>{error}</Txt>}
+    {store.presentation ? <Txt>Saia do modo apresentação para consultar documentos identificados.</Txt> : <>
+    {creating && <View style={{ gap: 16 }}><Field label="Pesquisar paciente" value={search} onChangeText={setSearch} placeholder="Nome do paciente" /><Pills options={['Completo', 'Para o paciente', 'Encaminhamento']} value={type} onChange={value => setType(value as Report['type'])} />
+      <Txt accessibilityRole="header" style={s.h2}>Escolha o atendimento</Txt>
+      {!visits.length && <Empty title="Nenhum atendimento concluído" description="Conclua um atendimento para gerar seu relatório." action="Ver agenda" onPress={() => router.push('/care')} />}
+      {visits.map(visit => <Button key={visit.id} variant={visitId === visit.id ? 'dark' : 'outline'} title={`${store.data.patients.find(row => row.id === visit.patientId)?.name} · ${reportDate(visit.date)} · ${store.data.wounds.find(row => row.id === visit.woundId)?.location}`} onPress={() => setVisitId(visit.id)} />)}
+      <Button title="Gerar e salvar PDF" icon={FileText} onPress={generate} disabled={!visitId} loading={busy} />
+    </View>}
+    {selected && <Card style={{ gap: 14 }}><Txt style={s.h2}>Prévia do conteúdo</Txt><Txt>{selected.snapshot.patient.name} · {selected.type}</Txt><Txt>Ferida: {selected.snapshot.wound.location}</Txt><Txt>Atendimento: {reportDate(selected.snapshot.visit.date)}</Txt><Txt>{selected.snapshot.visit.soap?.assessment || selected.snapshot.visit.plan || 'Sem avaliação textual informada.'}</Txt><Txt muted>O documento usa uma cópia dos dados no momento da geração.</Txt><Button title="Abrir prévia para impressão" variant="outline" onPress={() => run(() => previewReport(selected))} loading={busy} /><Button title="Compartilhar PDF" onPress={() => Alert.alert('Compartilhar documento confidencial', 'Confira o destinatário no próximo passo. O PDF contém a identificação e os registros deste paciente.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Escolher destinatário', onPress: () => run(() => shareReport(selected)) }])} loading={busy} /></Card>}
+    <Txt style={s.h2} accessibilityRole="header">Histórico de relatórios</Txt>
+    {!store.data.reports.length && !creating && <Empty icon={FileText} title="Ainda não há relatórios" description="Use Novo relatório para escolher um atendimento e gerar seu primeiro PDF." />}
+    {[...store.data.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(report => <Card key={report.id} style={{ gap: 12 }}><Txt style={{ fontFamily: fonts.semibold }}>{report.snapshot.patient.name}</Txt><Txt muted>{report.type} · {reportDate(report.createdAt)} · {report.snapshot.wound.location}</Txt><Button title="Consultar relatório" variant="outline" onPress={() => setSelected(report)} /><Button title="Gerar PDF neste aparelho" variant="ghost" loading={busy} onPress={() => regenerate(report)} /></Card>)}
+    </>}
+  </ScrollView></View>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingTop: 18, paddingBottom: 160, gap: 18 },
-  topbar: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  brand: { fontFamily: fonts.brand, fontSize: 26, letterSpacing: -0.8 },
-  sectionLabel: { fontSize: 11, letterSpacing: 1.4, fontFamily: fonts.semibold },
-  card: { padding: 18, gap: 14 },
-  formatItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  iconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  formatTitle: {
-    fontFamily: fonts.semibold,
-    fontSize: 15,
-  },
-  formatDesc: {
-    fontSize: 12.5,
-    lineHeight: 18,
-  },
-  divider: {
-    height: 1,
-  },
-});

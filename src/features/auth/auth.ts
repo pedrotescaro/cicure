@@ -78,17 +78,25 @@ export async function completeAuthCallback(url: string) {
 }
 
 export async function signOut() {
+  const { useStore } = await import('../../data/store');
+  const scope = useStore.getState().scope;
+  const { cancelAccountReminders } = await import('../agenda/domain/reminders');
+  await cancelAccountReminders(scope);
   const { error } = await client().auth.signOut({ scope: 'local' });
   if (error) throw error;
 }
 
 export function authErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error && typeof error === 'object' && 'message' in error ? String(error.message) : String(error);
   if (/invalid login credentials/i.test(message)) return 'E-mail ou senha incorretos. Confira os dados e tente novamente.';
   if (/email not confirmed/i.test(message)) return 'Confirme seu e-mail pelo link enviado antes de entrar.';
   if (/user already registered/i.test(message)) return 'Este e-mail já possui conta. Entre ou recupere sua senha.';
   if (/password should be at least/i.test(message)) return 'Use uma senha com pelo menos 8 caracteres.';
   if (/provider is not enabled|unsupported provider/i.test(message)) return 'O acesso com Google ainda precisa ser habilitado no projeto.';
   if (/network|fetch failed/i.test(message)) return 'Sem conexão com o serviço. Verifique a internet e tente novamente.';
-  return message;
+  if (/rate limit|too many requests|security purposes|over_email_send_rate_limit/i.test(message)) return 'Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.';
+  if (/expired|invalid.*(token|code)|flow_state|otp_expired/i.test(message)) return 'Este link expirou ou já foi usado. Solicite um novo link neste aparelho.';
+  if (/signup.*disabled|signups.*not allowed/i.test(message)) return 'A criação de contas está desativada no serviço. Procure o responsável pela clínica.';
+  if (/weak password/i.test(message)) return 'Escolha uma senha mais longa, com letras, números e símbolos.';
+  return 'Não foi possível concluir seu acesso. Confira os dados e tente novamente. Se o problema continuar, procure o suporte.';
 }

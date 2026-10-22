@@ -1,9 +1,9 @@
-export type TemplateType = 
-  | 'curativo' 
-  | 'fotobiomodulacao' 
-  | 'escalas' 
-  | 'orientacoes' 
-  | 'conduta' 
+export type TemplateType =
+  | 'curativo'
+  | 'fotobiomodulacao'
+  | 'escalas'
+  | 'orientacoes'
+  | 'conduta'
   | 'prescricao';
 
 export type TemplateScope = 'personal' | 'organization';
@@ -19,6 +19,7 @@ export type ClinicalTemplate = {
   createdAt: string;
   updatedAt: string;
   createdBy: string;
+  deletedAt?: string;
 };
 
 export const TEMPLATE_TYPE_LABELS: Record<TemplateType, string> = {

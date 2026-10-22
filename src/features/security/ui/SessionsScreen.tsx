@@ -1,142 +1,30 @@
-import React, { useState } from 'react';
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, Platform, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ChevronLeft, Laptop, Smartphone, Tablet, LogOut, ShieldCheck } from 'lucide-react-native';
-import { Badge, Button, Card, Empty, IconButton, SectionTitle, Txt, safeBack, s } from '../../../ui/components';
-import { colors as c, fonts, useTheme } from '../../../ui/theme';
-import { INITIAL_SESSIONS } from '../domain/security.service';
-import type { DeviceSession } from '../domain/types';
-
+import { ChevronLeft } from 'lucide-react-native';
+import { useStore } from '../../../data/store';
+import { supabase } from '../../../data/supabase';
+import { readPreference, writePreference } from '../../../data/preferences';
+import { claimLegacyRecords, listLegacyRecords, type LegacyRecordSummary } from '../../../data/storage';
+import { Button, Card, IconButton, Txt, safeBack, s } from '../../../ui/components';
+import { useTheme } from '../../../ui/theme';
+import { authenticateLocal } from '../domain/security.service';
+type Session = { id: string; created_at: string; last_active: string; user_agent: string | null; is_current: boolean };
 export default function SessionsScreen() {
-  const router = useRouter();
-  const { colors: c } = useTheme();
-  const [sessions, setSessions] = useState<DeviceSession[]>(INITIAL_SESSIONS);
-
-  const handleRevoke = (id: string, name: string) => {
-    Alert.alert(
-      'Encerrar Sessão',
-      `Deseja desconectar o dispositivo "${name}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Encerrar',
-          style: 'destructive',
-          onPress: () => {
-            setSessions(prev => prev.filter(s => s.id !== id));
-            Alert.alert('Sessão Encerrada', 'O dispositivo foi desconectado com sucesso.');
-          }
-        }
-      ]
-    );
-  };
-
-  const handleRevokeAllOthers = () => {
-    Alert.alert(
-      'Encerrar Todas as Outras Sessões',
-      'Todos os outros telefones, tablets e computadores serão desconectados imediatamente.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Desconectar Outros',
-          style: 'destructive',
-          onPress: () => {
-            setSessions(prev => prev.filter(s => s.isCurrent));
-            Alert.alert('Sucesso', 'Apenas o aparelho atual permanece conectado.');
-          }
-        }
-      ]
-    );
-  };
-
-  return (
-    <View style={[styles.container, { backgroundColor: c.bg }]}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} />
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Sessões Ativas</Txt>
-          <Txt muted style={{ fontSize: 13 }}>Dispositivos conectados à sua conta</Txt>
-        </View>
-      </View>
-
-      <FlatList
-        data={sessions}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.content}
-        ListHeaderComponent={
-          <View style={{ gap: 12, marginBottom: 12 }}>
-            <Card style={{ backgroundColor: c.surfaceSubtle, gap: 6 }}>
-              <Txt style={{ fontFamily: fonts.semibold, fontSize: 14 }}>Segurança de Acesso Multidispositivo</Txt>
-              <Txt muted style={{ fontSize: 12, lineHeight: 18 }}>
-                Se você não reconhecer algum aparelho conectado ou tiver utilizado um computador público, encerre a sessão correspondente imediatamente.
-              </Txt>
-            </Card>
-
-            {sessions.length > 1 && (
-              <Button 
-                title="Encerrar todas as outras sessões" 
-                variant="outline" 
-                icon={LogOut} 
-                small 
-                onPress={handleRevokeAllOthers} 
-              />
-            )}
-          </View>
-        }
-        renderItem={({ item }) => {
-          const Icon = item.platform === 'ios' || item.platform === 'android' ? Smartphone : Laptop;
-          return (
-            <Card style={styles.sessionCard}>
-              <View style={s.row}>
-                <View style={[styles.iconCircle, { backgroundColor: c.surfaceSubtle }]}>
-                  <Icon size={20} color={c.text} />
-                </View>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <View style={s.row}>
-                    <Txt style={styles.deviceName}>{item.deviceName}</Txt>
-                    {item.isCurrent && <Badge tone="green">Este aparelho</Badge>}
-                  </View>
-                  <Txt muted style={{ fontSize: 12 }}>IP: {item.ipAddress}</Txt>
-                  <Txt muted style={{ fontSize: 11 }}>Último acesso: {item.lastActive}</Txt>
-                </View>
-
-                {!item.isCurrent && (
-                  <IconButton 
-                    icon={LogOut} 
-                    label="Desconectar" 
-                    color={c.red} 
-                    onPress={() => handleRevoke(item.id, item.deviceName)} 
-                  />
-                )}
-              </View>
-            </Card>
-          );
-        }}
-      />
-    </View>
-  );
+  const router = useRouter(); const { colors: c } = useTheme(); const userId = useStore(state => state.authUserId);
+  const [sessions, setSessions] = useState<Session[]>([]); const [enabled, setEnabled] = useState(() => readPreference(`cicure_lock:${userId}`) === 'true');
+  const [legacy, setLegacy] = useState<LegacyRecordSummary | null>(null);
+  const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
+  const load = async () => { if (!supabase) return; const { data, error: cause } = await supabase.rpc('list_own_sessions'); if (cause) throw new Error('Não foi possível consultar os aparelhos conectados. Verifique a internet e tente novamente.'); setSessions(data ?? []); };
+  useEffect(() => { void Promise.resolve().then(() => load()).catch(cause => setError(cause.message)); void listLegacyRecords().then(setLegacy); }, []);
+  const run = async (action: () => Promise<void>) => { setBusy(true); setError(''); setNotice(''); try { await action(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível concluir. Tente novamente.'); } finally { setBusy(false); } };
+  const toggle = () => run(async () => {
+    if (Platform.OS === 'web') throw new Error('O bloqueio pelo Android está disponível no aplicativo instalado.');
+    if (!(await authenticateLocal('Confirme para alterar o bloqueio do Cicure'))) throw new Error('Configure um bloqueio de tela no Android e confirme sua identidade para ativar este recurso.');
+    writePreference(`cicure_lock:${userId}`, enabled ? 'false' : 'true'); setEnabled(!enabled);
+    setNotice(enabled ? 'Bloqueio automático desativado.' : 'Bloqueio automático ativado. Ao sair e voltar ao aplicativo, o Android pedirá sua identificação.');
+  });
+  const revoke = () => Alert.alert('Encerrar acesso nos outros aparelhos', 'As sessões nos outros aparelhos deixarão de renovar o acesso. Um acesso já emitido pode durar até o prazo de expiração. Dados salvos sem internet continuam no aparelho original.', [{ text: 'Cancelar' }, { text: 'Encerrar outros acessos', style: 'destructive', onPress: () => run(async () => { if (!supabase) throw new Error('Conexão indisponível.'); const { error: cause } = await supabase.auth.signOut({ scope: 'others' }); if (cause) throw new Error('Não foi possível encerrar os outros acessos. Tente novamente.'); await load(); setNotice('O servidor confirmou o encerramento das outras sessões.'); }) }]);
+  const recover = () => Alert.alert('Vincular registros à sua conta', 'A versão anterior guardava registros sem identificar uma conta. Continue somente se estes registros pertencem ao seu atendimento. Eles serão vinculados à conta que está aberta agora; a cópia anterior será preservada.', [{ text: 'Cancelar' }, { text: 'Vincular à minha conta', onPress: () => run(async () => { const current = useStore.getState(); if (!current.authUserId || current.workMode !== 'individual' || current.presentation) throw new Error('Abra seus atendimentos individuais e saia do modo apresentação antes de recuperar.'); const result = await claimLegacyRecords(current.scope); await current.init(current.scope); setLegacy(await listLegacyRecords()); setNotice(`${result.imported} registro(s) recuperado(s). ${result.skipped} já existia(m) e foram preservados. Confira seus pacientes e as pendências de envio.`); }) }]);
+  return <View style={{ flex: 1, backgroundColor: c.bg }}><ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60, gap: 20 }}><View style={[s.row, { flexWrap: 'wrap' }]}><IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, '/more')} /><Txt style={s.h1}>Acesso e dispositivos</Txt></View><Card style={{ gap: 14 }}><Txt style={s.h2}>Bloqueio automático</Txt><Txt>Ao voltar ao Cicure, confirme sua identidade com a proteção do Android. Não é necessário criar outra senha.</Txt><Txt>Situação: {enabled ? 'Ativado' : 'Desativado'}</Txt><Button title={enabled ? 'Desativar bloqueio automático' : 'Ativar bloqueio automático'} onPress={toggle} loading={busy} /></Card>{!!error && <Txt accessibilityRole="alert" style={{ color: c.red }}>{error}</Txt>}{!!notice && <Txt accessibilityRole="alert">{notice}</Txt>}{Boolean(legacy?.total) && <Card style={{ gap: 14 }}><Txt style={s.h2}>Registros da versão anterior</Txt><Txt>{legacy?.patients} paciente(s), {legacy?.wounds} ferida(s) e {legacy?.visits} atendimento(s) guardados neste aparelho ainda sem uma conta vinculada.</Txt><Button title="Recuperar registros da versão anterior" onPress={recover} loading={busy} /></Card>}<Txt style={s.h2}>Aparelhos conectados</Txt><Txt muted>Lista consultada no serviço de autenticação. Os dados abaixo não incluem aparelhos que estão apenas com registros salvos sem internet.</Txt>{sessions.map(session => <Card key={session.id} style={{ gap: 8 }}><Txt>{session.is_current ? 'Este aparelho' : session.user_agent?.includes('Android') ? 'Aparelho Android' : session.user_agent?.includes('iPhone') ? 'Aparelho iPhone' : 'Outro aparelho ou navegador'}</Txt><Txt muted>Último acesso: {new Date(session.last_active || session.created_at).toLocaleString('pt-BR')}</Txt></Card>)}<Button title="Atualizar lista de aparelhos" variant="outline" onPress={() => run(load)} loading={busy} /><Button title="Encerrar acessos nos outros aparelhos" variant="outline" onPress={revoke} disabled={busy} /></ScrollView></View>;
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    gap: 12,
-    borderBottomWidth: 1,
-  },
-  headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
-  content: { padding: 16, gap: 10, paddingBottom: 100 },
-  sessionCard: { gap: 8, marginBottom: 8 },
-  deviceName: { fontFamily: fonts.semibold, fontSize: 15 },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

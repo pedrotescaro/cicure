@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Alert, Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { AlertTriangle, Check, Layers, X, ShieldAlert } from 'lucide-react-native';
-import { Badge, Button, Card, IconButton, Label, Txt, s } from '../../../ui/components';
+import React from 'react';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import { AlertTriangle, X } from 'lucide-react-native';
+import { Badge, Button, Card, IconButton, Txt, s } from '../../../ui/components';
 import { colors as c, fonts } from '../../../ui/theme';
 import type { ConflictResolution, SyncItem } from '../domain/types';
 

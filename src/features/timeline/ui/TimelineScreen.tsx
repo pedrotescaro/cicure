@@ -1,21 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { 
-  ChevronLeft, 
-  Clock, 
-  Filter, 
-  Stethoscope, 
-  Camera, 
-  Sparkles, 
-  Pill, 
-  FileText, 
-  CheckCircle2, 
-  Calendar 
-} from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { useStore } from '../../../data/store';
-import { Badge, Card, Empty, IconButton, Label, Pills, Txt, safeBack, s } from '../../../ui/components';
-import { colors as c, fonts, useTheme } from '../../../ui/theme';
+import { Badge, Empty, IconButton, Pills, Txt, safeBack, s } from '../../../ui/components';
+import { fonts, useTheme } from '../../../ui/theme';
 import { dateLabel } from '../../../domain/clinical';
 import { buildTimeline, filterTimeline } from '../domain/timeline.service';
 import type { TimelineEvent, TimelineEventType } from '../domain/types';
@@ -42,10 +31,12 @@ const CATEGORY_MAP: Record<string, TimelineEventType | 'todos'> = {
   'Desfechos': 'cicatrizacao'
 };
 
-export default function TimelineScreen({ patientId }: { patientId: string }) {
+export default function TimelineScreen({ patientId, initialWoundId = '' }: { patientId: string; initialWoundId?: string }) {
   const router = useRouter();
   const { colors: c } = useTheme();
   const [selectedPill, setSelectedPill] = useState('Todos');
+  const [selectedWound, setSelectedWound] = useState(initialWoundId);
+  const presentation = useStore(state => state.presentation);
 
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
   const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
@@ -54,20 +45,23 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
 
   const allEvents = useMemo(() => {
     if (!patient) return [];
-    return buildTimeline(patient, wounds, visits, reports);
-  }, [patient, wounds, visits, reports]);
+    const chosenWounds = selectedWound ? wounds.filter(wound => wound.id === selectedWound) : wounds;
+    const chosenVisits = selectedWound ? visits.filter(visit => visit.woundId === selectedWound) : visits;
+    const chosenReports = selectedWound ? reports.filter(report => chosenVisits.some(visit => visit.id === report.visitId)) : reports;
+    return buildTimeline(patient, chosenWounds, chosenVisits, chosenReports);
+  }, [patient, wounds, visits, reports, selectedWound]);
 
   const filteredEvents = useMemo(() => {
     const filterCat = CATEGORY_MAP[selectedPill] || 'todos';
     return filterTimeline(allEvents, { category: filterCat });
   }, [allEvents, selectedPill]);
 
-  if (!patient) {
+  if (presentation || !patient) {
     return (
       <View style={[styles.center, { backgroundColor: c.bg }]}>
-        <Empty 
-          title="Paciente não encontrado" 
-          description="Verifique o identificador e tente novamente."
+        <Empty
+          title={presentation ? 'Identificação protegida' : 'Paciente não encontrado'}
+          description={presentation ? 'Desative o modo apresentação no Menu para consultar o histórico.' : 'Volte à lista para selecionar um paciente.'}
           action="Voltar"
           onPress={() => safeBack(router, '/patients')}
         />
@@ -102,21 +96,24 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
 
         {/* Card do Evento */}
         <View style={styles.contentCol}>
-          <Pressable 
+          <Pressable
+            accessibilityRole={item.referenceKind === 'visits' || item.referenceKind === 'reports' ? 'button' : undefined}
             onPress={() => {
               if (item.referenceKind === 'visits') {
                 router.push(`/care/${item.referenceId}` as never);
+              } else if (item.referenceKind === 'reports') {
+                router.push('/reports');
               }
             }}
             style={({ pressed }) => [
-              styles.eventCard, 
+              styles.eventCard,
               { backgroundColor: c.surface, borderColor: c.border },
               pressed && { opacity: 0.85 }
             ]}
           >
             <View style={s.between}>
               <Badge tone={item.badgeTone || 'neutral'}>{item.category}</Badge>
-              <Txt muted style={{ fontSize: 11 }}>{item.professionalName}</Txt>
+              <Txt muted style={{ fontSize: 14, flexShrink: 1 }}>{item.professionalName}</Txt>
             </View>
             <Txt style={styles.eventTitle}>{item.title}</Txt>
             <Txt muted style={styles.eventSummary}>{item.summary}</Txt>
@@ -132,24 +129,25 @@ export default function TimelineScreen({ patientId }: { patientId: string }) {
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <IconButton icon={ChevronLeft} label="Voltar" onPress={() => safeBack(router, patientId ? `/patient/${patientId}` : '/patients')} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt style={styles.headerTitle}>Linha do Tempo</Txt>
-          <Txt muted style={{ fontSize: 13 }}>{patient.name} · {allEvents.length} eventos registrados</Txt>
+          <Txt style={styles.headerTitle}>Histórico e evolução</Txt>
+          <Txt muted>{patient.name} · {allEvents.length} registros</Txt>
         </View>
       </View>
 
       {/* Filtros em Pills */}
       <View style={[styles.filterBar, { borderBottomColor: c.border }]}>
-        <Pills 
-          options={CATEGORY_OPTIONS} 
-          value={selectedPill} 
-          onChange={setSelectedPill} 
+        <Pills options={['Todas as feridas', ...wounds.map((wound, index) => `${index + 1}. ${wound.location}`)]} value={selectedWound ? `${wounds.findIndex(wound => wound.id === selectedWound) + 1}. ${wounds.find(wound => wound.id === selectedWound)?.location}` : 'Todas as feridas'} onChange={value => setSelectedWound(value === 'Todas as feridas' ? '' : wounds[Number(value.split('.')[0]) - 1]?.id || '')} />
+        <Pills
+          options={CATEGORY_OPTIONS}
+          value={selectedPill}
+          onChange={setSelectedPill}
         />
       </View>
 
       {/* Lista de Eventos */}
       {filteredEvents.length === 0 ? (
-        <Empty 
-          title="Nenhum evento nesta categoria" 
+        <Empty
+          title="Nenhum evento nesta categoria"
           description="Alterne o filtro ou realize novos registros para este paciente."
           action="Ver todos"
           onPress={() => setSelectedPill('Todos')}
@@ -180,13 +178,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: { fontFamily: fonts.brand, fontSize: 22 },
-  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1 },
+  filterBar: { paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, gap: 12 },
   listContent: { padding: 16, paddingBottom: 100 },
   eventRow: { flexDirection: 'row', marginBottom: 12 },
   dateCol: { width: 56, alignItems: 'flex-end', paddingTop: 8, paddingRight: 10 },
   eventDate: { fontFamily: fonts.semibold, fontSize: 14 },
-  eventYear: { fontSize: 11 },
-  eventTime: { fontSize: 10, marginTop: 2 },
+  eventYear: { fontSize: 14 },
+  eventTime: { fontSize: 14, marginTop: 2 },
   timelineCol: { width: 24, alignItems: 'center' },
   timelineDot: {
     width: 12,
@@ -208,6 +206,6 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 6,
   },
-  eventTitle: { fontFamily: fonts.semibold, fontSize: 15 },
-  eventSummary: { fontSize: 13, lineHeight: 18 },
+  eventTitle: { fontFamily: fonts.semibold, fontSize: 16 },
+  eventSummary: { fontSize: 16 },
 });

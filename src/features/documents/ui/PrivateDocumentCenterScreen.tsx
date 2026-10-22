@@ -6,11 +6,12 @@ import { decode } from 'base64-arraybuffer';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, FileText, Image as ImageIcon, Plus } from 'lucide-react-native';
-import { supabase } from '../../../data/supabase';
+import { createAccountClient } from '../../../data/supabase';
 import { uid, useStore } from '../../../data/store';
 import { Txt } from '../../../ui/components';
 import { fonts, useTheme } from '../../../ui/theme';
 import type { PatientDocument } from '../domain/types';
+import { SupportPage } from '../../support/ui/SupportPage';
 
 const MAX_BYTES = 10 * 1024 * 1024;
 const fileTypes = ['application/pdf', 'image/jpeg', 'image/png'] as const;
@@ -22,23 +23,28 @@ export default function PrivateDocumentCenterScreen({ patientId }: { patientId: 
   const patient = useStore(s => s.data.patients.find(p => p.id === patientId));
   const documents = useStore(s => s.data.documents).filter(d => d.patientId === patientId);
   const ownerId = useStore(s => s.authUserId);
+  const scope = useStore(s => s.scope);
   const save = useStore(s => s.save);
   const [filter, setFilter] = useState<'Todos' | 'PDF' | 'Imagens'>('Todos');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const presentation = useStore(s => s.presentation);
+
+  if (presentation || !patient) return <SupportPage title="Documentos" backTo={`/patient/${patientId}`}><Txt>Paciente não encontrado. Volte ao prontuário para escolher um paciente.</Txt></SupportPage>;
 
   const upload = async () => {
-    if (!supabase || !ownerId) { setError('Entre na sua conta para anexar documentos.'); return; }
-    setError(''); setNotice('');
+    if (!ownerId) { setError('Entre na sua conta para anexar documentos.'); return; }
+    setError(''); setNotice(''); setBusy(true);
     try {
+      const client = await createAccountClient(scope);
       const result = await DocumentPicker.getDocumentAsync({ type: [...fileTypes], copyToCacheDirectory: true });
       if (result.canceled || !result.assets[0]) return;
       const file = result.assets[0];
+      if (useStore.getState().scope !== scope || useStore.getState().authUserId !== ownerId || useStore.getState().presentation) return;
       const mime = file.mimeType;
       if (!mime || !fileTypes.some(type => type === mime)) throw new Error('Selecione um PDF, JPG ou PNG.');
       if (file.size && file.size > MAX_BYTES) throw new Error('O arquivo deve ter até 10 MB.');
-      setBusy(true);
       const id = uid();
       const extension = mime === 'application/pdf' ? 'pdf' : mime === 'image/png' ? 'png' : 'jpg';
       const path = `${ownerId}/${patientId}/documents/${id}.${extension}`;
@@ -49,8 +55,10 @@ export default function PrivateDocumentCenterScreen({ patientId }: { patientId: 
         bytes = decode(await FileSystem.readAsStringAsync(file.uri, { encoding: 'base64' }));
       }
       if (bytes.byteLength > MAX_BYTES) throw new Error('O arquivo deve ter até 10 MB.');
-      const { error: uploadError } = await supabase.storage.from('clinical-files').upload(path, bytes, { contentType: mime, upsert: false });
+      if (useStore.getState().scope !== scope || useStore.getState().authUserId !== ownerId || useStore.getState().presentation) return;
+      const { error: uploadError } = await client.storage.from('clinical-files').upload(path, bytes, { contentType: mime, upsert: false });
       if (uploadError) throw uploadError;
+      if (useStore.getState().scope !== scope || useStore.getState().authUserId !== ownerId || useStore.getState().presentation) return;
       const document: PatientDocument = {
         id, patientId,
         title: file.name.replace(/\.[^/.]+$/, ''),
@@ -63,7 +71,7 @@ export default function PrivateDocumentCenterScreen({ patientId }: { patientId: 
       };
       try { await save('documents', document); }
       catch (cause) {
-        await supabase.storage.from('clinical-files').remove([path]);
+        await client.storage.from('clinical-files').remove([path]);
         throw cause;
       }
       setNotice('Documento anexado em armazenamento privado. O registro entrou na fila de sincronização.');
@@ -75,11 +83,13 @@ export default function PrivateDocumentCenterScreen({ patientId }: { patientId: 
   };
 
   const openDocument = async (document: PatientDocument) => {
-    if (!supabase) { setError('Conexão indisponível.'); return; }
+    if (!ownerId || document.patientId !== patientId || !documents.some(item => item.id === document.id)) { setError('Arquivo indisponível para esta conta.'); return; }
     setError('');
     try {
-      const { data, error: linkError } = await supabase.storage.from('clinical-files').createSignedUrl(document.storagePath, 600);
+      const client = await createAccountClient(scope);
+      const { data, error: linkError } = await client.storage.from('clinical-files').createSignedUrl(document.storagePath, 600);
       if (linkError || !data?.signedUrl) throw linkError ?? new Error('Arquivo indisponível');
+      if (useStore.getState().scope !== scope || useStore.getState().authUserId !== ownerId || useStore.getState().presentation) return;
       await Linking.openURL(data.signedUrl);
     } catch { setError('Não foi possível abrir o arquivo. Verifique a conexão e tente novamente.'); }
   };
