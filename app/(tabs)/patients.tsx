@@ -1,3 +1,4 @@
+import { CicureWordmark } from '../../src/ui/brand/CicureWordmark';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { ChevronRight, UserRoundPlus } from 'lucide-react-native';
@@ -26,7 +27,7 @@ export default function Patients() {
   }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')), [patients, query, filter]);
   return <View style={{ flex: 1, backgroundColor: c.bg }}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingBottom: bottomInset, gap: 20 }}>
-      <Txt style={{ fontFamily: fonts.brand, fontSize: 26, color: c.red }}>cicure</Txt>
+      <CicureWordmark size={32} />
       <Txt accessibilityRole="header" style={s.h1}>Pacientes</Txt>
       <Txt muted>Encontre o paciente para consultar suas feridas, registrar um atendimento ou atualizar o cadastro.</Txt>
       {!presentation && <Button title="Novo paciente" icon={UserRoundPlus} onPress={() => setAdding(true)} />}

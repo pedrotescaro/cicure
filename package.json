@@ -1,6 +1,6 @@
 {
   "name": "cicure",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo-google-fonts/comfortaa": "^0.4.2",
@@ -66,7 +66,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "node --test scripts/test-persistence.cjs scripts/test-cloud-config.cjs scripts/test-clinical-defaults.cjs scripts/test-support-workflows.cjs scripts/test-patient-agenda.cjs scripts/test-legacy-recovery.cjs scripts/test-reports-reminders.cjs scripts/test-root-navigation.cjs && tsx --test scripts/test-visit-lifecycle.ts && tsx scripts/run-clinical-tests.ts",
+    "test": "node --test scripts/test-persistence.cjs scripts/test-cloud-config.cjs scripts/test-clinical-defaults.cjs scripts/test-support-workflows.cjs scripts/test-patient-agenda.cjs scripts/test-legacy-recovery.cjs scripts/test-reports-reminders.cjs scripts/test-root-navigation.cjs scripts/test-brand-motion.cjs scripts/test-liquid-tab-geometry.cjs && tsx --test scripts/test-visit-lifecycle.ts && tsx scripts/run-clinical-tests.ts",
     "expo:check": "expo install --check",
     "export:web": "expo export --platform web"
   },

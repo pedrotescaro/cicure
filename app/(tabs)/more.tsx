@@ -1,3 +1,4 @@
+import { CicureWordmark } from '../../src/ui/brand/CicureWordmark';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -25,7 +26,7 @@ export default function More() {
   const exitAccount = () => Alert.alert('Sair da conta?', 'Os registros salvos continuam vinculados à sua conta. Você precisará entrar novamente para acessá-los.', [{ text: 'Continuar usando', style: 'cancel' }, { text: 'Sair', onPress: () => { setSigningOut(true); void signOut().catch(error => Alert.alert('Não foi possível sair', authErrorMessage(error))).finally(() => setSigningOut(false)); } }]);
   return <View style={{ flex: 1, backgroundColor: c.bg }}>
     <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: bottomInset, gap: 22 }}>
-      <Txt style={{ fontFamily: fonts.brand, fontSize: 26, color: c.red }}>cicure</Txt>
+      <CicureWordmark size={32} />
       <Txt accessibilityRole="header" style={s.h1}>Menu</Txt>
       <View style={{ gap: 10 }}><SectionTitle title="Minha conta" />
         <Card style={{ gap: 8 }}><Txt style={s.h2}>{profile?.name || 'Seu perfil profissional'}</Txt><Txt muted>{profile ? [profile.specialty, profile.council, profile.registration].filter(Boolean).join(' · ') || 'Complete seu perfil para identificar seus registros' : 'Complete seu perfil para identificar seus registros'}</Txt><Button title="Editar perfil profissional" icon={UserRound} variant="outline" onPress={() => router.push('/profile')} /></Card>

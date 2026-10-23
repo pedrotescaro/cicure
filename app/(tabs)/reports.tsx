@@ -1,3 +1,4 @@
+import { CicureWordmark } from '../../src/ui/brand/CicureWordmark';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -59,7 +60,7 @@ export default function Reports() {
     ]);
   });
   return <View style={{ flex: 1, backgroundColor: c.bg }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingBottom: bottomInset, gap: 20 }}>
-    <View style={{ gap: 10 }}><Txt style={{ fontFamily: fonts.brand, color: c.red, fontSize: 26 }}>cicure</Txt><Txt style={s.h1} accessibilityRole="header">Relatórios</Txt><Txt muted>Gere um PDF a partir de um atendimento concluído e confira antes de compartilhar.</Txt></View>
+    <View style={{ gap: 10 }}><CicureWordmark size={32} /><Txt style={s.h1} accessibilityRole="header">Relatórios</Txt><Txt muted>Gere um PDF a partir de um atendimento concluído e confira antes de compartilhar.</Txt></View>
     <Button title="Novo relatório" icon={Plus} onPress={() => { setCreating(value => !value); setSelected(null); }} disabled={store.presentation} />
     {!!error && <Txt accessibilityRole="alert" style={{ color: c.red }}>{error}</Txt>}
     {store.presentation ? <Txt>Saia do modo apresentação para consultar documentos identificados.</Txt> : <>

@@ -1,3 +1,4 @@
+import { CicureWordmark } from '../../../ui/brand/CicureWordmark';
 import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -70,7 +71,7 @@ export function OnboardingModal({
     <Modal visible={visible} animationType={reduceMotion ? 'none' : 'fade'} transparent={false} onShow={() => { setStep(0); onShow?.(); }} onRequestClose={onFinish}>
       <ScrollView style={{ backgroundColor: c.bg }} contentContainerStyle={styles.container}>
         <View style={styles.content}>
-          <Txt style={styles.brand}>cicure</Txt>
+          <CicureWordmark size={44} style={{ alignSelf: 'center' }} />
           <Txt style={styles.subtitle}>Como usar o Cicure</Txt>
           <Txt muted accessibilityLiveRegion="polite">Passo {step + 1} de {ONBOARDING_STEPS.length}</Txt>
 

@@ -1,148 +1,59 @@
-import React from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import Animated, { type SharedValue, useAnimatedProps } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
-
-import { logoMotion } from '../motion';
-import { colors } from '../theme';
+import Svg, { Circle, G, Path } from 'react-native-svg';
+import { useTheme } from '../theme';
 import { cicurePaths } from './cicurePaths';
+import { monogramGeometry as mark, wordmarkGeometry as geometry } from './monogramGeometry';
+import { brandFrame, brandTimeline } from './brandTimeline';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
-const letterDuration = 1 - logoMotion.letterStagger * (cicurePaths.letters.length - 1);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedGroup = Animated.createAnimatedComponent(G);
 
-type LogoContour = {
-  readonly d: string;
-  readonly length: number;
-  readonly start: number;
-  readonly duration: number;
-};
-
-export type AnimatedLogoProps = {
-  /** A linear, global 0..1 value; the per-letter stagger is applied internally. */
-  drawProgress: SharedValue<number>;
-  /** Advance 0..1 after drawProgress reaches 1. Set both to 1 for reduced motion. */
-  fillProgress: SharedValue<number>;
-  width?: number;
-  color?: string;
-};
-
-function DrawnContour({
-  contour,
-  letterIndex,
-  drawProgress,
-  fillProgress,
-  color,
-}: {
-  contour: LogoContour;
-  letterIndex: number;
-  drawProgress: SharedValue<number>;
-  fillProgress: SharedValue<number>;
-  color: string;
-}) {
-  const { length, start, duration } = contour;
-  const letterStart = letterIndex * logoMotion.letterStagger;
-
-  const animatedProps = useAnimatedProps(() => {
-    const letterProgress = Math.max(0, Math.min(1, (drawProgress.value - letterStart) / letterDuration));
-    const progress = Math.max(0, Math.min(1, (letterProgress - start) / duration));
-    return {
-      strokeDashoffset: length * (1 - progress),
-      opacity: progress > 0 ? 1 - fillProgress.value * 0.9 : 0,
-    };
-  }, [duration, length, letterStart, start]);
-
-  return (
-    <>
-      {/* Delicate guide outline visible from frame 0 so the screen is never blank */}
-      <Path
-        d={contour.d}
-        fill="none"
-        stroke={color}
-        strokeWidth={logoMotion.strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity={0.14}
-      />
-      {/* Active animated stroke drawing the letter outline */}
-      <AnimatedPath
-        d={contour.d}
-        animatedProps={animatedProps}
-        fill="none"
-        stroke={color}
-        strokeWidth={logoMotion.strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray={[length, length]}
-      />
-    </>
-  );
+function RevealedLetter({ index, progress, color }: { index: number; progress: SharedValue<number>; color: string }) {
+  const props = useAnimatedProps(() => {
+    const frame = brandFrame(progress.value, index);
+    return { opacity: frame.letter, matrix: [1, 0, 0, 1, 5 * (1 - frame.letter), 9 * (1 - frame.letter)] };
+  });
+  return <AnimatedGroup animatedProps={props}><Path d={cicurePaths.letters[index + 1].d} fill={color} /></AnimatedGroup>;
 }
 
-function FilledLetter({
-  d,
-  fillProgress,
-  color,
-}: {
-  d: string;
-  fillProgress: SharedValue<number>;
-  color: string;
-}) {
-  const animatedProps = useAnimatedProps(() => ({
-    fillOpacity: Math.max(0, Math.min(1, fillProgress.value)),
-  }));
-
-  return (
-    <AnimatedPath
-      d={d}
-      fill={color}
-      fillRule="nonzero"
-      animatedProps={animatedProps}
-    />
-  );
-}
-
-/** Real Comfortaa Bold outlines with animated stroke and fill */
-export function AnimatedLogo({
-  drawProgress,
-  fillProgress,
-  width = logoMotion.width,
-  color = colors.red,
-}: AnimatedLogoProps) {
+/** Vector parts remain independent: one turn of the C, its point, then the Comfortaa letters. */
+export function AnimatedLogo({ progress, width = 284, color }: { progress: SharedValue<number>; width?: number; color?: string }) {
   const { width: windowWidth } = useWindowDimensions();
-  const displayWidth = Math.max(1, Math.min(width, windowWidth - 64));
-  const displayHeight = (displayWidth * cicurePaths.height) / cicurePaths.width;
-
-  return (
-    <View
-      accessible
-      accessibilityRole="image"
-      accessibilityLabel="cicure"
-      pointerEvents="none"
-      testID="animated-logo"
-      style={{ width: displayWidth, height: displayHeight, alignItems: 'center', justifyContent: 'center' }}
-    >
-      <Svg
-        width={displayWidth}
-        height={displayHeight}
-        viewBox={`0 0 ${cicurePaths.width} ${cicurePaths.height}`}
-        preserveAspectRatio="xMidYMid meet"
-      >
-        {cicurePaths.letters.map((letter, letterIndex) => (
-          <React.Fragment key={`${letter.letter}-${letterIndex}`}>
-            <FilledLetter d={letter.d} fillProgress={fillProgress} color={color} />
-            {letter.contours.map((contour, contourIndex) => (
-              <DrawnContour
-                key={contourIndex}
-                contour={contour}
-                letterIndex={letterIndex}
-                drawProgress={drawProgress}
-                fillProgress={fillProgress}
-                color={color}
-              />
-            ))}
-          </React.Fragment>
-        ))}
-      </Svg>
-    </View>
-  );
+  const { colors } = useTheme();
+  const ink = color ?? colors.red;
+  const displayWidth = Math.max(1, Math.min(width, windowWidth - 48));
+  const group = useAnimatedProps(() => {
+    const frame = brandFrame(progress.value);
+    return { opacity: 1, matrix: [1, 0, 0, 1, (geometry.width / 2 - 50) * (1 - frame.expand), 10] };
+  });
+  const turn = useAnimatedProps(() => {
+    const angle = brandFrame(progress.value).rotation * Math.PI / 180;
+    const c = Math.cos(angle), s = Math.sin(angle);
+    return { opacity: 1, matrix: [c, s, -s, c, 50 - 50 * c + 50 * s, 50 - 50 * s - 50 * c] };
+  });
+  const drawing = useAnimatedProps(() => {
+    const frame = brandFrame(progress.value);
+    return { strokeDashoffset: mark.revealLength * (1 - frame.draw), opacity: 1 - frame.fill };
+  });
+  const filled = useAnimatedProps(() => ({ opacity: brandFrame(progress.value).fill }));
+  const point = useAnimatedProps(() => {
+    const frame = brandFrame(progress.value);
+    return { r: mark.dot.r * frame.dotScale, opacity: frame.dot };
+  });
+  return <View accessible accessibilityRole="image" accessibilityLabel="Cicure" testID="animated-logo" pointerEvents="none" style={{ width: displayWidth, height: displayWidth * 120 / geometry.width }}>
+    <Svg width="100%" height="100%" viewBox={`0 0 ${geometry.width} 120`}>
+      <AnimatedGroup animatedProps={group}>
+        <AnimatedGroup animatedProps={turn}>
+          <AnimatedPath d={mark.revealPath} fill="none" stroke={ink} strokeWidth={16.4} strokeLinecap="round" strokeDasharray={[mark.revealLength, mark.revealLength]} animatedProps={drawing} />
+          <AnimatedPath d={mark.path} fill={ink} animatedProps={filled} />
+        </AnimatedGroup>
+        <AnimatedCircle cx={mark.dot.cx} cy={mark.dot.cy} fill={ink} animatedProps={point} />
+      </AnimatedGroup>
+      <G transform={`translate(${geometry.suffixX} ${geometry.suffixY + 10}) scale(${geometry.suffixScale}) translate(${-geometry.suffixOriginX} ${-geometry.suffixOriginY})`}>
+        {brandTimeline.letters.map((_, index) => <RevealedLetter key={index} index={index} progress={progress} color={ink} />)}
+      </G>
+    </Svg>
+  </View>;
 }

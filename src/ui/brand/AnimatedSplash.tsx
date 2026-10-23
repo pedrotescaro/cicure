@@ -1,144 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import Animated, {
-  Easing,
-  ReduceMotion,
-  cancelAnimation,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
-
-import { logoMotion } from '../motion';
+import Animated, { Easing, cancelAnimation, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useTheme } from '../theme';
 import { useMotionPreferences } from '../useMotionPreferences';
 import { AnimatedLogo } from './AnimatedLogo';
+import { brandTimeline, canDismissBrand } from './brandTimeline';
 
-type AnimatedSplashProps = {
-  /** The initial route has its resources and has completed its first layout. */
-  ready: boolean;
-  onFinish: () => void;
-};
-
-/** Splash screen with animated Cicure logo drawing and filling */
-export function AnimatedSplash({ ready, onFinish }: AnimatedSplashProps) {
+export function AnimatedSplash({ ready, onFinish }: { ready: boolean; onFinish: () => void }) {
   const { colors } = useTheme();
   const { reduceMotion } = useMotionPreferences();
-  const [revealFinished, setRevealFinished] = useState(false);
-  const finishedRef = useRef(false);
-  const drawProgress = useSharedValue(0);
-  const fillProgress = useSharedValue(0);
+  const [revealed, setRevealed] = useState(false);
+  const finished = useRef(false);
+  const progress = useSharedValue(0);
   const opacity = useSharedValue(1);
+  const markRevealed = useCallback(() => setRevealed(true), []);
+  const finish = useCallback(() => { if (!finished.current) { finished.current = true; onFinish(); } }, [onFinish]);
 
-  const safeFinish = useCallback(() => {
-    if (finishedRef.current) return;
-    finishedRef.current = true;
-    onFinish();
-  }, [onFinish]);
-
-  const markRevealFinished = useCallback(() => {
-    setRevealFinished(true);
-  }, []);
-
-  // Failsafe timeout: ensure the splash never stays indefinitely
+  useEffect(() => { void SplashScreen.hideAsync().catch(() => {}); }, []);
   useEffect(() => {
-    const timer = setTimeout(() => {
-      safeFinish();
-    }, 2800);
-    return () => clearTimeout(timer);
-  }, [safeFinish]);
+    if (reduceMotion) { progress.set(brandTimeline.duration); return; }
+    progress.set(0);
+    progress.set(withTiming(brandTimeline.duration, { duration: brandTimeline.duration, easing: Easing.linear }, complete => { if (complete) runOnJS(markRevealed)(); }));
+    // Recover a delayed animation callback, but never bypass resource readiness.
+    const fallback = setTimeout(markRevealed, brandTimeline.duration + 700);
+    return () => { clearTimeout(fallback); cancelAnimation(progress); };
+  }, [progress, reduceMotion, markRevealed]);
 
-  // Hide the native OS splash immediately in the background so our React animation is shown
   useEffect(() => {
-    void SplashScreen.hideAsync().catch(() => {});
-  }, []);
-
-  // Start the logo stroke drawing and filling animation IMMEDIATELY on mount
-  useEffect(() => {
-    if (reduceMotion) {
-      drawProgress.value = 1;
-      fillProgress.value = 1;
-      setRevealFinished(true);
-      return;
-    }
-
-    drawProgress.value = withTiming(
-      1,
-      {
-        duration: logoMotion.drawDuration,
-        easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-        reduceMotion: ReduceMotion.Never,
-      },
-      drawn => {
-        if (!drawn) return;
-        fillProgress.value = withSequence(
-          withTiming(1, {
-            duration: logoMotion.fillDuration,
-            easing: Easing.inOut(Easing.quad),
-            reduceMotion: ReduceMotion.Never,
-          }),
-          withDelay(
-            logoMotion.holdDuration,
-            withTiming(1, { duration: 0 }, held => {
-              if (held) runOnJS(markRevealFinished)();
-            })
-          )
-        );
-      }
-    );
-
-    return () => {
-      cancelAnimation(drawProgress);
-      cancelAnimation(fillProgress);
-    };
-  }, [drawProgress, fillProgress, markRevealFinished, reduceMotion]);
-
-  // Once the animation has drawn and filled, exit smoothly when ready
-  useEffect(() => {
-    if (!revealFinished) return;
-
-    if (reduceMotion) {
-      safeFinish();
-      return;
-    }
-
-    opacity.value = withTiming(
-      0,
-      {
-        duration: logoMotion.exitDuration,
-        easing: Easing.out(Easing.quad),
-      },
-      finished => {
-        if (finished) runOnJS(safeFinish)();
-      }
-    );
-
+    if (!canDismissBrand(ready, revealed || reduceMotion)) return;
+    if (reduceMotion) { finish(); return; }
+    opacity.set(withTiming(0, { duration: brandTimeline.exit, easing: Easing.out(Easing.cubic) }, complete => { if (complete) runOnJS(finish)(); }));
     return () => cancelAnimation(opacity);
-  }, [revealFinished, safeFinish, opacity, reduceMotion]);
-
-  const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-
-  return (
-    <Animated.View
-      testID="animated-splash"
-      accessibilityViewIsModal
-      importantForAccessibility="yes"
-      style={[styles.overlay, { backgroundColor: colors.bg }, animatedStyle]}
-    >
-      <AnimatedLogo drawProgress={drawProgress} fillProgress={fillProgress} color={colors.red} />
-    </Animated.View>
-  );
+  }, [ready, revealed, reduceMotion, finish, opacity]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.get() }));
+  return <Animated.View testID="animated-splash" accessibilityViewIsModal importantForAccessibility="yes" style={[styles.overlay, { backgroundColor: colors.bg }, style]}>
+    <AnimatedLogo progress={progress} color={colors.red} />
+  </Animated.View>;
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    zIndex: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const styles = StyleSheet.create({ overlay: { ...StyleSheet.absoluteFill, zIndex: 100, alignItems: 'center', justifyContent: 'center' } });

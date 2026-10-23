@@ -22,8 +22,10 @@ A finalidade pretendida acima precisa ser aprovada por Pedro e revisada com prof
 
 ## Marca e plataforma
 
-Wordmark `cicure` em Comfortaa Bold e vermelho `#D62828`, sem símbolo acompanhante. React Native, Expo SDK 57, Expo Router, SQLite e Supabase Auth/Postgres/Storage/RLS. A interface é pt-BR e segue [DESIGN.md](DESIGN.md).
+Marca formada pelo monograma vetorial C com ponto, do ícone fornecido, seguido de `icure` nos contornos originais da Comfortaa Bold. Vermelho `#D62828`, adaptado ao tema escuro. A abertura desenha e gira o C uma vez, revela o ponto e completa o nome. React Native, Expo SDK 57, Expo Router, SQLite e Supabase Auth/Postgres/Storage/RLS. A interface é pt-BR e segue [DESIGN.md](DESIGN.md).
 
 ## Platform
 
-Android. A web é uma prévia de desenvolvimento; a distribuição iOS continua sem homologação de dispositivo ou assinatura.
+android
+
+A web é uma prévia de desenvolvimento; a distribuição iOS continua sem homologação de dispositivo ou assinatura.

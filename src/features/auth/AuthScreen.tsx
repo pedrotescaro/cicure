@@ -1,3 +1,4 @@
+import { CicureWordmark } from '../../ui/brand/CicureWordmark';
 import React, { useState } from 'react';
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
@@ -81,7 +82,7 @@ export default function AuthScreen() {
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24 }}>
         <View style={{ width: '100%', maxWidth: 440, alignSelf: 'center', gap: 24 }}>
           <View style={{ gap: 10 }}>
-            <Txt style={{ fontFamily: fonts.brand, fontSize: 34, color: c.red }}>cicure</Txt>
+            <CicureWordmark size={54} />
             <Txt accessibilityRole="header" style={{ fontFamily: fonts.semibold, fontSize: 27, lineHeight: 34 }}>
               {mode === 'login' ? 'Entre na sua conta' : mode === 'signup' ? 'Crie sua conta' : 'Recupere sua senha'}
             </Txt>

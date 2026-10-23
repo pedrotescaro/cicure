@@ -1,4 +1,4 @@
-import { colors, darkColors, lightColors } from './theme';
+import { darkColors, lightColors } from './theme';
 
 export const logoMotion = {
   drawDuration: 800,
@@ -42,11 +42,12 @@ export function getGlassColors(isDark: boolean) {
       surface: c.surface,
       wash: `${c.surface}E0`,
       fallback: `${c.surface}F2`,
-      edge: '#2C2C30',
+      edge: `${c.red}45`,
       outline: 'rgba(255, 255, 255, 0.10)',
       lens: `${c.red}25`,
       lensOutline: `${c.red}50`,
-      reflection: 'rgba(255, 255, 255, 0.12)',
+      reflection: 'rgba(255, 255, 255, 0.16)',
+      lowerReflection: 'rgba(255, 255, 255, 0.06)',
       shadow: '#000000',
       active: c.red,
       inactive: c.secondary,
@@ -56,11 +57,12 @@ export function getGlassColors(isDark: boolean) {
     surface: c.surface,
     wash: `${c.surface}B8`,
     fallback: `${c.surface}ED`,
-    edge: `${c.surface}F0`,
+    edge: `${c.red}20`,
     outline: `${c.dark}14`,
     lens: `${c.red}0C`,
     lensOutline: `${c.red}20`,
     reflection: `${c.surface}F5`,
+    lowerReflection: `${c.surface}AA`,
     shadow: c.dark,
     active: c.red,
     inactive: c.secondary,

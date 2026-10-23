@@ -1,3 +1,4 @@
+import { CicureWordmark } from '../../src/ui/brand/CicureWordmark';
 import { useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { format } from 'date-fns';
@@ -29,7 +30,7 @@ export default function Home() {
   const refresh = async () => { setRefreshing(true); try { await store.init(); } finally { setRefreshing(false); } };
   return <View style={{ flex: 1, backgroundColor: c.bg }}>
     <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: bottomInset, gap: 22 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={c.red} />}>
-      <View style={s.between}><Txt style={{ fontFamily: fonts.brand, fontSize: 26, color: c.red }}>cicure</Txt><IconButton icon={Search} label="Buscar em pacientes e atendimentos" onPress={() => setSearchVisible(true)} /></View>
+      <View style={s.between}><CicureWordmark size={32} /><IconButton icon={Search} label="Buscar em pacientes e atendimentos" onPress={() => setSearchVisible(true)} /></View>
       <WorkspaceBar />
       <View style={{ gap: 6 }}>
         <Txt accessibilityRole="header" style={s.h1}>Olá, {store.presentation ? 'profissional' : profile?.name.split(' ')[0] || 'profissional'}</Txt>

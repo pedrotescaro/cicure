@@ -1,3 +1,4 @@
+import { CicureWordmark } from '../../../ui/brand/CicureWordmark';
 import { useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { addDays, endOfMonth, endOfWeek, startOfMonth, startOfWeek } from 'date-fns';
@@ -39,7 +40,7 @@ export default function AdvancedAgenda() {
   const moveDate = (direction: number) => setSelectedDate(localDay(addDays(selected, direction * (period === 'Semana' ? 7 : period === 'Mês' ? 30 : 1))));
   return <View style={{ flex: 1, backgroundColor: c.bg }}>
     <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: bottomInset, gap: 20 }} keyboardShouldPersistTaps="handled">
-      <Txt style={{ fontFamily: fonts.brand, fontSize: 26, color: c.red }}>cicure</Txt>
+      <CicureWordmark size={32} />
       <Txt accessibilityRole="header" style={s.h1}>Agenda</Txt>
       <Txt muted>Atendimentos marcados e retornos registrados ao concluir uma consulta.</Txt>
       {!presentation && <Button title="Agendar atendimento" icon={Plus} onPress={() => setForm('new')} />}

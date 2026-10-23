@@ -1,3 +1,4 @@
+import { CicureWordmark } from './brand/CicureWordmark';
 import React, { useState } from 'react';
 import { AppState, BackHandler, Image, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
@@ -162,7 +163,7 @@ export function CareWizard({ visitId, patientId, woundId }: { visitId?: string; 
   if (local.state === 'Concluído') return <View style={[styles.center, { backgroundColor: colors.bg }]}><Empty title="Atendimento concluído" description="O registro original foi preservado. Você pode acrescentar uma correção no resumo." action="Abrir resumo" onPress={() => router.replace('/care/' + local.id)} /></View>;
   return <View style={{ flex: 1, backgroundColor: colors.bg }}>
     <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.content, { paddingHorizontal: isNarrow ? 16 : 20, paddingBottom: 100 }]} showsVerticalScrollIndicator={false}>
-      <View style={styles.topbar}><Txt style={[styles.brand, { color: colors.red }]}>cicure</Txt><IconButton icon={X} label="Salvar e fechar atendimento" onPress={() => void leave()} /></View>
+      <View style={styles.topbar}><CicureWordmark size={32} /><IconButton icon={X} label="Salvar e fechar atendimento" onPress={() => void leave()} /></View>
       <View style={{ gap: 8 }}><Txt style={s.h1}>Atendimento</Txt><Txt>{patient.name}</Txt><Txt muted>{wound.location} · {wound.etiology}</Txt></View>
       <View style={{ gap: 10 }}>
         <Txt accessibilityLiveRegion="polite" muted>{saving ? 'Salvando neste aparelho…' : saveMessage || 'Rascunho em andamento'}</Txt>

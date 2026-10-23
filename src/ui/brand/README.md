@@ -1,31 +1,11 @@
-# cicure vector wordmark
+# Cicure vector identity
 
-`cicurePaths.ts` contains outlines generated directly from the installed
-`@expo-google-fonts/comfortaa/700Bold/Comfortaa_700Bold.ttf` (Comfortaa Bold 700),
-not traced or approximated letter shapes. The source font SHA-256 is included in
-the generated file. The geometry preserves the original advances and GPOS
-kerning and scales uniformly to fit a fixed view box.
+`CicureWordmark` combines the supplied icon's C and point with only `icure` from the original Comfortaa Bold outlines. It renders vector parts, never the reference screenshot or a flattened wordmark image. `size` is its visual height in dp; the width follows the fixed brand proportions. All header, login and onboarding instances share this component.
 
-The source font is copyright 2011 The Comfortaa Project Authors and licensed
-under SIL Open Font License 1.1; its license is available in
-`node_modules/@expo-google-fonts/comfortaa/LICENSE_FONT`. This vector wordmark is
-rendered artwork, not a modified or renamed font.
+`monogramGeometry.ts` records the source icon checksum and its traced alpha contour. The original PNG remains preserved in `assets/cicure-monogram-source.png`; the icon and favicon keep that monogram.
 
-To regenerate after deliberately updating the source font, install Python 3 and
-`fonttools`, then run `python scripts/generate-cicure-logo.py`. To check the
-committed artifact without writing, use `python scripts/generate-cicure-logo.py
---check`. FontTools is development tooling only and is not bundled in the app.
+`cicurePaths.ts` preserves the outlines, advances and kerning generated from the installed Comfortaa Bold font. Copyright 2011 The Comfortaa Project Authors, SIL OFL 1.1; see `node_modules/@expo-google-fonts/comfortaa/LICENSE_FONT`. These are rendered letter outlines, not a renamed or modified font. Regenerate deliberately with `python scripts/generate-cicure-logo.py`; verify with `--check`.
 
-Each letter retains all source contours, including the i dot, the e's inner
-edge, and the overlapping contours of u/r. The fill uses the font's nonzero
-winding. Contour lengths are measured from the actual quadratic curves;
-`strokeDashoffset` consumes those lengths in order rather than fading complete
-letters. The outlines disappear into the solid fill at the end, preserving the
-real weight of Comfortaa Bold.
+`AnimatedLogo` takes a shared `progress` in milliseconds. `brandTimeline.ts` defines its bounded stages: draw and turn the C once, reveal the point, move the symbol into position, reveal the five suffix letters in order, then hold the finished identity. SVG matrices and path properties animate on the UI thread; no font load can change its geometry mid-animation.
 
-`AnimatedLogo` accepts shared `drawProgress` and `fillProgress` values in 0..1.
-Its caller owns timing, splash handoff and reduced-motion behavior. Setting both
-values directly to 1 renders the completed logo without movement. Width is
-bounded to the viewport and height always follows the original proportions;
-neither layout nor letter spacing is animated. Motion settings live in
-`src/ui/motion.ts` and the default red comes from `src/ui/theme.ts`.
+`AnimatedSplash` owns the timing and resource handoff. It exits only after both the reveal and `ready` are true. A delayed animation callback has a fallback that marks the reveal complete without bypassing readiness. Reduce Motion immediately selects the completed identity and waits only for resources. The normal sequence lasts 2200 ms plus a 240 ms exit.

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import {
   Building2,
@@ -18,13 +18,16 @@ export function WorkspaceBar() {
   const { colors: c, isDark } = useTheme();
   const { workMode, activeOrg } = store;
   const { isOnline, pending, syncState } = useNetworkStatus();
+  const { width, fontScale } = useWindowDimensions();
+  const compact = width < 560 * Math.max(1, fontScale);
+  const controlHeight = Math.max(48, Math.ceil(fontScale * 44));
 
   const isIndividual = workMode === 'individual';
   const orgName = isIndividual ? 'Atendimento individual' : activeOrg.name;
 
   return (
     <>
-      <View style={styles.container}>
+      <View style={[styles.container, compact && { flexDirection: 'column', alignItems: 'stretch' }]}>
         {/* Workspace Switcher Chip */}
         <Pressable
           accessibilityRole="button"
@@ -32,6 +35,8 @@ export function WorkspaceBar() {
           onPress={() => router.push('/organization' as never)}
           style={({ pressed }) => [
             styles.chip,
+            { minHeight: controlHeight },
+            compact && { flexGrow: 0, width: '100%' },
             { backgroundColor: isDark ? '#232328' : '#F5F5F5', borderColor: c.border },
             pressed && { opacity: 0.8 }
           ]}
@@ -43,7 +48,7 @@ export function WorkspaceBar() {
               <Building2 size={13} color="#FFF" />
             )}
           </View>
-          <Txt style={styles.chipText} numberOfLines={1}>
+          <Txt style={styles.chipText} numberOfLines={compact && fontScale > 1.2 ? 2 : 1}>
             {orgName}
           </Txt>
           <ChevronDown size={14} color={c.secondary} />
@@ -56,6 +61,8 @@ export function WorkspaceBar() {
           onPress={() => router.push('/sync' as never)}
           style={({ pressed }) => [
             styles.statusPill,
+            { minHeight: controlHeight },
+            compact && { width: '100%' },
             {
               backgroundColor: isOnline
                 ? (isDark ? '#142A1D' : '#EEF9F1')
@@ -68,14 +75,12 @@ export function WorkspaceBar() {
           ]}
         >
           <View style={[styles.dot, { backgroundColor: isOnline ? c.green : '#9E9E9E' }]} />
-          <Txt style={styles.statusText}>
+          <Txt style={styles.statusText} numberOfLines={2}>
             {isOnline
               ? (syncState === 'syncing' ? 'Enviando dados' : pending > 0 ? `${pending} envios pendentes` : syncState === 'synced' ? 'Dados enviados' : 'Salvo neste aparelho')
               : 'Sem internet'}
           </Txt>
-          {isOnline && syncState === 'syncing' ? (
-            <RefreshCw size={11} color={c.green} />
-          ) : null}
+          <View style={styles.statusIcon}>{isOnline && syncState === 'syncing' ? <RefreshCw size={13} color={c.green} /> : null}</View>
         </Pressable>
       </View>
 
@@ -86,7 +91,6 @@ export function WorkspaceBar() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     paddingVertical: 4,
@@ -94,6 +98,8 @@ const styles = StyleSheet.create({
   },
   chip: {
     flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -106,7 +112,8 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: fonts.medium,
     fontSize: 14,
-    flexShrink: 1,
+    flex: 1,
+    minWidth: 0,
   },
   iconCircle: {
     width: 20,
@@ -116,6 +123,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   statusPill: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -126,6 +134,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   dot: {
+    flexShrink: 0,
     width: 7,
     height: 7,
     borderRadius: 4,
@@ -133,5 +142,8 @@ const styles = StyleSheet.create({
   statusText: {
     fontFamily: fonts.medium,
     fontSize: 14,
-  }
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  statusIcon: { width: 14, height: 16, marginLeft: 'auto', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
 });

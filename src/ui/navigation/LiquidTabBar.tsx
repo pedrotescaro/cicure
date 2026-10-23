@@ -22,6 +22,18 @@ const tabItems = {
 type Props = BottomTabBarProps & { blurTarget: RefObject<View | null> };
 type MeasuredItem = LayoutRectangle & { barWidth: number };
 
+/** Keep the elastic lens inside the capsule when a spring overshoots or reverses. */
+export function liquidLensGeometry(left: number, right: number, base: number, inflation: number, barWidth: number, barHeight: number) {
+  'worklet';
+  const pulse = Math.max(0, Math.min(1, inflation));
+  const width = Math.min(barWidth - 4, Math.max(base * 0.94, Math.min(Math.abs(right - left) + pulse * base * 0.16, base * liquidMotion.maxStretch)));
+  const stretch = Math.max(0, Math.min(1, (width / base - 1) / (liquidMotion.maxStretch - 1)));
+  const height = Math.min(barHeight - 4, metrics.lensHeight + pulse * liquidMotion.inflation - stretch * liquidMotion.squash);
+  const x = Math.max(2, Math.min(barWidth - width - 2, (left + right) / 2 - width / 2));
+  const y = Math.max(2, Math.min(barHeight - height - 2, metrics.lensCenterY - height / 2));
+  return { width, height, x, y, stretch };
+}
+
 export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarget }: Props) {
   const { isDark } = useTheme();
   const glassColors = getGlassColors(isDark);
@@ -81,18 +93,15 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
   }, [moveLens, selectedLayout, reduceMotion, barWidth]);
 
   const lensStyle = useAnimatedStyle(() => {
-    const base = restingWidth.get();
-    const width = Math.max(base * 0.94, Math.min(Math.abs(right.get() - left.get()) + inflation.get() * base * 0.16, base * liquidMotion.maxStretch));
-    const stretch = Math.max(0, Math.min(1, (width / base - 1) / (liquidMotion.maxStretch - 1)));
-    const height = metrics.lensHeight + inflation.get() * liquidMotion.inflation - stretch * liquidMotion.squash;
+    const { width, height, x, y, stretch } = liquidLensGeometry(left.get(), right.get(), restingWidth.get(), inflation.get(), barWidth, barHeight);
     return {
       width,
       height,
       borderRadius: height / 2,
       opacity: visible.get() * (1 - stretch * 0.22),
       transform: [
-        { translateX: (left.get() + right.get()) / 2 - width / 2 },
-        { translateY: metrics.lensCenterY - height / 2 },
+        { translateX: x },
+        { translateY: y },
       ],
     };
   });
@@ -114,7 +123,6 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
       <View pointerEvents="none" style={[styles.capsule, { borderColor: glassColors.outline }]}>
         {supportsBlur && (
           <BlurView
-            key={activeKey}
             pointerEvents="none"
             blurTarget={blurTarget}
             blurMethod="dimezisBlurViewSdk31Plus"
@@ -132,6 +140,7 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
         />
       </View>
       <View style={styles.items}>
+        <View pointerEvents="none" style={styles.lensClip}>
         <Animated.View
           testID="liquid-tab-lens"
           pointerEvents="none"
@@ -141,12 +150,14 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
             lensStyle,
           ]}
         >
-          <View style={[styles.lensInner, { borderColor: glassColors.lensOutline }]} />
           <Svg accessible={false} viewBox="0 0 100 20" preserveAspectRatio="none" style={styles.reflection}>
             <Path d="M4 16 C25 1 75 1 96 16" fill="none" stroke={glassColors.reflection} strokeWidth={1.5} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           </Svg>
-          <View style={[styles.lowerReflection, { borderColor: `${glassColors.surface}AA` }]} />
+          <Svg accessible={false} viewBox="0 0 100 20" preserveAspectRatio="none" style={styles.lowerReflection}>
+            <Path d="M8 4 C30 17 70 17 92 4" fill="none" stroke={glassColors.lowerReflection} strokeWidth={1} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          </Svg>
         </Animated.View>
+        </View>
         {state.routes.map(route => {
           const item = tabItems[route.name as keyof typeof tabItems];
           if (!item) return null;
@@ -171,7 +182,7 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
               }
               onFocus={event => {
                 const target = event.currentTarget as unknown as { matches?: (selector: string) => boolean };
-                if (Platform.OS !== 'web' || target.matches?.(':focus-visible')) setFocusedKey(route.key);
+                if (Platform.OS === 'web' && target.matches?.(':focus-visible')) setFocusedKey(route.key);
               }}
               onBlur={() => setFocusedKey(null)}
               onPress={() => {
@@ -182,7 +193,7 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
               style={({ pressed }) => [
                 styles.tab,
                 { height: barHeight - 2 },
-                pressed && { backgroundColor: glassColors.lens },
+                pressed && { opacity: 0.8 },
                 focusedKey === route.key && { borderColor: glassColors.active },
               ]}
             >
@@ -225,8 +236,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   items: { flex: 1, flexDirection: 'row', paddingHorizontal: metrics.padding },
+  lensClip: { ...StyleSheet.absoluteFill, overflow: 'hidden', borderRadius: metrics.height / 2 },
   lens: { position: 'absolute', left: 0, top: 0, overflow: 'hidden', borderWidth: 1 },
-  lensInner: { ...StyleSheet.absoluteFill, borderWidth: 1, borderRadius: 100 },
   reflection: {
     position: 'absolute',
     top: 1,
@@ -239,9 +250,7 @@ const styles = StyleSheet.create({
     bottom: 1,
     left: '22%',
     right: '22%',
-    height: 4,
-    borderBottomWidth: 1,
-    borderRadius: 100,
+    height: 6,
   },
   tab: {
     flex: 1,
