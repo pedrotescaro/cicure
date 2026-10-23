@@ -26,9 +26,15 @@ npm run expo:check
 npm run export:web
 ```
 
-`npm test` executa os testes de persistência, configuração cloud e algoritmos clínicos; qualquer falha retorna código diferente de zero. O CI repete esses comandos em cada PR para `main` e em pushes a `main`. A exportação web verifica o bundle, mas não publica a aplicação. Os avisos existentes do lint sobre fluxos antigos de animação e inicialização continuam visíveis; erros das demais regras reprovam o CI.
+`npm test` executa persistência, recuperação da base antiga, configuração cloud, cadastro/agenda, módulos de apoio, relatórios/lembretes, ciclo do atendimento e algoritmos clínicos; qualquer falha retorna código diferente de zero. O CI repete esses comandos em cada PR para `main` e em pushes a `main`. A exportação web verifica o bundle, mas não publica a aplicação. A entrega 1.1.0 tem **46 verificações aprovadas**, lint sem avisos e [CI aprovado no código final](https://github.com/pedrotescaro/cicure/actions/runs/39893099923).
 
-`supabase/tests/owner_isolation.sql` verifica proprietário, outra conta e papel anônimo em uma transação com `ROLLBACK`. Execute-o em banco descartável antes de cada mudança de RLS. O CI ainda não inicia banco Supabase e não valida acesso remoto, dispositivo nativo nem exatidão clínica.
+`supabase/tests/owner_isolation.sql`, `android_workflows.sql` e `organization_access.sql` verificam isolamento, ciclo clínico e permissões em transações com `ROLLBACK`. Execute-os em banco de teste antes de cada mudança de RLS. Os roteiros HTTP `scripts/test-live-sync.cjs` e `scripts/test-live-organization.cjs` usam duas contas sintéticas preparadas fora do Git; nunca aponte esses testes para contas ou pacientes reais. O CI ainda não inicia banco Supabase e não valida acesso remoto, dispositivo nativo nem exatidão clínica. As evidências remotas e Android desta versão estão em [RELEASE_1.1.0.md](RELEASE_1.1.0.md).
+
+Nesta entrega, os testes no servidor real aprovaram **11 grupos SQL de fluxos individuais e 9 de permissões de clínica**, com reversão dos dados de teste, além de **7 verificações HTTP individuais e 5 de clínica**. Essas execuções remotas são evidências separadas do CI.
+
+No emulador Android, foram comprovados atualização por `adb install -r` com sessão preservada, acesso Supabase, navegação em português, cadastro de paciente e ferida, salvamento de rascunho, geração real de PDF de atendimento concluído, prévia de impressão de duas páginas e abertura do seletor de compartilhamento sem envio. Essa sequência usou o APK anterior à última correção do teclado do modal. No APK final, foram repetidos instalação, abertura com sessão preservada e navegação de pacientes; o teste de regressão confirmou que Voltar fecha o teclado sem descartar o cadastro nem apagar o nome preenchido. Isso não comprova persistência nativa das medidas, ciclo completo de câmera, operação sem internet, recuperação de dados antigos no Android ou uso em aparelho físico. Os testes técnicos não equivalem a aprovação clínica do aplicativo.
+
+O diagnóstico de dependências registra **20 alertas altos, 3 moderados e 0 críticos**. O CI aprovado não significa ausência de vulnerabilidades; os alertas transitivos restantes exigem acompanhamento de correções compatíveis com o SDK 57.
 
 ## GitHub Flow solo
 
