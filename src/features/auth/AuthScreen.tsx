@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { cloudConfigured } from '../../data/supabase';
 import { fonts, useTheme } from '../../ui/theme';
@@ -133,7 +133,8 @@ export default function AuthScreen() {
 
               {mode === 'login' && (
                 <>
-                  <Pressable accessibilityRole="button" disabled={busy} onPress={() => void google()} style={({ pressed }) => ({ minHeight: 54, borderRadius: 14, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, opacity: pressed ? 0.7 : 1 })}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Continuar com Google" disabled={busy} onPress={() => void google()} style={({ pressed }) => ({ minHeight: 54, borderRadius: 14, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.border, backgroundColor: c.surface, opacity: pressed ? 0.7 : 1 })}>
+                    <Image source={require('../../../assets/google-g-logo.png')} accessible={false} importantForAccessibility="no" resizeMode="contain" style={{ width: 20, height: 20 }} />
                     <Txt style={{ fontFamily: fonts.semibold, fontSize: 16 }}>Continuar com Google</Txt>
                   </Pressable>
                   <Pressable accessibilityRole="button" onPress={() => switchMode('recovery')} style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}>
