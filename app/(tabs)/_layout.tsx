@@ -1,4 +1,4 @@
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs, usePathname, useRouter } from 'expo-router';
 import { createRef, useCallback, useRef, type RefObject } from 'react';
 import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ export default function TabsLayout() {
   const { width, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const pathname = usePathname();
   const { colors, isDark } = useTheme();
   const presentation = useStore(s => s.presentation);
   const targets = useRef<Record<string, RefObject<View | null>>>({});
@@ -47,7 +48,7 @@ export default function TabsLayout() {
         <Tabs.Screen name="reports" />
         <Tabs.Screen name="more" />
       </Tabs>
-      {!presentation && (
+      {!presentation && pathname !== '/' && (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Novo atendimento"

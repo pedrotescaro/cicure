@@ -51,9 +51,12 @@ async function enterField(label, value, options = {}) {
   if (!field) throw new Error(`Campo não encontrado: ${label}`);
   const [left, top, right, bottom] = field.box;
   adb(['shell', 'input', 'tap', String(Math.round((left + right) / 2)), String(Math.round((top + bottom) / 2))]);
+  await sleep(350);
+  const focused = (await dump()).nodes.find(node => node.class === 'android.widget.EditText' && node.focused === 'true');
+  if (!focused || focused['content-desc'] !== label) throw new Error(`O campo não recebeu foco: ${label}`);
   if (options.clear !== false) {
-    adb(['shell', 'input', 'keyevent', 'KEYCODE_MOVE_END']);
-    adb(['shell', 'input', 'keyevent', ...Array(Math.min((field.text || '').length + 6, 180)).fill('KEYCODE_DEL')]);
+    adb(['shell', 'input', 'keycombination', 'KEYCODE_CTRL_LEFT', 'KEYCODE_A']);
+    adb(['shell', 'input', 'keyevent', 'KEYCODE_DEL']);
   }
   if (/[^\x20-\x7E]/.test(value) || value.includes('%s')) throw new Error('Use somente dados sintéticos ASCII neste auxiliar de entrada ADB.');
   const remoteQuoted = "'" + value.replace(/'/g, "'\\''").replace(/ /g, '%s') + "'";
@@ -61,7 +64,8 @@ async function enterField(label, value, options = {}) {
   await sleep(250);
 }
 async function swipeUp() {
-  const size = adb(['shell', 'wm', 'size']).match(/(?:Physical|Override) size: (\d+)x(\d+)/);
+  const output = adb(['shell', 'wm', 'size']);
+  const size = output.match(/Override size: (\d+)x(\d+)/) || output.match(/Physical size: (\d+)x(\d+)/);
   const width = Number(size?.[1] || 1080), height = Number(size?.[2] || 2400);
   adb(['shell', 'input', 'swipe', String(Math.round(width * 0.5)), String(Math.round(height * 0.76)), String(Math.round(width * 0.5)), String(Math.round(height * 0.28)), '350']);
   await sleep(250);
@@ -71,6 +75,9 @@ async function scrollTo(text, options = {}) {
   throw new Error(`Elemento não apareceu após rolar: ${text}`);
 }
 async function back() { adb(['shell', 'input', 'keyevent', 'KEYCODE_BACK']); await sleep(350); }
+async function hideKeyboard() {
+  if (/mInputShown=true/.test(adb(['shell', 'dumpsys', 'input_method']))) await back();
+}
 async function launch() { adb(['shell', 'monkey', '-p', packageName, '-c', 'android.intent.category.LAUNCHER', '1']); await sleep(1800); }
 async function restart() { adb(['shell', 'am', 'force-stop', packageName]); await launch(); }
 async function snapshot(name) {
@@ -85,13 +92,15 @@ async function login(accountFile = path.join(artifacts, 'account.json')) {
   const account = JSON.parse(fs.readFileSync(accountFile, 'utf8'));
   if (!account.email || !account.password) throw new Error('Conta sintética não configurada.');
   await enterField('E-mail', account.email);
+  await hideKeyboard();
+  await sleep(700);
   await enterField('Senha', account.password);
-  await back();
+  await hideKeyboard();
   await tapText('Entrar');
   await waitFor('Pacientes', { exact: false, timeout: 25000 });
   return { authenticated: true };
 }
-module.exports = { adb, dump, tapText, hasText, waitFor, enterField, swipeUp, scrollTo, back, launch, restart, snapshot, login, sleep };
+module.exports = { adb, dump, tapText, hasText, waitFor, enterField, swipeUp, scrollTo, back, hideKeyboard, launch, restart, snapshot, login, sleep };
 if (require.main === module) (async () => {
   const [action = 'state', ...args] = process.argv.slice(2);
   if (action === 'state') console.log(JSON.stringify(await snapshot(args[0] || 'current'), null, 2));
