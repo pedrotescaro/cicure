@@ -67,7 +67,8 @@ async function swipeUp() {
   const output = adb(['shell', 'wm', 'size']);
   const size = output.match(/Override size: (\d+)x(\d+)/) || output.match(/Physical size: (\d+)x(\d+)/);
   const width = Number(size?.[1] || 1080), height = Number(size?.[2] || 2400);
-  adb(['shell', 'input', 'swipe', String(Math.round(width * 0.5)), String(Math.round(height * 0.76)), String(Math.round(width * 0.5)), String(Math.round(height * 0.28)), '350']);
+  // Start away from the floating action and bottom navigation overlays.
+  adb(['shell', 'input', 'swipe', String(Math.round(width * 0.25)), String(Math.round(height * 0.65)), String(Math.round(width * 0.25)), String(Math.round(height * 0.25)), '350']);
   await sleep(250);
 }
 async function scrollTo(text, options = {}) {
@@ -76,7 +77,9 @@ async function scrollTo(text, options = {}) {
 }
 async function back() { adb(['shell', 'input', 'keyevent', 'KEYCODE_BACK']); await sleep(350); }
 async function hideKeyboard() {
-  if (/mInputShown=true/.test(adb(['shell', 'dumpsys', 'input_method']))) await back();
+  const state = adb(['shell', 'dumpsys', 'input_method']);
+  const visibility = Number(state.match(/mImeWindowVis=(0x[\da-f]+|\d+)/i)?.[1] || 0);
+  if ((visibility & 2) !== 0 && /mWindowVisible=true/.test(state)) await back();
 }
 async function launch() { adb(['shell', 'monkey', '-p', packageName, '-c', 'android.intent.category.LAUNCHER', '1']); await sleep(1800); }
 async function restart() { adb(['shell', 'am', 'force-stop', packageName]); await launch(); }

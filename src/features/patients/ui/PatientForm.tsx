@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, View } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, TextInput, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Choices, Field, IconButton, Txt, s } from '../../../ui/components';
@@ -27,6 +27,15 @@ export function PatientForm({ patient, onClose, onSaved }: { patient?: Patient; 
     if (!dirty) { onClose(); return; }
     Alert.alert('Descartar alterações?', 'Os dados que você preencheu ainda não foram salvos.', [{ text: 'Continuar preenchendo', style: 'cancel' }, { text: 'Descartar', style: 'destructive', onPress: onClose }]);
   };
+  const requestClose = () => {
+    const focusedInput = TextInput.State.currentlyFocusedInput();
+    if (focusedInput) {
+      focusedInput.blur();
+      Keyboard.dismiss();
+      return;
+    }
+    close();
+  };
   const submit = async () => {
     const nextErrors = patientFormErrors(values);
     if (values.cpf.trim() && patients.some(item => item.id !== patient?.id && item.cpf.replace(/\D/g, '') === values.cpf.replace(/\D/g, ''))) nextErrors.cpf = 'Este CPF já está cadastrado. Busque o paciente na lista.';
@@ -37,7 +46,7 @@ export function PatientForm({ patient, onClose, onSaved }: { patient?: Patient; 
     catch { setFailure('Não foi possível salvar. Seus dados continuam aqui; tente novamente.'); }
     finally { setSaving(false); }
   };
-  return <Modal visible animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={close}>
+  return <Modal visible animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={requestClose}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
       <View style={[s.between, { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 }]}>
         <Txt accessibilityRole="header" style={s.h2}>{patient ? 'Editar paciente' : 'Novo paciente'}</Txt>

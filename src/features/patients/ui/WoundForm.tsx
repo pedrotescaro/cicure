@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, View } from 'react-native';
+import { Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, TextInput, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Choices, Field, IconButton, Txt, s } from '../../../ui/components';
@@ -31,6 +31,15 @@ export function WoundForm({ patientId, wound, onClose, onSaved }: { patientId: s
     if (!dirty) { onClose(); return; }
     Alert.alert('Descartar alterações?', 'A ferida ainda não foi salva.', [{ text: 'Continuar preenchendo', style: 'cancel' }, { text: 'Descartar', style: 'destructive', onPress: onClose }]);
   };
+  const requestClose = () => {
+    const focusedInput = TextInput.State.currentlyFocusedInput();
+    if (focusedInput) {
+      focusedInput.blur();
+      Keyboard.dismiss();
+      return;
+    }
+    close();
+  };
   const submit = async () => {
     if (!location.trim()) { setError('Informe a localização, incluindo o lado do corpo.'); return; }
     if (startDate && (!validCalendarDate(startDate) || startDate > localDay())) { setError('Selecione uma data de início válida, até hoje.'); return; }
@@ -45,7 +54,7 @@ export function WoundForm({ patientId, wound, onClose, onSaved }: { patientId: s
     } catch { setError('Não foi possível salvar. Confira os dados e tente novamente.'); }
     finally { setSaving(false); }
   };
-  return <Modal visible animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={close}>
+  return <Modal visible animationType={reduceMotion ? 'none' : 'slide'} onRequestClose={requestClose}>
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
       <View style={[s.between, { padding: 16 }]}><Txt style={s.h2} accessibilityRole="header">{wound ? 'Editar ferida' : 'Nova ferida'}</Txt><IconButton icon={X} label="Fechar cadastro da ferida" onPress={close} /></View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32, gap: 18, maxWidth: 720, width: '100%', alignSelf: 'center' }}>
