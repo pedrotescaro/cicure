@@ -5,26 +5,30 @@ import * as SplashScreen from 'expo-splash-screen';
 import { Comfortaa_700Bold } from '@expo-google-fonts/comfortaa';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, AppState, Platform, View } from 'react-native';
+import { AppState, Platform, View } from 'react-native';
 import { queryClient, useStore } from '../src/data/store';
 import { supabase } from '../src/data/supabase';
 import { useTheme } from '../src/ui/theme';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ComponentProps } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { OnboardingModal } from '../src/features/onboarding/ui/OnboardingModal';
 import { Button, Txt } from '../src/ui/components';
 import { AnimatedSplash } from '../src/ui/brand/AnimatedSplash';
-import AuthScreen from '../src/features/auth/AuthScreen';
 import { readPreference } from '../src/data/preferences';
 import { AppLockModal } from '../src/features/security/ui/AppLockModal';
 import { useMotionPreferences } from '../src/ui/useMotionPreferences';
 import { useNetworkStatus } from '../src/data/network';
+import { RootScreenAccess, RootScreenGate } from '../src/ui/navigation/RootScreenGate';
 
 // Global scope is intentional: the native splash must be retained before render on mobile.
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 SplashScreen.setOptions({ fade: false, duration: 0 });
 
 let launchSplashFinished = false;
+// A stable layout gates screen content instead of mounting/unmounting the navigator during login/init.
+const renderRootScreen: NonNullable<ComponentProps<typeof Stack>['screenLayout']> = ({ children, route }) => (
+  <RootScreenGate isAuthRoute={route.name.startsWith('auth/')}>{children}</RootScreenGate>
+);
 export default function RootLayout() {
   const motion = useMotionPreferences();
   const network = useNetworkStatus();
@@ -108,6 +112,8 @@ export default function RootLayout() {
   }, []);
 
   const resourcesReady = (fontsLoaded || Boolean(fontError) || startupGraceElapsed) && authReady && (!authUserId || ready || isAuthRoute) && preferencesReady;
+  const screenAccess = useMemo(() => ({ resourcesReady, authUserId, recordsReady: ready, workMode, isOnline: network.isOnline, storageError }), [resourcesReady, authUserId, ready, workMode, network.isOnline, storageError]);
+  const screenOptions = useMemo(() => ({ headerShown: false, animation: motion.reduceMotion ? 'none' as const : 'fade' as const, contentStyle: { backgroundColor: colors.bg } }), [motion.reduceMotion, colors.bg]);
 
   const finishSplash = useCallback(() => {
     launchSplashFinished = true;
@@ -119,7 +125,6 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <View style={{ flex: 1, backgroundColor: colors.bg }}>
-          {resourcesReady ? (
             <SafeAreaView
               edges={['top', 'left', 'right']}
               style={{ flex: 1, backgroundColor: colors.bg }}
@@ -127,24 +132,10 @@ export default function RootLayout() {
               accessibilityElementsHidden={showSplash}
               importantForAccessibility={showSplash ? 'no-hide-descendants' : 'auto'}
             >
-              {!authUserId && !isAuthRoute ? <AuthScreen /> : authUserId && !ready && !isAuthRoute ? (
-                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                  <ActivityIndicator color={colors.red} />
-                  <Txt style={{ marginTop: 16 }}>Abrindo seus registros...</Txt>
-                </View>
-              ) : workMode === 'group' && (!network.isOnline || storageError) ? <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 20 }}><Txt style={{ fontSize: 24 }}>Confirme seu acesso à clínica</Txt><Txt>{storageError || 'Conecte-se à internet para abrir registros compartilhados. Os rascunhos da clínica continuam guardados neste aparelho.'}</Txt><Button title="Tentar acessar novamente" onPress={() => void init()} /><Button title="Abrir meus atendimentos individuais" variant="outline" onPress={() => void useStore.getState().setWorkMode('individual')} /></View> : <Stack
-                screenOptions={{
-                  headerShown: false,
-                  animation: motion.reduceMotion ? 'none' : 'fade',
-                  contentStyle: { backgroundColor: colors.bg },
-                }}
-              />}
+              <RootScreenAccess.Provider value={screenAccess}>
+                <Stack screenLayout={renderRootScreen} screenOptions={screenOptions} />
+              </RootScreenAccess.Provider>
             </SafeAreaView>
-          ) : !showSplash ? (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
-              <ActivityIndicator color={colors.red} />
-            </View>
-          ) : null}
           {preferencesError && (
             <View style={{ flex: 1, justifyContent: 'center', padding: 24, gap: 16 }}>
               <Txt>{preferencesError}</Txt>

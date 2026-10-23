@@ -39,9 +39,12 @@ export default function TimelineScreen({ patientId, initialWoundId = '' }: { pat
   const presentation = useStore(state => state.presentation);
 
   const patient = useStore(st => st.data.patients.find(p => p.id === patientId));
-  const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === patientId));
-  const visits = useStore(st => st.data.visits.filter(v => v.patientId === patientId));
-  const reports = useStore(st => st.data.reports.filter(r => r.patientId === patientId));
+  const allWounds = useStore(st => st.data.wounds);
+  const allVisits = useStore(st => st.data.visits);
+  const allReports = useStore(st => st.data.reports);
+  const wounds = useMemo(() => allWounds.filter(w => w.patientId === patientId), [allWounds, patientId]);
+  const visits = useMemo(() => allVisits.filter(v => v.patientId === patientId), [allVisits, patientId]);
+  const reports = useMemo(() => allReports.filter(r => r.patientId === patientId), [allReports, patientId]);
 
   const allEvents = useMemo(() => {
     if (!patient) return [];

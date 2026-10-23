@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from
 import type { LayoutRectangle } from 'react-native';
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { BlurView } from 'expo-blur';
+import Svg, { Path } from 'react-native-svg';
 import { CalendarDays, ClipboardList, FileText, House, Menu } from 'lucide-react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnUI } from 'react-native-worklets';
@@ -141,7 +142,9 @@ export function LiquidTabBar({ state, navigation, descriptors, insets, blurTarge
           ]}
         >
           <View style={[styles.lensInner, { borderColor: glassColors.lensOutline }]} />
-          <View style={[styles.reflection, { borderColor: glassColors.reflection, backgroundColor: `${glassColors.surface}44` }]} />
+          <Svg accessible={false} viewBox="0 0 100 20" preserveAspectRatio="none" style={styles.reflection}>
+            <Path d="M4 16 C25 1 75 1 96 16" fill="none" stroke={glassColors.reflection} strokeWidth={1.5} strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+          </Svg>
           <View style={[styles.lowerReflection, { borderColor: `${glassColors.surface}AA` }]} />
         </Animated.View>
         {state.routes.map(route => {
@@ -229,9 +232,7 @@ const styles = StyleSheet.create({
     top: 1,
     left: '13%',
     right: '13%',
-    height: 7,
-    borderTopWidth: 1.5,
-    borderRadius: 100,
+    height: 9,
   },
   lowerReflection: {
     position: 'absolute',

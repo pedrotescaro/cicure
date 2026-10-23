@@ -157,3 +157,128 @@ test('sync keeps failed writes queued and rejects returning demo records', async
     assert.equal(store.getState().syncState, 'synced');
   } finally { h.close(); }
 });
+
+function snapshotFixture() {
+  return {
+    data: {
+      patients: [{ id: 'patient-a', name: 'Paciente A' }, { id: 'patient-b', name: 'Paciente B' }],
+      wounds: [{ id: 'wound-a', patientId: 'patient-a', location: 'Local A' }, { id: 'wound-b', patientId: 'patient-b', location: 'Local B' }],
+      visits: [{ id: 'visit-a', patientId: 'patient-a', woundId: 'wound-a' }, { id: 'visit-b', patientId: 'patient-b', woundId: 'wound-b' }],
+      reports: [{ id: 'report-a', patientId: 'patient-a', visitId: 'visit-a' }, { id: 'report-b', patientId: 'patient-b', visitId: 'visit-b' }],
+      profiles: [], products: [], care_plans: [], referrals: [], documents: [], inventory_items: [], inventory_movements: [], clinical_templates: [], consents: [], prescriptions: [],
+    },
+    presentation: false, themeMode: 'system', scope: 'user:account-a', authUserId: 'account-a', ready: true,
+    syncState: 'local', pending: 0,
+  };
+}
+
+// Check the useSyncExternalStore contract against selectors in the actual source:
+// repeat reads of an unchanged store must return Object.is-equal snapshots.
+test('every application store selector has a stable snapshot for unchanged populated and empty stores', () => {
+  const sourceFiles = [];
+  const walk = directory => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const target = path.join(directory, entry.name);
+      if (entry.isDirectory()) walk(target);
+      else if (/\.(ts|tsx)$/.test(entry.name)) sourceFiles.push(target);
+    }
+  };
+  walk('app'); walk('src');
+  const populated = snapshotFixture();
+  const empty = { ...populated, data: Object.fromEntries(Object.keys(populated.data).map(kind => [kind, []])) };
+  let checked = 0;
+  for (const file of sourceFiles) {
+    const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const visit = node => {
+      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'useStore' && node.arguments.length) {
+        const selector = node.arguments[0];
+        assert.ok(ts.isArrowFunction(selector) || ts.isFunctionExpression(selector), `${file}: selector form needs snapshot coverage`);
+        const code = ts.transpileModule(`module.exports = ${selector.getText(source)};`, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+        const module = { exports: {} };
+        vm.runInNewContext(code, { module, id: 'patient-a', patientId: 'patient-a' });
+        const line = source.getLineAndCharacterOfPosition(selector.getStart(source)).line + 1;
+        for (const state of [populated, empty]) assert.ok(Object.is(module.exports(state), module.exports(state)), `${file}:${line} allocates a new snapshot without a store update`);
+        checked++;
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(source);
+  }
+  assert.ok(checked > 0, 'No application store selectors were discovered');
+});
+
+function screenSnapshotHarness(file) {
+  const snapshotReaders = [];
+  const timelineInputs = [];
+  const react = {
+    useCallback: callback => callback,
+    useDebugValue: () => {},
+    useMemo: factory => factory(),
+    useState: initial => [typeof initial === 'function' ? initial() : initial, () => {}],
+    useSyncExternalStore: (_subscribe, getSnapshot) => {
+      const first = getSnapshot();
+      assert.ok(Object.is(first, getSnapshot()), `${file}: React received uncached external-store snapshots`);
+      snapshotReaders.push(getSnapshot);
+      return first;
+    },
+  };
+  // Execute the installed Zustand React hook, substituting only React's host
+  // renderer boundary so the actual getSnapshot callback can be exercised in Node.
+  const zustandModule = { exports: {} };
+  vm.runInNewContext('(function(require,module,exports){' + fs.readFileSync(require.resolve('zustand/react'), 'utf8') + '\n})', {})(name => name === 'react' ? react : require(name), zustandModule, zustandModule.exports);
+  const store = zustandModule.exports.create(() => snapshotFixture());
+  const jsx = (type, props) => ({ type, props });
+  const mocks = {
+    react,
+    'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
+    'react-native': { View: 'View', FlatList: 'FlatList', Pressable: 'Pressable', StyleSheet: { create: styles => styles } },
+    'expo-router': { useLocalSearchParams: () => ({ id: 'patient-a' }), useRouter: () => ({ replace() {}, push() {} }) },
+    'lucide-react-native': { ChevronLeft: 'ChevronLeft' },
+  };
+  const module = { exports: {} };
+  const source = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText;
+  const localRequire = name => {
+    if (name in mocks) return mocks[name];
+    if (name.endsWith('/data/store')) return { useStore: store };
+    if (name.endsWith('/ui/theme')) return { fonts: {}, useTheme: () => ({ colors: {} }) };
+    if (name.endsWith('/ui/components')) return { Badge: 'Badge', Empty: 'Empty', IconButton: 'IconButton', Pills: 'Pills', Txt: 'Txt', safeBack() {}, s: {} };
+    if (name.endsWith('/BodyMapView')) return { __esModule: true, default: 'BodyMapView' };
+    if (name.endsWith('/domain/clinical')) return { dateLabel: value => value };
+    if (name.endsWith('/timeline.service')) return {
+      buildTimeline: (patient, wounds, visits, reports) => { timelineInputs.push({ patient, wounds, visits, reports }); return []; },
+      filterTimeline: events => events,
+    };
+    throw Error('Unexpected screen dependency: ' + name);
+  };
+  vm.runInNewContext('(function(require,module,exports){' + source + '\n})', {})(localRequire, module, module.exports);
+  return { store, render: props => module.exports.default(props), snapshotReaders, timelineInputs };
+}
+
+test('body map uses cached Zustand snapshots and still receives newly saved wounds for its patient', () => {
+  const h = screenSnapshotHarness('app/patient/[id]/body-map.tsx');
+  let element = h.render();
+  assert.equal(element.type, 'BodyMapView');
+  assert.deepEqual(Array.from(element.props.wounds, wound => wound.id), ['wound-a']);
+  h.store.setState(state => ({ data: { ...state.data, wounds: [...state.data.wounds, { id: 'new-wound', patientId: 'patient-a', location: 'Nova ferida' }] } }));
+  element = h.render();
+  assert.deepEqual(Array.from(element.props.wounds, wound => wound.id), ['wound-a', 'new-wound']);
+  for (const read of h.snapshotReaders) assert.ok(Object.is(read(), read()));
+});
+
+test('timeline uses cached Zustand snapshots and filters saved wounds, visits and reports by patient', () => {
+  const h = screenSnapshotHarness('src/features/timeline/ui/TimelineScreen.tsx');
+  h.render({ patientId: 'patient-a' });
+  let input = h.timelineInputs.at(-1);
+  assert.deepEqual(Array.from(input.wounds, wound => wound.id), ['wound-a']);
+  assert.deepEqual(Array.from(input.visits, visit => visit.id), ['visit-a']);
+  assert.deepEqual(Array.from(input.reports, report => report.id), ['report-a']);
+  h.store.setState(state => ({ data: { ...state.data, visits: [...state.data.visits, { id: 'new-visit', patientId: 'patient-a', woundId: 'wound-a' }] } }));
+  h.render({ patientId: 'patient-a' });
+  input = h.timelineInputs.at(-1);
+  assert.deepEqual(Array.from(input.visits, visit => visit.id), ['visit-a', 'new-visit']);
+  h.render({ patientId: 'patient-b' });
+  input = h.timelineInputs.at(-1);
+  assert.deepEqual(Array.from(input.wounds, wound => wound.id), ['wound-b']);
+  assert.deepEqual(Array.from(input.visits, visit => visit.id), ['visit-b']);
+  assert.deepEqual(Array.from(input.reports, report => report.id), ['report-b']);
+});

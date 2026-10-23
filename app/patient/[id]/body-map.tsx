@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo } from 'react';
 import { View } from 'react-native';
 import { useStore } from '../../../src/data/store';
 import BodyMapView from '../../../src/features/body-map/ui/BodyMapView';
@@ -11,7 +12,8 @@ export default function BodyMapRoute() {
   const { colors } = useTheme();
   const presentation = useStore(state => state.presentation);
   const patient = useStore(st => st.data.patients.find(p => p.id === id));
-  const wounds = useStore(st => st.data.wounds.filter(w => w.patientId === id));
+  const allWounds = useStore(st => st.data.wounds);
+  const wounds = useMemo(() => allWounds.filter(w => w.patientId === id), [allWounds, id]);
 
   if (!patient) {
     return <View style={{ flex: 1, padding: 24, backgroundColor: colors.bg }}><Empty title="Paciente não encontrado" description="Volte à lista para selecionar um paciente." action="Voltar para pacientes" onPress={() => router.replace('/patients')} /></View>;
