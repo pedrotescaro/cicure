@@ -1,0 +1,20 @@
+{
+  "version": "1.1.1",
+  "versionCode": 4,
+  "package": "com.pedrotescaro.cicura",
+  "file": "cicure-v1.1.1-release.apk",
+  "bytes": 188632944,
+  "sha256": "b2fbc1e95f4506e0c3f653315fcc95d58f9c6db10545857ffc1c0d11bab64411",
+  "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+  "certificateMatchesVersion": "1.0.1",
+  "distribution": "internal",
+  "minSdk": 24,
+  "targetSdk": 36,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86",
+    "x86_64"
+  ],
+  "sourceCommit": "0b6c7f5a5f1f2c2e5a8731479b8ef1647a4ad71f"
+}
