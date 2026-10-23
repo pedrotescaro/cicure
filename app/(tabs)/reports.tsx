@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FileText, Plus } from 'lucide-react-native';
@@ -22,11 +22,20 @@ export default function Reports() {
   const [type, setType] = useState<Report['type']>('Completo');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [selected, setSelected] = useState<Report | null>(null);
+  const [selection, setSelection] = useState<{ report: Report; scope: string } | null>(null);
+  const selected = selection?.scope === store.scope ? selection.report : null;
+  const setSelected = (report: Report | null) => setSelection(report ? { report, scope: store.scope } : null);
+  useEffect(() => useStore.subscribe((current, previous) => {
+    if (current.scope !== previous.scope) setSelection(null);
+  }), []);
+  const assertCurrentAccess = () => {
+    const current = useStore.getState();
+    if (!current.authUserId || current.scope !== store.scope || current.presentation) throw new Error('A conta, a clínica ou o modo de apresentação mudou. Abra os relatórios novamente.');
+  };
   const visits = store.data.visits.filter(visit => visit.state === 'Concluído' && !visit.deletedAt && store.data.patients.some(patient => patient.id === visit.patientId && !patient.deletedAt && patient.name.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR')))).sort((a, b) => b.date.localeCompare(a.date));
   const run = async (action: () => Promise<void>) => { setError(''); setBusy(true); try { await action(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Não foi possível concluir. Tente novamente.'); } finally { setBusy(false); } };
   const generate = () => run(async () => {
-    if (store.presentation) throw new Error('Saia do modo apresentação para gerar documentos identificados.');
+    assertCurrentAccess();
     const visit = store.data.visits.find(row => row.id === visitId && row.state === 'Concluído');
     const patient = store.data.patients.find(row => row.id === visit?.patientId);
     const wound = store.data.wounds.find(row => row.id === visit?.woundId);
@@ -34,13 +43,21 @@ export default function Reports() {
     if (!visit || !patient || !wound) throw new Error('Escolha um atendimento concluído.');
     if (!profile?.name || !profile.council || !profile.registration) throw new Error('Complete seu perfil profissional no Menu antes de gerar o relatório.');
     let report: Report = JSON.parse(JSON.stringify({ id: uid(), visitId: visit.id, patientId: patient.id, type, createdAt: new Date().toISOString(), snapshot: { patient, wound, visit, profile } }));
-    report = { ...report, uri: await createReportPdf(report, store.scope) };
-    if (useStore.getState().scope !== store.scope || useStore.getState().presentation) throw new Error('A conta ou clínica mudou. Abra os relatórios novamente.');
+    report = { ...report, uri: await createReportPdf(report, store.scope, assertCurrentAccess) };
+    assertCurrentAccess();
     await store.save('reports', report);
+    assertCurrentAccess();
     setSelected(report); setCreating(false);
     store.toast('PDF gerado e salvo neste aparelho.');
   });
-  const regenerate = (report: Report) => run(async () => { const uri = await createReportPdf(report, store.scope); if (useStore.getState().scope !== store.scope || useStore.getState().presentation) throw new Error('A conta ou clínica mudou. Abra os relatórios novamente.'); const next = { ...report, uri }; await store.save('reports', next); setSelected(next); });
+  const regenerate = (report: Report) => run(async () => { assertCurrentAccess(); const uri = await createReportPdf(report, store.scope, assertCurrentAccess); assertCurrentAccess(); const next = { ...report, uri }; await store.save('reports', next); assertCurrentAccess(); setSelected(next); });
+  const confirmShare = (report: Report) => run(async () => {
+    assertCurrentAccess();
+    Alert.alert('Compartilhar documento confidencial', 'Confira o destinatário no próximo passo. O PDF contém a identificação e os registros deste paciente.', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Escolher destinatário', onPress: () => { void run(async () => { assertCurrentAccess(); await shareReport(report, store.scope, assertCurrentAccess); }); } },
+    ]);
+  });
   return <View style={{ flex: 1, backgroundColor: c.bg }}><ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingBottom: bottomInset, gap: 20 }}>
     <View style={{ gap: 10 }}><Txt style={{ fontFamily: fonts.brand, color: c.red, fontSize: 26 }}>cicure</Txt><Txt style={s.h1} accessibilityRole="header">Relatórios</Txt><Txt muted>Gere um PDF a partir de um atendimento concluído e confira antes de compartilhar.</Txt></View>
     <Button title="Novo relatório" icon={Plus} onPress={() => { setCreating(value => !value); setSelected(null); }} disabled={store.presentation} />
@@ -52,10 +69,11 @@ export default function Reports() {
       {visits.map(visit => <Button key={visit.id} variant={visitId === visit.id ? 'dark' : 'outline'} title={`${store.data.patients.find(row => row.id === visit.patientId)?.name} · ${reportDate(visit.date)} · ${store.data.wounds.find(row => row.id === visit.woundId)?.location}`} onPress={() => setVisitId(visit.id)} />)}
       <Button title="Gerar e salvar PDF" icon={FileText} onPress={generate} disabled={!visitId} loading={busy} />
     </View>}
-    {selected && <Card style={{ gap: 14 }}><Txt style={s.h2}>Prévia do conteúdo</Txt><Txt>{selected.snapshot.patient.name} · {selected.type}</Txt><Txt>Ferida: {selected.snapshot.wound.location}</Txt><Txt>Atendimento: {reportDate(selected.snapshot.visit.date)}</Txt><Txt>{selected.snapshot.visit.soap?.assessment || selected.snapshot.visit.plan || 'Sem avaliação textual informada.'}</Txt><Txt muted>O documento usa uma cópia dos dados no momento da geração.</Txt><Button title="Abrir prévia para impressão" variant="outline" onPress={() => run(() => previewReport(selected))} loading={busy} /><Button title="Compartilhar PDF" onPress={() => Alert.alert('Compartilhar documento confidencial', 'Confira o destinatário no próximo passo. O PDF contém a identificação e os registros deste paciente.', [{ text: 'Cancelar', style: 'cancel' }, { text: 'Escolher destinatário', onPress: () => run(() => shareReport(selected)) }])} loading={busy} /></Card>}
+    {selected && <Card style={{ gap: 14 }}><Txt style={s.h2}>Prévia do conteúdo</Txt><Txt>{selected.snapshot.patient.name} · {selected.type}</Txt><Txt>Ferida: {selected.snapshot.wound.location}</Txt><Txt>Atendimento: {reportDate(selected.snapshot.visit.date)}</Txt><Txt>{selected.snapshot.visit.soap?.assessment || selected.snapshot.visit.plan || 'Sem avaliação textual informada.'}</Txt><Txt muted>O documento usa uma cópia dos dados no momento da geração.</Txt><Button title="Abrir prévia para impressão" variant="outline" onPress={() => run(() => previewReport(selected, assertCurrentAccess))} loading={busy} /><Button title="Compartilhar PDF" onPress={() => { void confirmShare(selected); }} loading={busy} /></Card>}
     <Txt style={s.h2} accessibilityRole="header">Histórico de relatórios</Txt>
     {!store.data.reports.length && !creating && <Empty icon={FileText} title="Ainda não há relatórios" description="Use Novo relatório para escolher um atendimento e gerar seu primeiro PDF." />}
     {[...store.data.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(report => <Card key={report.id} style={{ gap: 12 }}><Txt style={{ fontFamily: fonts.semibold }}>{report.snapshot.patient.name}</Txt><Txt muted>{report.type} · {reportDate(report.createdAt)} · {report.snapshot.wound.location}</Txt><Button title="Consultar relatório" variant="outline" onPress={() => setSelected(report)} /><Button title="Gerar PDF neste aparelho" variant="ghost" loading={busy} onPress={() => regenerate(report)} /></Card>)}
     </>}
   </ScrollView></View>;
 }
+

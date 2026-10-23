@@ -27,3 +27,84 @@ test('Android reminder scheduling has stable replacement, denied permission, can
   granted = true; fail = true; assert.equal((await updateAppointmentReminder('user:a', visit)).reminderStatus, 'error');
   const returned = await updateAppointmentReminder('user:a', { ...visit, state: 'Concluído', returnDate: '2099-11-02', returnTime: '11:00' }); assert.equal(returned.reminderStatus, 'error');
 });
+
+function pdfHarness({ beforeShareAvailability, beforePrintToFile } = {}) {
+  const scope = 'user:account-a';
+  const state = { scope, presentation: false };
+  const calls = [];
+  const report = { id: 'report', uri: 'file:///app/clinical/user-account-a/reports/cicure-report.pdf' };
+  const assertAccess = () => {
+    if (state.scope !== scope || state.presentation) throw new Error('Report access changed');
+  };
+  const pdf = load('src/features/reports/domain/pdf.ts', {
+    'react-native': { Platform: { OS: 'android' } },
+    './report': { reportHtml: () => '<html>Confidential test report</html>' },
+    'expo-print': {
+      printAsync: async options => { calls.push(['preview', options]); },
+      printToFileAsync: async () => {
+        calls.push(['generate']);
+        if (beforePrintToFile) await beforePrintToFile();
+        return { uri: 'file:///cache/generated-report.pdf' };
+      },
+    },
+    'expo-sharing': {
+      isAvailableAsync: async () => {
+        calls.push(['available']);
+        if (beforeShareAvailability) await beforeShareAvailability();
+        return true;
+      },
+      shareAsync: async uri => { calls.push(['share', uri]); },
+    },
+    'expo-file-system/legacy': {
+      documentDirectory: 'file:///app/',
+      getInfoAsync: async () => ({ exists: true, size: 32 }),
+      makeDirectoryAsync: async uri => { calls.push(['directory', uri]); },
+      copyAsync: async options => { calls.push(['copy', options]); },
+    },
+  });
+  return { pdf, scope, state, report, assertAccess, calls };
+}
+
+test('a pending report export cannot share after the account changes during availability lookup', async () => {
+  let enteredAvailability;
+  const entered = new Promise(resolve => { enteredAvailability = resolve; });
+  let finishAvailability;
+  const pendingAvailability = new Promise(resolve => { finishAvailability = resolve; });
+  const h = pdfHarness({ beforeShareAvailability: async () => { enteredAvailability(); await pendingAvailability; } });
+  const exporting = h.pdf.shareReport(h.report, h.scope, h.assertAccess);
+  await entered;
+  h.state.scope = 'user:account-b';
+  finishAvailability();
+  await assert.rejects(exporting, /Report access changed/);
+  assert.equal(h.calls.filter(([action]) => action === 'share').length, 0);
+
+  // An unchanged account still reaches Android sharing through the same helper.
+  h.state.scope = h.scope;
+  await h.pdf.shareReport(h.report, h.scope, h.assertAccess);
+  assert.equal(h.calls.filter(([action]) => action === 'share').length, 1);
+});
+
+test('report preview is blocked in presentation mode before opening native printing', async () => {
+  const h = pdfHarness();
+  h.state.presentation = true;
+  await assert.rejects(() => h.pdf.previewReport(h.report, h.assertAccess), /Report access changed/);
+  assert.equal(h.calls.filter(([action]) => action === 'preview').length, 0);
+  h.state.presentation = false;
+  await h.pdf.previewReport(h.report, h.assertAccess);
+  assert.equal(h.calls.filter(([action]) => action === 'preview').length, 1);
+});
+
+test('a PDF finishing after an account change is not copied into persistent account storage', async () => {
+  let enteredPrinting;
+  const entered = new Promise(resolve => { enteredPrinting = resolve; });
+  let finishPrinting;
+  const pendingPrinting = new Promise(resolve => { finishPrinting = resolve; });
+  const h = pdfHarness({ beforePrintToFile: async () => { enteredPrinting(); await pendingPrinting; } });
+  const generating = h.pdf.createReportPdf(h.report, h.scope, h.assertAccess);
+  await entered;
+  h.state.scope = 'user:account-b';
+  finishPrinting();
+  await assert.rejects(generating, /Report access changed/);
+  assert.equal(h.calls.filter(([action]) => action === 'generate').length, 1);
+  assert.equal(h.calls.filter(([action]) => action === 'directory' || action === 'copy').length, 0);
+});

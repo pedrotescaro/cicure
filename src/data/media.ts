@@ -42,9 +42,16 @@ export async function hydrateVisitMedia(scope: string, visit: Visit, requestClie
   const client = requestClient ?? await createAccountClient(scope);
   let failed = 0;
   const photos = await Promise.all(visit.photos.map(async photo => {
-    if (!photo.storagePath) return photo;
+    const ownDirectory = FileSystem.documentDirectory && `${FileSystem.documentDirectory}clinical/${scope.replace(/:/g, '-')}/photos/`;
+    const localFileName = ownDirectory && photo.uri.startsWith(ownDirectory) ? photo.uri.slice(ownDirectory.length) : '';
+    const ownLocalFile = Platform.OS !== 'web' && /^[a-zA-Z0-9-]+\.(jpg|png)$/.test(localFileName || '');
+    if (!photo.storagePath) {
+      if (ownLocalFile) return photo;
+      failed += 1;
+      return { ...photo, uri: '' };
+    }
     try {
-      if (Platform.OS !== 'web' && photo.uri.startsWith('file://')) {
+      if (ownLocalFile) {
         const existing = await FileSystem.getInfoAsync(photo.uri);
         if (existing.exists) return photo;
       }
@@ -55,12 +62,12 @@ export async function hydrateVisitMedia(scope: string, visit: Visit, requestClie
       if (!directory) throw new Error('Armazenamento de imagens indisponível');
       await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
       const extension = photo.storagePath.endsWith('.png') ? 'png' : 'jpg';
-      const target = `${directory}cicure-${photo.id}.${extension}`;
+      const target = `${directory}cicure-${photo.id.replace(/[^a-zA-Z0-9-]/g, '')}.${extension}`;
       await FileSystem.downloadAsync(data.signedUrl, target);
       return { ...photo, uri: target };
     } catch {
       failed += 1;
-      return photo;
+      return ownLocalFile ? photo : { ...photo, uri: '' };
     }
   }));
   return { visit: { ...visit, photos }, failed };
